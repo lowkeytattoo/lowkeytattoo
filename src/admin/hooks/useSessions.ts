@@ -1,0 +1,82 @@
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { supabase } from "@shared/lib/supabase";
+import type { Session } from "@shared/types/index";
+
+interface SessionFilters {
+  artistId?: string;
+  clientId?: string;
+  from?: string;
+  to?: string;
+  type?: string;
+  paid?: boolean;
+}
+
+export const useSessions = (filters: SessionFilters = {}) => {
+  return useQuery({
+    queryKey: ["sessions", filters],
+    queryFn: async () => {
+      let query = supabase
+        .from("sessions")
+        .select("*, client:clients(id, name), artist:profiles(id, display_name)")
+        .order("date", { ascending: false });
+
+      if (filters.artistId) query = query.eq("artist_id", filters.artistId);
+      if (filters.clientId) query = query.eq("client_id", filters.clientId);
+      if (filters.from) query = query.gte("date", filters.from);
+      if (filters.to) query = query.lte("date", filters.to);
+      if (filters.type) query = query.eq("type", filters.type);
+      if (filters.paid !== undefined) query = query.eq("paid", filters.paid);
+
+      const { data, error } = await query;
+      if (error) throw error;
+      return data;
+    },
+  });
+};
+
+const invalidateAll = (qc: ReturnType<typeof useQueryClient>) => {
+  qc.invalidateQueries({ queryKey: ["sessions"] });
+  qc.invalidateQueries({ queryKey: ["finances-overview"] });
+  qc.invalidateQueries({ queryKey: ["revenue-by-month"] });
+  qc.invalidateQueries({ queryKey: ["unpaid-sessions"] });
+};
+
+export const useCreateSession = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (session: Omit<Session, "id" | "created_at">) => {
+      const { data, error } = await supabase.from("sessions").insert(session).select().single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => invalidateAll(qc),
+  });
+};
+
+export const useUpdateSession = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ...updates }: Partial<Session> & { id: string }) => {
+      const { data, error } = await supabase
+        .from("sessions")
+        .update(updates)
+        .eq("id", id)
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => invalidateAll(qc),
+  });
+};
+
+export const useDeleteSession = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("sessions").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => invalidateAll(qc),
+  });
+};

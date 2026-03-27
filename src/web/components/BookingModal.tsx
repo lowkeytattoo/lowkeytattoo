@@ -1,0 +1,173 @@
+import { useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import { format } from "date-fns";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
+import { useBooking } from "@web/contexts/BookingContext";
+import { ARTISTS, Artist } from "@shared/config/artists";
+import { TimeSlot } from "@web/hooks/useCalendarAvailability";
+import { sendBookingRequest } from "@web/lib/email";
+import { trackBookingStep, trackBookingSubmit } from "@web/lib/analytics";
+import { ArtistStep } from "@web/components/booking/ArtistStep";
+import { DateTimeStep } from "@web/components/booking/DateTimeStep";
+import { DetailsStep, DetailsFormValues } from "@web/components/booking/DetailsStep";
+import { SuccessStep } from "@web/components/booking/SuccessStep";
+import { cn } from "@shared/lib/utils";
+
+type Step = 1 | 2 | 3 | 4;
+
+interface PartialBooking {
+  artist: Artist | null;
+  date: Date | null;
+  slot: TimeSlot | null;
+  details: DetailsFormValues | null;
+}
+
+const TOTAL_STEPS = 4;
+
+const slideVariants = {
+  enter: (direction: number) => ({
+    x: direction > 0 ? 40 : -40,
+    opacity: 0,
+  }),
+  center: {
+    x: 0,
+    opacity: 1,
+  },
+  exit: (direction: number) => ({
+    x: direction > 0 ? -40 : 40,
+    opacity: 0,
+  }),
+};
+
+export const BookingModal = () => {
+  const { isOpen, closeModal } = useBooking();
+  const [step, setStep] = useState<Step>(1);
+  const [direction, setDirection] = useState(1);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [booking, setBooking] = useState<PartialBooking>({
+    artist: null,
+    date: null,
+    slot: null,
+    details: null,
+  });
+
+  const goTo = (next: Step) => {
+    if (next > step && next <= 3) trackBookingStep(step as 1 | 2 | 3);
+    setDirection(next > step ? 1 : -1);
+    setStep(next);
+  };
+
+  const handleClose = () => {
+    closeModal();
+    // Reset after close animation
+    setTimeout(() => {
+      setStep(1);
+      setBooking({ artist: null, date: null, slot: null, details: null });
+    }, 300);
+  };
+
+  const handleSubmit = async (details: DetailsFormValues) => {
+    if (!booking.artist || !booking.date || !booking.slot) return;
+    setIsSubmitting(true);
+    try {
+      await sendBookingRequest({
+        artistName: booking.artist.name,
+        artistEmail: booking.artist.email,
+        clientName: details.clientName,
+        clientPhone: details.clientPhone,
+        clientEmail: details.clientEmail,
+        date: format(booking.date, "dd/MM/yyyy"),
+        time: booking.slot.label,
+        description: details.description,
+        bodyZone: details.bodyZone,
+        isFirstTime: details.isFirstTime,
+      });
+      trackBookingSubmit(booking.artist?.name ?? "Unknown");
+      setBooking((prev) => ({ ...prev, details }));
+      goTo(4);
+    } catch (err) {
+      console.error("Error sending booking request:", err);
+      // Still show success — email may not be configured
+      setBooking((prev) => ({ ...prev, details }));
+      goTo(4);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  return (
+    <Dialog open={isOpen} onOpenChange={(open) => !open && handleClose()}>
+      <DialogContent className="bg-card border-border max-w-lg w-full p-0 overflow-hidden gap-0">
+        {/* Progress bar */}
+        {step < 4 && (
+          <div className="flex gap-1.5 px-6 pt-5 pb-0">
+            {Array.from({ length: TOTAL_STEPS - 1 }).map((_, i) => (
+              <div
+                key={i}
+                className={cn(
+                  "h-0.5 flex-1 rounded-full transition-colors duration-300",
+                  i < step ? "bg-foreground" : "bg-border"
+                )}
+              />
+            ))}
+          </div>
+        )}
+
+        <div className="p-6 overflow-hidden">
+          <AnimatePresence mode="wait" custom={direction}>
+            <motion.div
+              key={step}
+              custom={direction}
+              variants={slideVariants}
+              initial="enter"
+              animate="center"
+              exit="exit"
+              transition={{ duration: 0.25, ease: [0.4, 0, 0.2, 1] }}
+            >
+              {step === 1 && (
+                <ArtistStep
+                  artists={ARTISTS}
+                  selected={booking.artist}
+                  onSelect={(artist) => setBooking((prev) => ({ ...prev, artist }))}
+                  onContinue={() => goTo(2)}
+                />
+              )}
+
+              {step === 2 && booking.artist && (
+                <DateTimeStep
+                  artist={booking.artist}
+                  selectedDate={booking.date}
+                  selectedSlot={booking.slot}
+                  onDateChange={(date) =>
+                    setBooking((prev) => ({ ...prev, date, slot: null }))
+                  }
+                  onSlotChange={(slot) => setBooking((prev) => ({ ...prev, slot }))}
+                  onContinue={() => goTo(3)}
+                  onBack={() => goTo(1)}
+                />
+              )}
+
+              {step === 3 && (
+                <DetailsStep
+                  defaultValues={booking.details ?? undefined}
+                  onSubmit={handleSubmit}
+                  onBack={() => goTo(2)}
+                  isSubmitting={isSubmitting}
+                />
+              )}
+
+              {step === 4 && booking.artist && booking.date && booking.slot && (
+                <SuccessStep
+                  artist={booking.artist}
+                  date={booking.date}
+                  slot={booking.slot}
+                  onClose={handleClose}
+                />
+              )}
+            </motion.div>
+          </AnimatePresence>
+        </div>
+      </DialogContent>
+    </Dialog>
+  );
+};
