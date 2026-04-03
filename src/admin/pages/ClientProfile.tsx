@@ -30,6 +30,35 @@ import { es } from "date-fns/locale";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import type { ClientPhoto } from "@shared/types/index";
 
+const MAX_PX = 1920;
+const WEBP_QUALITY = 0.85;
+
+async function convertToWebP(file: File): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      let { naturalWidth: w, naturalHeight: h } = img;
+      if (w > MAX_PX || h > MAX_PX) {
+        if (w >= h) { h = Math.round((h * MAX_PX) / w); w = MAX_PX; }
+        else        { w = Math.round((w * MAX_PX) / h); h = MAX_PX; }
+      }
+      const canvas = document.createElement("canvas");
+      canvas.width = w;
+      canvas.height = h;
+      canvas.getContext("2d")!.drawImage(img, 0, 0, w, h);
+      canvas.toBlob(
+        (blob) => (blob ? resolve(blob) : reject(new Error("WebP conversion failed"))),
+        "image/webp",
+        WEBP_QUALITY
+      );
+    };
+    img.onerror = reject;
+    img.src = url;
+  });
+}
+
 const SESSION_TYPES = ["tattoo", "piercing", "laser", "retoque"] as const;
 const SESSION_TYPE_LABELS: Record<string, string> = {
   tattoo: "Tatuaje",
@@ -142,11 +171,12 @@ export default function ClientProfile() {
     if (!file || !id) return;
     setUploading(true);
     try {
+      const webpBlob = await convertToWebP(file);
       const photoId = crypto.randomUUID();
-      const path = `clients/${id}/${photoId}.jpg`;
+      const path = `clients/${id}/${photoId}.webp`;
       const { error: uploadError } = await supabase.storage
         .from("client-photos")
-        .upload(path, file, { contentType: file.type });
+        .upload(path, webpBlob, { contentType: "image/webp" });
       if (uploadError) throw uploadError;
 
       await supabase.from("client_photos").insert({

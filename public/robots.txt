@@ -13,4 +13,4 @@ Allow: /
 User-agent: *
 Allow: /
 
-Sitemap: https://lowkeytattoo.vercel.app/sitemap.xml
+Sitemap: https://tattoolowkey.com/sitemap.xml

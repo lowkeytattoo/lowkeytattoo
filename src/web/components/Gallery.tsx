@@ -12,16 +12,14 @@ import gallery3 from "@/assets/gallery-3.jpg";
 import gallery4 from "@/assets/gallery-4.jpg";
 import gallery5 from "@/assets/gallery-5.jpg";
 import gallery6 from "@/assets/gallery-6.jpg";
-import igImg1 from "@/assets/IG/SaveClip.App_615062682_18548918890057477_6192388232569777066_n.jpg";
-import igImg2 from "@/assets/IG/SaveClip.App_628262139_18313589008268610_5858521223976194281_n.jpg";
 import laserImg from "@/assets/laser_lowkey.jpg";
 
 type Category = "tattoo" | "piercing" | "laser";
 
 const ARTIST_WORKS: Record<string, string[]> = {
   pablo:  [gallery1, gallery3, gallery6],
-  sergio: [gallery2, gallery5, igImg1],
-  fifo:   [gallery4, igImg2],
+  sergio: [gallery2, gallery5, gallery6],
+  fifo:   [gallery4, gallery3],
 };
 
 const CATEGORIES: { id: Category; labelKey: string; bg: string | null }[] = [
@@ -125,7 +123,7 @@ const PiercingView = () => {
         {t("gallery.piercing.title")}
       </h3>
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 md:gap-4">
-        {[gallery4, igImg2].map((src, i) => (
+        {[gallery4, gallery3].map((src, i) => (
           <motion.div
             key={i}
             initial={{ opacity: 0, y: 10 }}
