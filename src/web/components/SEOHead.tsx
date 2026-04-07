@@ -9,13 +9,15 @@ interface SEOHeadProps {
   description: string;
   canonical: string;
   ogType?: string;
+  ogImage?: string;
   schema?: object | object[];
 }
 
-export function SEOHead({ title, description, canonical, ogType = "website", schema }: SEOHeadProps) {
+export function SEOHead({ title, description, canonical, ogType = "website", ogImage, schema }: SEOHeadProps) {
   const { locale } = useI18n();
   const url = `${SITE}${canonical}`;
   const schemas = schema ? (Array.isArray(schema) ? schema : [schema]) : [];
+  const socialImage = ogImage ?? BANNER;
 
   return (
     <Helmet>
@@ -33,7 +35,7 @@ export function SEOHead({ title, description, canonical, ogType = "website", sch
       <meta property="og:title" content={title} />
       <meta property="og:description" content={description} />
       <meta property="og:url" content={url} />
-      <meta property="og:image" content={BANNER} />
+      <meta property="og:image" content={socialImage} />
       <meta property="og:image:width" content="1200" />
       <meta property="og:image:height" content="800" />
       <meta property="og:type" content={ogType} />
@@ -43,7 +45,7 @@ export function SEOHead({ title, description, canonical, ogType = "website", sch
       <meta name="twitter:card" content="summary_large_image" />
       <meta name="twitter:title" content={title} />
       <meta name="twitter:description" content={description} />
-      <meta name="twitter:image" content={BANNER} />
+      <meta name="twitter:image" content={socialImage} />
 
       {schemas.map((s, i) => (
         <script key={i} type="application/ld+json">

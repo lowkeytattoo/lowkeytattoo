@@ -209,6 +209,18 @@ export const translations: Record<Locale, Record<string, string>> = {
     "service.whatsapp": "WhatsApp",
     "service.also": "We also offer",
     "service.breadcrumb.home": "Home",
+
+    // Contact form
+    "contact.form.title": "Send us a message",
+    "contact.form.name": "Name",
+    "contact.form.contact": "Phone or email",
+    "contact.form.message": "Message",
+    "contact.form.submit": "Send",
+    "contact.form.sending": "Sending...",
+    "contact.form.success": "Message sent! We'll be in touch soon.",
+    "contact.form.placeholder.name": "Your name",
+    "contact.form.placeholder.contact": "+34 600 000 000 or email@example.com",
+    "contact.form.placeholder.message": "Tell us about your idea, question or the tattoo you'd like to remove...",
   },
   es: {
     // Nav
@@ -418,5 +430,17 @@ export const translations: Record<Locale, Record<string, string>> = {
     "service.whatsapp": "WhatsApp",
     "service.also": "También ofrecemos",
     "service.breadcrumb.home": "Inicio",
+
+    // Formulario de contacto
+    "contact.form.title": "Envíanos un mensaje",
+    "contact.form.name": "Nombre",
+    "contact.form.contact": "Teléfono o email",
+    "contact.form.message": "Mensaje",
+    "contact.form.submit": "Enviar",
+    "contact.form.sending": "Enviando...",
+    "contact.form.success": "¡Mensaje enviado! Te contactamos pronto.",
+    "contact.form.placeholder.name": "Tu nombre",
+    "contact.form.placeholder.contact": "+34 600 000 000 o tu email",
+    "contact.form.placeholder.message": "Cuéntanos tu idea, tu consulta o el tatuaje que quieres eliminar...",
   },
 };

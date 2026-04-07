@@ -29,15 +29,6 @@ export default function LaserPage() {
         { "@type": "ListItem", position: 2, name: t("laser.h1"), item: "https://tattoolowkey.com/laser-eliminacion-tatuajes-tenerife" },
       ],
     },
-    {
-      "@context": "https://schema.org",
-      "@type": "FAQPage",
-      mainEntity: (["faq1", "faq2", "faq3", "faq4"] as const).map((key) => ({
-        "@type": "Question",
-        name: t(`laser.${key}.q`),
-        acceptedAnswer: { "@type": "Answer", text: t(`laser.${key}.a`) },
-      })),
-    },
   ];
 
   const steps = [
@@ -81,6 +72,8 @@ export default function LaserPage() {
               alt={`${t("laser.h1")} — Lowkey Tattoo`}
               className="h-full w-full object-cover"
               loading="eager"
+              width="1600"
+              height="700"
             />
           </div>
 

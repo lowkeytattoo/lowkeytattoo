@@ -198,8 +198,8 @@ create trigger blog_posts_updated_at
 | sitemap-images.xml | ✅ | — | |
 | llms.txt | ✅ | ✅ | Resuelto 2026-04-06 |
 | AggregateRating | ❌ | ❌ | Pendiente de tener reseñas |
-| Favicon completo | ❌ | — | Solo .ico básico — pendiente |
-| Web App Manifest | ❌ | — | Pendiente |
+| Favicon completo | ✅ | — | Resuelto 2026-04-07 |
+| Web App Manifest | ✅ | — | Resuelto 2026-04-07 |
 | 404 noindex + bilingüe | ✅ | ✅ | Resuelto 2026-04-06 |
 | URL Instagram unificada | ✅ | — | Resuelto 2026-04-06 |
 | `<link rel="sitemap">` en head | ✅ | — | Resuelto 2026-04-06 |
@@ -210,16 +210,17 @@ create trigger blog_posts_updated_at
 
 ### Semana 1 — Pendiente de acción manual
 - [ ] **Ejecutar SQL de migración** en Supabase (tabla blog_posts + bucket blog-images + trigger updated_at)
-- [ ] **Configurar GA4** → `VITE_GA4_MEASUREMENT_ID=G-XXXXXXXXXX` en .env y Vercel
-- [ ] **Configurar Meta Pixel** → reemplazar `PIXEL_ID_PLACEHOLDER` con ID real
+- [x] ~~**Configurar GA4**~~ ✅ Activo — G-TWXC2L3LQJ
+- [ ] **Configurar Meta Pixel** → añadir `VITE_META_PIXEL_ID` en .env y Vercel
 - [ ] **Editar post "cuánto cuesta"** desde admin → cambiar "(2025)" a "(2026)"
 - [ ] **Rellenar calendarIds** de los artistas
 
 ### Semana 2 — Local SEO y contenido
-- [ ] **Google Search Console** → verificar dominio + enviar sitemap
+- [x] ~~**Google Search Console**~~ ✅ Verificado + sitemap enviado 2026-04-07
+- [x] ~~**Vincular GA4 con Search Console**~~ ✅ Resuelto 2026-04-07
+- [x] ~~**Generar favicon completo**~~ ✅ Resuelto 2026-04-07
+- [x] ~~**Añadir política de privacidad y aviso legal**~~ ✅ Resuelto 2026-04-06
 - [ ] **Google Business Profile** → completar al 100% (fotos, horarios, servicios, descripción 750 chars)
-- [ ] **Generar favicon completo** en realfavicongenerator.net
-- [ ] **Añadir política de privacidad y aviso legal** al footer
 - [ ] **Estrategia de reseñas** → WhatsApp a los últimos 20 clientes
 
 ### Semana 3 — Contenido SEO
@@ -265,4 +266,4 @@ create trigger blog_posts_updated_at
 
 *Documento generado el 2026-04-06 · Última actualización: 2026-04-06*  
 *Issues resueltos: #1, #2, #6, #7, #8, #9, #10, #12, #13, #14 (parcial), #15, #16, #18, #19, #20, #21, #22, #23, #24, #26*  
-*Issues pendientes de acción manual: #3 (Meta Pixel), #4 (GA4), #5 (Calendar IDs), #14 (imágenes favicon), #25 (emails artistas)*
+*Issues pendientes de acción manual: #3 (Meta Pixel), #5 (Calendar IDs), #25 (emails artistas)*

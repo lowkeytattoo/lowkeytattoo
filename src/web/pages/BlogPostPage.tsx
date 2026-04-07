@@ -36,6 +36,11 @@ export default function BlogPostPage() {
 
   const otherPosts = (allPosts ?? []).filter((p) => p.slug !== post.slug).slice(0, 3);
 
+  // Extract first image from post content for OG/schema; fall back to site banner
+  const firstImage =
+    post.content.match(/<img[^>]+src="([^"]+)"/)?.[1] ??
+    "https://tattoolowkey.com/Banner_lowkeytattoo.jpg";
+
   const schemas = [
     {
       "@context": "https://schema.org",
@@ -44,7 +49,7 @@ export default function BlogPostPage() {
       description: post.meta_description,
       datePublished: post.date,
       dateModified: post.updated_at.split("T")[0],
-      image: "https://tattoolowkey.com/Banner_lowkeytattoo.jpg",
+      image: firstImage,
       author: { "@type": "Organization", name: "Lowkey Tattoo", url: "https://tattoolowkey.com" },
       publisher: {
         "@type": "Organization",
@@ -72,6 +77,7 @@ export default function BlogPostPage() {
         description={post.meta_description ?? post.excerpt ?? ""}
         canonical={`/blog/${post.slug}`}
         ogType="article"
+        ogImage={firstImage}
         schema={schemas}
       />
       <Navbar />

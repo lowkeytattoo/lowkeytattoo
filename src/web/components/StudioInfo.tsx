@@ -1,7 +1,9 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
-import { MapPin, Clock, Phone } from "lucide-react";
+import { MapPin, Clock, Phone, MessageSquare } from "lucide-react";
 import { useI18n } from "@web/i18n/I18nProvider";
 import { CONTACT } from "@web/config/contact";
+import { supabase } from "@shared/lib/supabase";
 
 const WhatsAppIcon = ({ size = 16 }: { size?: number }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -14,6 +16,36 @@ const openDays = new Set(["monday", "tuesday", "wednesday", "thursday", "friday"
 
 const StudioInfo = () => {
   const { t } = useI18n();
+
+  const [name, setName] = useState("");
+  const [contact, setContact] = useState("");
+  const [message, setMessage] = useState("");
+  const [sending, setSending] = useState(false);
+  const [sent, setSent] = useState(false);
+
+  const handleContactSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setSending(true);
+    try {
+      const isEmail = contact.includes("@");
+      await supabase.from("web_bookings").insert({
+        client_name: name,
+        client_email: isEmail ? contact : null,
+        client_phone: isEmail ? null : contact,
+        description: message,
+        artist_config_id: null,
+        preferred_date: null,
+        preferred_time: null,
+        body_zone: null,
+        is_first_time: null,
+        status: "pending",
+      });
+      setSent(true);
+      setName(""); setContact(""); setMessage("");
+    } finally {
+      setSending(false);
+    }
+  };
 
   return (
     <section id="studio" className="py-14 md:py-20 border-t border-border">
@@ -107,6 +139,76 @@ const StudioInfo = () => {
             />
           </motion.div>
         </div>
+
+        {/* Contact form */}
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.6, delay: 0.3 }}
+          className="mt-10 bg-card rounded-lg p-8 card-glow"
+        >
+          <div className="flex items-center gap-3 mb-6">
+            <MessageSquare size={16} className="text-muted-foreground" />
+            <span className="font-mono text-xs text-muted-foreground tracking-[0.1em] uppercase">
+              {t("contact.form.title")}
+            </span>
+          </div>
+
+          {sent ? (
+            <p className="font-mono text-sm text-foreground">{t("contact.form.success")}</p>
+          ) : (
+            <form onSubmit={handleContactSubmit} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="flex flex-col gap-1.5">
+                <label className="font-mono text-xs text-muted-foreground uppercase tracking-wider">
+                  {t("contact.form.name")} *
+                </label>
+                <input
+                  required
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder={t("contact.form.placeholder.name")}
+                  className="bg-background border border-border rounded-sm px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-ring"
+                />
+              </div>
+              <div className="flex flex-col gap-1.5">
+                <label className="font-mono text-xs text-muted-foreground uppercase tracking-wider">
+                  {t("contact.form.contact")} *
+                </label>
+                <input
+                  required
+                  value={contact}
+                  onChange={(e) => setContact(e.target.value)}
+                  placeholder={t("contact.form.placeholder.contact")}
+                  className="bg-background border border-border rounded-sm px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-ring"
+                />
+              </div>
+              <div className="sm:col-span-2 flex flex-col gap-1.5">
+                <label className="font-mono text-xs text-muted-foreground uppercase tracking-wider">
+                  {t("contact.form.message")} *
+                </label>
+                <textarea
+                  required
+                  rows={3}
+                  value={message}
+                  onChange={(e) => setMessage(e.target.value)}
+                  placeholder={t("contact.form.placeholder.message")}
+                  className="bg-background border border-border rounded-sm px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-ring resize-none"
+                />
+              </div>
+              <div className="sm:col-span-2">
+                <button
+                  type="submit"
+                  disabled={sending}
+                  className="cta-button rounded-sm text-xs tracking-[0.1em] uppercase disabled:opacity-60"
+                >
+                  {sending ? t("contact.form.sending") : t("contact.form.submit")}
+                </button>
+              </div>
+            </form>
+          )}
+        </motion.div>
+
       </div>
     </section>
   );

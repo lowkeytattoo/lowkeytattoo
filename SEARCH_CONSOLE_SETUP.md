@@ -423,11 +423,11 @@ Así sabrás inmediatamente si Google detecta algún problema técnico.
 ## Checklist final antes de cerrar hoy
 
 ```
-□ Propiedad verificada en Search Console (tipo Dominio)
-□ sitemap.xml enviado → URLs enviadas = 8
-□ sitemap-images.xml enviado
-□ Indexación solicitada para las 4 páginas principales
-□ Vinculado con GA4
+✅ Propiedad verificada en Search Console (tipo Dominio)
+✅ sitemap.xml enviado
+✅ sitemap-images.xml enviado
+✅ Vinculado con GA4
+✅ Indexación solicitada para las 4 páginas principales (2026-04-07)
 □ Notificaciones por email activadas
 □ Google Business Profile creado/reclamado y en proceso de completarse
 ```

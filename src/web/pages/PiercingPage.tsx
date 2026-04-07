@@ -67,6 +67,8 @@ export default function PiercingPage() {
               alt={`${t("piercing.h1")} — Lowkey Tattoo`}
               className="h-full w-full object-cover"
               loading="eager"
+              width="1600"
+              height="700"
             />
           </div>
 
