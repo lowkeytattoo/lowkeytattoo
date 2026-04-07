@@ -1,4 +1,7 @@
-import { BrowserRouter, Route, Routes, Navigate } from "react-router-dom";
+import { lazy, Suspense } from "react";
+import { BrowserRouter, Route, Routes, Navigate, useLocation } from "react-router-dom";
+import { useEffect } from "react";
+import { HelmetProvider } from "react-helmet-async";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -11,21 +14,47 @@ import { AdminAuthProvider } from "@admin/contexts/AdminAuthContext";
 import { ProtectedRoute } from "@admin/components/ProtectedRoute";
 import { RoleGuard } from "@admin/components/RoleGuard";
 import { AdminLayout } from "@admin/components/AdminLayout";
+
+// Public web pages — kept eager (small, critical path)
 import Index from "@web/pages/Index";
+import TatuajesPage from "@web/pages/TatuajesPage";
+import PiercingPage from "@web/pages/PiercingPage";
+import LaserPage from "@web/pages/LaserPage";
+import BlogPage from "@web/pages/BlogPage";
+import BlogPostPage from "@web/pages/BlogPostPage";
 import NotFound from "@web/pages/NotFound";
-import AdminLogin from "@admin/pages/Login";
-import AdminDashboard from "@admin/pages/Dashboard";
-import AdminClients from "@admin/pages/Clients";
-import AdminClientProfile from "@admin/pages/ClientProfile";
-import AdminSessions from "@admin/pages/Sessions";
-import AdminFinances from "@admin/pages/Finances";
-import AdminStock from "@admin/pages/Stock";
-import AdminArtists from "@admin/pages/Artists";
-import AdminWebBookings from "@admin/pages/WebBookings";
+import PrivacyPage from "@web/pages/PrivacyPage";
+import LegalPage from "@web/pages/LegalPage";
+
+// Admin pages — lazy loaded (behind auth, excluded from public bundle)
+const AdminLogin        = lazy(() => import("@admin/pages/Login"));
+const AdminDashboard    = lazy(() => import("@admin/pages/Dashboard"));
+const AdminClients      = lazy(() => import("@admin/pages/Clients"));
+const AdminClientProfile = lazy(() => import("@admin/pages/ClientProfile"));
+const AdminSessions     = lazy(() => import("@admin/pages/Sessions"));
+const AdminFinances     = lazy(() => import("@admin/pages/Finances"));
+const AdminStock        = lazy(() => import("@admin/pages/Stock"));
+const AdminArtists      = lazy(() => import("@admin/pages/Artists"));
+const AdminWebBookings  = lazy(() => import("@admin/pages/WebBookings"));
+const AdminBlog         = lazy(() => import("@admin/pages/BlogAdmin"));
+const BlogPreview       = lazy(() => import("@admin/pages/BlogPreview"));
 
 const queryClient = new QueryClient();
 
+function ScrollToTop() {
+  const { pathname } = useLocation();
+  useEffect(() => { window.scrollTo(0, 0); }, [pathname]);
+  return null;
+}
+
+const AdminFallback = () => (
+  <div className="flex h-screen bg-background items-center justify-center">
+    <span className="text-muted-foreground text-sm font-mono tracking-widest">Cargando...</span>
+  </div>
+);
+
 const App = () => (
+  <HelmetProvider>
   <QueryClientProvider client={queryClient}>
     <I18nProvider>
       <CookieConsentProvider>
@@ -36,17 +65,36 @@ const App = () => (
               <BookingModal />
               <CookieBanner />
               <BrowserRouter>
+                <ScrollToTop />
                 <Routes>
                   {/* Public web */}
                   <Route path="/" element={<Index />} />
+                  <Route path="/tatuajes-santa-cruz-tenerife" element={<TatuajesPage />} />
+                  <Route path="/piercing-tenerife" element={<PiercingPage />} />
+                  <Route path="/laser-eliminacion-tatuajes-tenerife" element={<LaserPage />} />
+                  <Route path="/blog" element={<BlogPage />} />
+                  <Route path="/blog/:slug" element={<BlogPostPage />} />
+                  <Route path="/politica-de-privacidad" element={<PrivacyPage />} />
+                  <Route path="/aviso-legal" element={<LegalPage />} />
 
-                  {/* Admin */}
-                  <Route path="/admin/login" element={<AdminLogin />} />
+                  {/* Admin login */}
+                  <Route
+                    path="/admin/login"
+                    element={
+                      <Suspense fallback={<AdminFallback />}>
+                        <AdminLogin />
+                      </Suspense>
+                    }
+                  />
+
+                  {/* Admin panel — all children lazy, single Suspense boundary */}
                   <Route
                     path="/admin"
                     element={
                       <ProtectedRoute>
-                        <AdminLayout />
+                        <Suspense fallback={<AdminFallback />}>
+                          <AdminLayout />
+                        </Suspense>
                       </ProtectedRoute>
                     }
                   >
@@ -66,6 +114,8 @@ const App = () => (
                       }
                     />
                     <Route path="bookings" element={<AdminWebBookings />} />
+                    <Route path="blog" element={<AdminBlog />} />
+                    <Route path="blog/preview/:id" element={<BlogPreview />} />
                   </Route>
 
                   <Route path="*" element={<NotFound />} />
@@ -77,6 +127,7 @@ const App = () => (
       </CookieConsentProvider>
     </I18nProvider>
   </QueryClientProvider>
+  </HelmetProvider>
 );
 
 export default App;

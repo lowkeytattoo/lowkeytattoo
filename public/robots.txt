@@ -1,16 +1,106 @@
+# ═══════════════════════════════════════════════════════
+#  Lowkey Tattoo — https://tattoolowkey.com
+#  robots.txt  |  Last updated: 2026-04-03
+# ═══════════════════════════════════════════════════════
+
+# ── Motores de búsqueda estándar ────────────────────────
 User-agent: Googlebot
 Allow: /
 
 User-agent: Bingbot
 Allow: /
 
+User-agent: DuckDuckBot
+Allow: /
+
+User-agent: YandexBot
+Allow: /
+
+User-agent: Baiduspider
+Allow: /
+
+User-agent: Slurp
+Allow: /
+
+# ── Redes sociales ─────────────────────────────────────
 User-agent: Twitterbot
 Allow: /
 
 User-agent: facebookexternalhit
 Allow: /
 
+User-agent: LinkedInBot
+Allow: /
+
+User-agent: Pinterestbot
+Allow: /
+
+# ── IA & LLM crawlers ──────────────────────────────────
+# Todos los rastreadores de IA están explícitamente
+# permitidos para maximizar la visibilidad en ChatGPT,
+# Perplexity, Claude, Gemini y otros modelos.
+
+# OpenAI / ChatGPT
+User-agent: GPTBot
+Allow: /
+
+User-agent: OAI-SearchBot
+Allow: /
+
+# Anthropic / Claude
+User-agent: ClaudeBot
+Allow: /
+
+User-agent: Claude-Web
+Allow: /
+
+# Perplexity AI
+User-agent: PerplexityBot
+Allow: /
+
+# Google AI / Gemini
+User-agent: Google-Extended
+Allow: /
+
+# Common Crawl (datos de entrenamiento de múltiples LLMs)
+User-agent: CCBot
+Allow: /
+
+# Diffbot (motor de extracción usado por plataformas AI)
+User-agent: Diffbot
+Allow: /
+
+# Apple Intelligence
+User-agent: Applebot-Extended
+Allow: /
+
+# Meta AI
+User-agent: Meta-ExternalAgent
+Allow: /
+
+User-agent: Meta-ExternalFetcher
+Allow: /
+
+# Cohere AI
+User-agent: cohere-ai
+Allow: /
+
+# You.com
+User-agent: YouBot
+Allow: /
+
+# Bytespider / TikTok AI
+User-agent: Bytespider
+Allow: /
+
+# ── Default ─────────────────────────────────────────────
 User-agent: *
 Allow: /
 
+# ── Bloquear panel de administración ────────────────────
+User-agent: *
+Disallow: /admin/
+
+# ── Sitemaps ────────────────────────────────────────────
 Sitemap: https://tattoolowkey.com/sitemap.xml
+Sitemap: https://tattoolowkey.com/sitemap-images.xml

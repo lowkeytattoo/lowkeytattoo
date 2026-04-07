@@ -1,13 +1,100 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
-        xmlns:xhtml="http://www.w3.org/1999/xhtml">
+        xmlns:xhtml="http://www.w3.org/1999/xhtml"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+
+  <!-- Home -->
   <url>
     <loc>https://tattoolowkey.com/</loc>
-    <lastmod>2026-03-17</lastmod>
+    <lastmod>2026-04-06</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
     <xhtml:link rel="alternate" hreflang="es" href="https://tattoolowkey.com/"/>
     <xhtml:link rel="alternate" hreflang="en" href="https://tattoolowkey.com/"/>
     <xhtml:link rel="alternate" hreflang="x-default" href="https://tattoolowkey.com/"/>
+    <image:image>
+      <image:loc>https://tattoolowkey.com/Banner_lowkeytattoo.jpg</image:loc>
+      <image:title>Lowkey Tattoo — Estudio de tatuajes en Santa Cruz de Tenerife</image:title>
+      <image:caption>Estudio de tatuajes y piercing profesional en Santa Cruz de Tenerife. Fine line, blackwork y geométrico.</image:caption>
+    </image:image>
   </url>
+
+  <!-- Tatuajes -->
+  <url>
+    <loc>https://tattoolowkey.com/tatuajes-santa-cruz-tenerife</loc>
+    <lastmod>2026-04-06</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.9</priority>
+    <xhtml:link rel="alternate" hreflang="es" href="https://tattoolowkey.com/tatuajes-santa-cruz-tenerife"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://tattoolowkey.com/tatuajes-santa-cruz-tenerife"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://tattoolowkey.com/tatuajes-santa-cruz-tenerife"/>
+    <image:image>
+      <image:loc>https://tattoolowkey.com/Banner_lowkeytattoo.jpg</image:loc>
+      <image:title>Tatuajes fine line y blackwork en Santa Cruz de Tenerife — Lowkey Tattoo</image:title>
+      <image:caption>Tatuajes personalizados en Santa Cruz de Tenerife. Especializados en fine line, blackwork y geométrico.</image:caption>
+    </image:image>
+  </url>
+
+  <!-- Piercing -->
+  <url>
+    <loc>https://tattoolowkey.com/piercing-tenerife</loc>
+    <lastmod>2026-04-06</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="es" href="https://tattoolowkey.com/piercing-tenerife"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://tattoolowkey.com/piercing-tenerife"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://tattoolowkey.com/piercing-tenerife"/>
+  </url>
+
+  <!-- Láser -->
+  <url>
+    <loc>https://tattoolowkey.com/laser-eliminacion-tatuajes-tenerife</loc>
+    <lastmod>2026-04-06</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <xhtml:link rel="alternate" hreflang="es" href="https://tattoolowkey.com/laser-eliminacion-tatuajes-tenerife"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://tattoolowkey.com/laser-eliminacion-tatuajes-tenerife"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://tattoolowkey.com/laser-eliminacion-tatuajes-tenerife"/>
+  </url>
+
+  <!-- Blog índice -->
+  <url>
+    <loc>https://tattoolowkey.com/blog</loc>
+    <lastmod>2026-04-06</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+    <xhtml:link rel="alternate" hreflang="es" href="https://tattoolowkey.com/blog"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://tattoolowkey.com/blog"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://tattoolowkey.com/blog"/>
+  </url>
+
+  <!-- Blog posts (3 publicados · generado 2026-04-06) -->
+  <url>
+    <loc>https://tattoolowkey.com/blog/estilos-de-tatuaje-guia-completa</loc>
+    <lastmod>2026-04-06</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+    <xhtml:link rel="alternate" hreflang="es" href="https://tattoolowkey.com/blog/estilos-de-tatuaje-guia-completa"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://tattoolowkey.com/blog/estilos-de-tatuaje-guia-completa"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://tattoolowkey.com/blog/estilos-de-tatuaje-guia-completa"/>
+  </url>
+  <url>
+    <loc>https://tattoolowkey.com/blog/cuanto-cuesta-un-tatuaje-en-tenerife</loc>
+    <lastmod>2026-04-06</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.6</priority>
+    <xhtml:link rel="alternate" hreflang="es" href="https://tattoolowkey.com/blog/cuanto-cuesta-un-tatuaje-en-tenerife"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://tattoolowkey.com/blog/cuanto-cuesta-un-tatuaje-en-tenerife"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://tattoolowkey.com/blog/cuanto-cuesta-un-tatuaje-en-tenerife"/>
+  </url>
+  <url>
+    <loc>https://tattoolowkey.com/blog/cuidados-despues-de-un-tatuaje</loc>
+    <lastmod>2026-04-06</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.6</priority>
+    <xhtml:link rel="alternate" hreflang="es" href="https://tattoolowkey.com/blog/cuidados-despues-de-un-tatuaje"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://tattoolowkey.com/blog/cuidados-despues-de-un-tatuaje"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://tattoolowkey.com/blog/cuidados-despues-de-un-tatuaje"/>
+  </url>
+
 </urlset>

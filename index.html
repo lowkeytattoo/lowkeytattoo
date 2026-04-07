@@ -12,8 +12,21 @@
     <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
     <meta name="theme-color" content="#0a0a0a" />
 
+    <!-- ══ FAVICON + PWA MANIFEST ═══════════════════════════════════════════ -->
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <link rel="icon" type="image/x-icon" href="/favicon.ico" />
+    <link rel="icon" type="image/png" sizes="96x96" href="/favicon-96x96.png" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/site.webmanifest" />
+
+    <!-- ══ PRECONNECT ═════════════════════════════════════════════════════════ -->
+    <link rel="preconnect" href="https://elfsightcdn.com" />
+    <link rel="dns-prefetch" href="https://elfsightcdn.com" />
+
     <!-- ══ CANONICAL + HREFLANG ══════════════════════════════════════════════ -->
     <link rel="canonical" href="https://tattoolowkey.com/" />
+    <link rel="sitemap" type="application/xml" href="/sitemap.xml" />
+    <link rel="alternate" type="text/plain" title="Plain text for LLMs" href="/llms.txt" />
     <link rel="alternate" hreflang="es" href="https://tattoolowkey.com/" />
     <link rel="alternate" hreflang="en" href="https://tattoolowkey.com/" />
     <link rel="alternate" hreflang="x-default" href="https://tattoolowkey.com/" />
@@ -76,7 +89,8 @@
         }
       ],
       "sameAs": [
-        "https://www.instagram.com/tattoo.lowkey/"
+        "https://www.instagram.com/tattoo.lowkey/",
+        "https://tattoolowkey.com/"
       ],
       "hasMap": "https://maps.google.com/maps?q=Calle+Doctor+Allart+50,+38003+Santa+Cruz+de+Tenerife",
       "serviceArea": {
@@ -88,11 +102,171 @@
         },
         "geoRadius": "30000"
       },
-      "makesOffer": [
-        { "@type": "Offer", "name": "Tatuaje Fine Line", "description": "Tatuajes de línea fina y geométricos en Santa Cruz de Tenerife" },
-        { "@type": "Offer", "name": "Tatuaje Blackwork", "description": "Tatuajes blackwork y dotwork en Santa Cruz de Tenerife" },
-        { "@type": "Offer", "name": "Piercing Profesional", "description": "Piercing profesional en Santa Cruz de Tenerife" },
-        { "@type": "Offer", "name": "Eliminación de Tatuajes con Láser", "description": "Servicio de eliminación de tatuajes con láser en Tenerife" }
+      "hasOfferCatalog": {
+        "@type": "OfferCatalog",
+        "name": "Servicios de Lowkey Tattoo",
+        "itemListElement": [
+          {
+            "@type": "Offer",
+            "itemOffered": {
+              "@type": "Service",
+              "name": "Tatuajes en Santa Cruz de Tenerife",
+              "description": "Tatuajes fine line, geométrico y blackwork. Diseños 100% personalizados.",
+              "url": "https://tattoolowkey.com/tatuajes-santa-cruz-tenerife"
+            }
+          },
+          {
+            "@type": "Offer",
+            "itemOffered": {
+              "@type": "Service",
+              "name": "Piercing Profesional en Tenerife",
+              "description": "Piercing con material estéril, joyas de titanio y acero quirúrgico.",
+              "url": "https://tattoolowkey.com/piercing-tenerife"
+            }
+          },
+          {
+            "@type": "Offer",
+            "itemOffered": {
+              "@type": "Service",
+              "name": "Eliminación de Tatuajes con Láser en Tenerife",
+              "description": "Eliminación y aclarado de tatuajes con láser. Valoración gratuita.",
+              "url": "https://tattoolowkey.com/laser-eliminacion-tatuajes-tenerife"
+            }
+          }
+        ]
+      }
+    }
+    </script>
+
+    <!-- ══ SCHEMA — WebSite ════════════════════════════════════════════════ -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "WebSite",
+      "@id": "https://tattoolowkey.com/#website",
+      "name": "Lowkey Tattoo",
+      "url": "https://tattoolowkey.com/",
+      "description": "Estudio de tatuajes y piercing profesional en Santa Cruz de Tenerife. Fine line, blackwork, geométrico y eliminación con láser.",
+      "inLanguage": ["es", "en"],
+      "publisher": {
+        "@id": "https://tattoolowkey.com/#business"
+      }
+    }
+    </script>
+
+    <!-- ══ SCHEMA — FAQPage (clave para IA y rich results) ══════════════════ -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "¿Dónde está Lowkey Tattoo en Tenerife?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Lowkey Tattoo está en Calle Dr. Allart, 50, 38003 Santa Cruz de Tenerife. Abrimos de lunes a viernes de 11:00 a 19:00. Puedes reservar cita en tattoolowkey.com o llamando al +34 674 116 189."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "¿Cuánto cuesta un tatuaje en Lowkey Tattoo?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "El precio varía según el tamaño, complejidad y estilo del tatuaje. Rango de precios: €€. Contacta por teléfono al +34 674 116 189 o reserva online en tattoolowkey.com para obtener un presupuesto personalizado sin compromiso."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "¿Qué estilos de tatuaje hacen en Lowkey Tattoo?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "En Lowkey Tattoo nos especializamos en tatuajes fine line, blackwork y geométrico. Todos los diseños son 100% personalizados y adaptados a cada cliente."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "¿Hacen piercing en Lowkey Tattoo?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Sí, ofrecemos piercing profesional en Tenerife con material estéril de un solo uso y joyas de titanio implant-grade y acero quirúrgico certificado."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "¿Eliminan tatuajes con láser en Tenerife?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Sí, en Lowkey Tattoo realizamos eliminación total y aclarado parcial de tatuajes con láser en Santa Cruz de Tenerife. Ofrecemos valoración gratuita sin compromiso. Más información en tattoolowkey.com/laser-eliminacion-tatuajes-tenerife."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "¿Cómo reservar cita en Lowkey Tattoo?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Puedes reservar tu cita online en tattoolowkey.com o llamando directamente al +34 674 116 189. Estamos en Calle Dr. Allart 50, Santa Cruz de Tenerife, abiertos de lunes a viernes de 11:00 a 19:00."
+          }
+        }
+      ]
+    }
+    </script>
+
+    <!-- ══ SCHEMA — FAQPage (English — for anglophone rich results) ═════════ -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "inLanguage": "en",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "Where is Lowkey Tattoo located in Tenerife?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Lowkey Tattoo is located at Calle Dr. Allart, 50, 38003 Santa Cruz de Tenerife, Canary Islands, Spain. We are open Monday to Friday from 11:00 to 19:00. Book your appointment at tattoolowkey.com or call +34 674 116 189."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How much does a tattoo cost at Lowkey Tattoo?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Prices vary depending on the size, complexity and style of the tattoo. Price range: €€. Contact us by phone at +34 674 116 189 or book online at tattoolowkey.com for a free, no-obligation custom quote."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "What tattoo styles does Lowkey Tattoo specialise in?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Lowkey Tattoo specialises in fine line, blackwork and geometric tattoos. All designs are 100% custom and tailored to each client."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Does Lowkey Tattoo do piercings?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes, we offer professional piercing in Tenerife using single-use sterile equipment and implant-grade titanium and certified surgical steel jewellery."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Does Lowkey Tattoo offer laser tattoo removal?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes, Lowkey Tattoo offers full laser tattoo removal and partial lightening (cover-up prep) in Santa Cruz de Tenerife. Free consultation available with no obligation. More info at tattoolowkey.com/laser-eliminacion-tatuajes-tenerife."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How do I book an appointment at Lowkey Tattoo?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "You can book online at tattoolowkey.com or call us directly at +34 674 116 189. We are at Calle Dr. Allart 50, Santa Cruz de Tenerife, open Monday to Friday 11:00–19:00."
+          }
+        }
       ]
     }
     </script>

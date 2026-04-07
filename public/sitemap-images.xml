@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"
+        xmlns:image="http://www.google.com/schemas/sitemap-image/1.1">
+
+  <url>
+    <loc>https://tattoolowkey.com/</loc>
+    <image:image>
+      <image:loc>https://tattoolowkey.com/Banner_lowkeytattoo.jpg</image:loc>
+      <image:title>Lowkey Tattoo — Estudio de tatuajes en Santa Cruz de Tenerife</image:title>
+      <image:caption>Estudio de tatuajes y piercing profesional en Santa Cruz de Tenerife, Canarias. Especializados en fine line, blackwork y geométrico. Eliminación con láser.</image:caption>
+    </image:image>
+  </url>
+
+  <url>
+    <loc>https://tattoolowkey.com/tatuajes-santa-cruz-tenerife</loc>
+    <image:image>
+      <image:loc>https://tattoolowkey.com/Banner_lowkeytattoo.jpg</image:loc>
+      <image:title>Tatuajes fine line y blackwork en Santa Cruz de Tenerife</image:title>
+      <image:caption>Tatuajes 100% personalizados en Lowkey Tattoo, Santa Cruz de Tenerife. Fine line, blackwork y geométrico.</image:caption>
+    </image:image>
+  </url>
+
+</urlset>
