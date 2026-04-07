@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { useAdminAuth } from "@admin/contexts/AdminAuthContext";
 import { useRevenueByMonth, useUnpaidSessions } from "@admin/hooks/useFinances";
 import { useArtistProfiles } from "@admin/hooks/useArtistProfiles";
@@ -12,15 +12,71 @@ import {
   BarChart, Bar,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
 } from "recharts";
-import { format } from "date-fns";
+import { format, startOfMonth, endOfMonth, subMonths, startOfYear } from "date-fns";
 import { es } from "date-fns/locale";
-import { Download } from "lucide-react";
+import { Download, Printer } from "lucide-react";
 
 const CHART_COLORS = [
   "hsl(var(--primary))",
   "hsl(215, 20%, 55%)",
   "hsl(215, 20%, 40%)",
 ];
+
+type Period = "month" | "prev" | "3m" | "year" | "all";
+
+const PERIOD_LABELS: Record<Period, string> = {
+  month: "Este mes",
+  prev: "Mes anterior",
+  "3m": "3 meses",
+  year: "Este año",
+  all: "Todo",
+};
+
+function computePeriodDates(p: Period): {
+  from: string | undefined;
+  to: string | undefined;
+  prevFrom: string | undefined;
+  prevTo: string | undefined;
+} {
+  const now = new Date();
+  const fmt = (d: Date) => format(d, "yyyy-MM-dd");
+
+  if (p === "month") {
+    return {
+      from: fmt(startOfMonth(now)),
+      to: fmt(endOfMonth(now)),
+      prevFrom: fmt(startOfMonth(subMonths(now, 1))),
+      prevTo: fmt(endOfMonth(subMonths(now, 1))),
+    };
+  }
+  if (p === "prev") {
+    const prev = subMonths(now, 1);
+    return {
+      from: fmt(startOfMonth(prev)),
+      to: fmt(endOfMonth(prev)),
+      prevFrom: fmt(startOfMonth(subMonths(now, 2))),
+      prevTo: fmt(endOfMonth(subMonths(now, 2))),
+    };
+  }
+  if (p === "3m") {
+    return {
+      from: fmt(startOfMonth(subMonths(now, 2))),
+      to: fmt(endOfMonth(now)),
+      prevFrom: fmt(startOfMonth(subMonths(now, 5))),
+      prevTo: fmt(endOfMonth(subMonths(now, 3))),
+    };
+  }
+  if (p === "year") {
+    const year = now.getFullYear();
+    return {
+      from: `${year}-01-01`,
+      to: `${year}-12-31`,
+      prevFrom: `${year - 1}-01-01`,
+      prevTo: `${year - 1}-12-31`,
+    };
+  }
+  return { from: undefined, to: undefined, prevFrom: undefined, prevTo: undefined };
+}
 
 function exportCsv(rows: any[], filename: string) {
   if (!rows.length) return;
@@ -38,6 +94,46 @@ function exportCsv(rows: any[], filename: string) {
   URL.revokeObjectURL(url);
 }
 
+function printSessionReceipt(session: any) {
+  const price = parseFloat(String(session.price ?? 0)).toFixed(0);
+  const deposit = parseFloat(String(session.deposit ?? 0)).toFixed(0);
+  const html = `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Recibo · Lowkey Tattoo</title>
+  <style>
+    body{font-family:monospace;max-width:420px;margin:48px auto;padding:24px;color:#111}
+    h1{font-size:20px;margin:0 0 2px}
+    .sub{font-size:11px;text-transform:uppercase;letter-spacing:.12em;color:#666;margin-bottom:20px}
+    hr{border:none;border-top:1px solid #ccc;margin:16px 0}
+    .row{display:flex;justify-content:space-between;margin:8px 0;font-size:13px}
+    .lbl{color:#888;font-size:11px;text-transform:uppercase;letter-spacing:.08em}
+    .total{font-weight:bold;font-size:16px;border-top:1px solid #111;padding-top:12px;margin-top:12px}
+    .footer{margin-top:28px;text-align:center;font-size:10px;color:#888;text-transform:uppercase;letter-spacing:.1em}
+    @media print{body{margin:0}}
+  </style>
+</head>
+<body>
+  <h1>Lowkey Tattoo Studio</h1>
+  <div class="sub">Justificante de sesión</div>
+  <hr>
+  <div class="row"><span class="lbl">Fecha</span><span>${session.date ?? "—"}</span></div>
+  <div class="row"><span class="lbl">Cliente</span><span>${(session.client as any)?.name ?? "—"}</span></div>
+  <div class="row"><span class="lbl">Artista</span><span>${(session.artist as any)?.display_name ?? "—"}</span></div>
+  <div class="row"><span class="lbl">Servicio</span><span>${session.type ?? "—"}</span></div>
+  <div class="row"><span class="lbl">Zona</span><span>${session.body_zone ?? "—"}</span></div>
+  <hr>
+  <div class="row"><span class="lbl">Señal / Depósito</span><span>€${deposit}</span></div>
+  <div class="row total"><span>Total</span><span>€${price}</span></div>
+  <div class="footer">Calle Dr. Allart, 50 · 38003 Santa Cruz de Tenerife</div>
+  <script>window.onload=()=>{window.print();window.onafterprint=()=>window.close()}</script>
+</body>
+</html>`;
+  const w = window.open("", "_blank", "width=520,height=640");
+  if (w) { w.document.write(html); w.document.close(); }
+}
+
 export default function Finances() {
   const { profile } = useAdminAuth();
   const isOwner = profile?.role === "owner";
@@ -45,15 +141,26 @@ export default function Finances() {
 
   const { data: artists } = useArtistProfiles();
   const [activeTab, setActiveTab] = useState("global");
+  const [activePeriod, setActivePeriod] = useState<Period>("month");
 
-  // Derive the filter from the active tab
   const activeArtistId = isOwner
     ? (activeTab === "global" ? undefined : activeTab)
     : artistId;
 
+  const { from, to, prevFrom, prevTo } = useMemo(
+    () => computePeriodDates(activePeriod),
+    [activePeriod]
+  );
+
   const { data: revenueResult } = useRevenueByMonth(6, activeArtistId);
   const { data: unpaid } = useUnpaidSessions(activeArtistId);
-  const { data: sessions } = useSessions({ artistId: activeArtistId });
+  const { data: sessions } = useSessions({ artistId: activeArtistId, from, to });
+  const { data: prevSessions } = useSessions({
+    artistId: activeArtistId,
+    from: prevFrom,
+    to: prevTo,
+    enabled: activePeriod !== "all",
+  });
 
   const revenueRows = revenueResult?.rows ?? [];
   const artistNames = revenueResult?.artistNames ?? [];
@@ -63,6 +170,14 @@ export default function Finances() {
 
   const totalRevenue = (sessions ?? []).reduce((s, sess) => s + parseFloat(String(sess.price ?? 0)), 0);
   const paidRevenue = (sessions ?? []).filter((s) => s.paid).reduce((s, sess) => s + parseFloat(String(sess.price ?? 0)), 0);
+
+  const prevTotal = (prevSessions ?? []).reduce((s, sess) => s + parseFloat(String(sess.price ?? 0)), 0);
+  const prevPaid = (prevSessions ?? []).filter((s) => s.paid).reduce((s, sess) => s + parseFloat(String(sess.price ?? 0)), 0);
+
+  const delta = (curr: number, prev: number) => {
+    if (activePeriod === "all" || prev === 0) return undefined;
+    return ((curr - prev) / prev) * 100;
+  };
 
   const handleExport = () => {
     const rows = (sessions ?? []).map((s) => ({
@@ -74,7 +189,8 @@ export default function Finances() {
       señal: s.deposit,
       pagado: s.paid ? "Sí" : "No",
     }));
-    exportCsv(rows, `finanzas_${format(new Date(), "yyyy-MM")}.csv`);
+    const suffix = from ? `${from}_${to}` : format(new Date(), "yyyy-MM");
+    exportCsv(rows, `finanzas_${suffix}.csv`);
   };
 
   return (
@@ -92,6 +208,21 @@ export default function Finances() {
         </Button>
       </div>
 
+      {/* Period selector */}
+      <div className="flex gap-2 flex-wrap">
+        {(Object.keys(PERIOD_LABELS) as Period[]).map((p) => (
+          <Button
+            key={p}
+            variant={activePeriod === p ? "default" : "outline"}
+            size="sm"
+            className="font-['IBM_Plex_Mono'] text-xs tracking-wider"
+            onClick={() => setActivePeriod(p)}
+          >
+            {PERIOD_LABELS[p]}
+          </Button>
+        ))}
+      </div>
+
       {isOwner ? (
         <Tabs value={activeTab} onValueChange={setActiveTab}>
           <TabsList className="bg-card border border-border">
@@ -103,11 +234,13 @@ export default function Finances() {
             ))}
           </TabsList>
 
-          {/* All tabs share the same content — data driven by activeArtistId */}
           <TabsContent value={activeTab} className="mt-4 space-y-4" forceMount>
             <FinancesContent
               totalRevenue={totalRevenue}
               paidRevenue={paidRevenue}
+              deltaTotal={delta(totalRevenue, prevTotal)}
+              deltaPaid={delta(paidRevenue, prevPaid)}
+              deltaPending={delta(totalRevenue - paidRevenue, prevTotal - prevPaid)}
               revenueRows={revenueRows}
               artistNames={artistNames}
               hasChartData={hasChartData}
@@ -120,6 +253,9 @@ export default function Finances() {
         <FinancesContent
           totalRevenue={totalRevenue}
           paidRevenue={paidRevenue}
+          deltaTotal={delta(totalRevenue, prevTotal)}
+          deltaPaid={delta(paidRevenue, prevPaid)}
+          deltaPending={delta(totalRevenue - paidRevenue, prevTotal - prevPaid)}
           revenueRows={revenueRows}
           artistNames={artistNames}
           hasChartData={hasChartData}
@@ -131,9 +267,23 @@ export default function Finances() {
   );
 }
 
+function DeltaBadge({ delta }: { delta?: number }) {
+  if (delta === undefined) return null;
+  const positive = delta >= 0;
+  const label = `${positive ? "+" : ""}${delta.toFixed(0)}%`;
+  return (
+    <span className={`text-xs font-['IBM_Plex_Mono'] ml-1 ${positive ? "text-green-500" : "text-destructive"}`}>
+      {label}
+    </span>
+  );
+}
+
 function FinancesContent({
   totalRevenue,
   paidRevenue,
+  deltaTotal,
+  deltaPaid,
+  deltaPending,
   revenueRows,
   artistNames,
   hasChartData,
@@ -142,6 +292,9 @@ function FinancesContent({
 }: {
   totalRevenue: number;
   paidRevenue: number;
+  deltaTotal?: number;
+  deltaPaid?: number;
+  deltaPending?: number;
   revenueRows: any[];
   artistNames: string[];
   hasChartData: boolean;
@@ -150,15 +303,17 @@ function FinancesContent({
 }) {
   const pending = totalRevenue - paidRevenue;
 
+  const kpis = [
+    { label: "Ingresos totales", value: `€${totalRevenue.toFixed(0)}`, delta: deltaTotal },
+    { label: "Cobrado", value: `€${paidRevenue.toFixed(0)}`, delta: deltaPaid },
+    { label: "Pendiente", value: `€${pending.toFixed(0)}`, delta: deltaPending, danger: pending > 0 },
+  ];
+
   return (
     <>
       {/* KPIs */}
       <div className="grid grid-cols-3 gap-4">
-        {[
-          { label: "Ingresos totales", value: `€${totalRevenue.toFixed(0)}` },
-          { label: "Cobrado", value: `€${paidRevenue.toFixed(0)}` },
-          { label: "Pendiente", value: `€${pending.toFixed(0)}`, danger: pending > 0 },
-        ].map(({ label, value, danger }) => (
+        {kpis.map(({ label, value, delta, danger }) => (
           <Card key={label} className="bg-card border-border">
             <CardContent className="p-4">
               <div className="text-xs font-['IBM_Plex_Mono'] uppercase tracking-wider text-muted-foreground mb-1">
@@ -166,6 +321,7 @@ function FinancesContent({
               </div>
               <div className={`text-2xl font-bold ${danger ? "text-destructive" : "text-foreground"}`}>
                 {value}
+                <DeltaBadge delta={delta} />
               </div>
             </CardContent>
           </Card>
@@ -227,11 +383,12 @@ function FinancesContent({
                   <TableHead className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Cliente</TableHead>
                   {isOwner && <TableHead className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Artista</TableHead>}
                   <TableHead className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider text-right">Importe</TableHead>
+                  <TableHead className="w-10" />
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {(unpaid ?? []).map((s) => (
-                  <TableRow key={s.id} className="border-border">
+                  <TableRow key={s.id} className="border-border group">
                     <TableCell className="text-sm font-['IBM_Plex_Mono']">
                       {format(new Date(s.date + "T00:00:00"), "d MMM yyyy", { locale: es })}
                     </TableCell>
@@ -239,6 +396,15 @@ function FinancesContent({
                     {isOwner && <TableCell className="text-sm">{(s.artist as any)?.display_name ?? "—"}</TableCell>}
                     <TableCell className="text-right font-['IBM_Plex_Mono'] text-sm text-destructive">
                       €{parseFloat(String(s.price ?? 0)).toFixed(0)}
+                    </TableCell>
+                    <TableCell className="text-right">
+                      <button
+                        onClick={() => printSessionReceipt(s)}
+                        className="opacity-0 group-hover:opacity-100 transition-opacity p-1 rounded hover:bg-muted"
+                        title="Imprimir recibo"
+                      >
+                        <Printer className="w-3.5 h-3.5 text-muted-foreground" />
+                      </button>
                     </TableCell>
                   </TableRow>
                 ))}

@@ -9,23 +9,26 @@ interface SessionFilters {
   to?: string;
   type?: string;
   paid?: boolean;
+  enabled?: boolean;
 }
 
 export const useSessions = (filters: SessionFilters = {}) => {
+  const { enabled = true, ...queryFilters } = filters;
   return useQuery({
-    queryKey: ["sessions", filters],
+    queryKey: ["sessions", queryFilters],
+    enabled,
     queryFn: async () => {
       let query = supabase
         .from("sessions")
         .select("*, client:clients(id, name), artist:profiles(id, display_name)")
         .order("date", { ascending: false });
 
-      if (filters.artistId) query = query.eq("artist_id", filters.artistId);
-      if (filters.clientId) query = query.eq("client_id", filters.clientId);
-      if (filters.from) query = query.gte("date", filters.from);
-      if (filters.to) query = query.lte("date", filters.to);
-      if (filters.type) query = query.eq("type", filters.type);
-      if (filters.paid !== undefined) query = query.eq("paid", filters.paid);
+      if (queryFilters.artistId) query = query.eq("artist_id", queryFilters.artistId);
+      if (queryFilters.clientId) query = query.eq("client_id", queryFilters.clientId);
+      if (queryFilters.from) query = query.gte("date", queryFilters.from);
+      if (queryFilters.to) query = query.lte("date", queryFilters.to);
+      if (queryFilters.type) query = query.eq("type", queryFilters.type);
+      if (queryFilters.paid !== undefined) query = query.eq("paid", queryFilters.paid);
 
       const { data, error } = await query;
       if (error) throw error;

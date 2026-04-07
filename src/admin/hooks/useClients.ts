@@ -1,6 +1,55 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@shared/lib/supabase";
-import type { Client } from "@shared/types/index";
+import type { Client, ClientPhoto } from "@shared/types/index";
+
+export const useClientPhotos = (clientId: string) => {
+  return useQuery({
+    queryKey: ["client-photos", clientId],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("client_photos")
+        .select("*")
+        .eq("client_id", clientId)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+
+      const withUrls = await Promise.all(
+        (data ?? []).map(async (photo: ClientPhoto) => {
+          const { data: signed } = await supabase.storage
+            .from("client-photos")
+            .createSignedUrl(photo.storage_path, 3600);
+          return { ...photo, signedUrl: signed?.signedUrl ?? "" };
+        })
+      );
+      return withUrls;
+    },
+    enabled: !!clientId,
+  });
+};
+
+export const useDeleteClientPhoto = () => {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({
+      photoId,
+      storagePath,
+      clientId,
+    }: {
+      photoId: string;
+      storagePath: string;
+      clientId: string;
+    }) => {
+      await supabase.storage.from("client-photos").remove([storagePath]);
+      const { error } = await supabase.from("client_photos").delete().eq("id", photoId);
+      if (error) throw error;
+      return clientId;
+    },
+    onSuccess: (_data, { clientId }) => {
+      qc.invalidateQueries({ queryKey: ["client-photos", clientId] });
+      qc.invalidateQueries({ queryKey: ["client-cover-photos"] });
+    },
+  });
+};
 
 export const useClientCoverPhotos = () => {
   return useQuery({

@@ -1,7 +1,7 @@
 import { useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useClient, useUpdateClient, useSetCoverPhoto } from "@admin/hooks/useClients";
-import { useSessions, useCreateSession } from "@admin/hooks/useSessions";
+import { useClient, useUpdateClient, useSetCoverPhoto, useClientPhotos, useDeleteClientPhoto } from "@admin/hooks/useClients";
+import { useSessions, useCreateSession, useUpdateSession } from "@admin/hooks/useSessions";
 import { useAdminAuth } from "@admin/contexts/AdminAuthContext";
 import { supabase } from "@shared/lib/supabase";
 import { Button } from "@/components/ui/button";
@@ -9,6 +9,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import {
   Dialog,
@@ -24,11 +25,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, Camera, Plus, Star, Upload } from "lucide-react";
+import { ArrowLeft, Camera, Plus, Star, Upload, Trash2, Pencil } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { useQuery, useQueryClient } from "@tanstack/react-query";
-import type { ClientPhoto } from "@shared/types/index";
+import { useQueryClient } from "@tanstack/react-query";
 
 const MAX_PX = 1920;
 const WEBP_QUALITY = 0.85;
@@ -77,7 +77,9 @@ export default function ClientProfile() {
   const { data: sessions } = useSessions({ clientId: id });
   const updateClient = useUpdateClient();
   const createSession = useCreateSession();
+  const updateSession = useUpdateSession();
   const setCoverPhoto = useSetCoverPhoto();
+  const deletePhoto = useDeleteClientPhoto();
 
   const [editing, setEditing] = useState(false);
   const [editName, setEditName] = useState("");
@@ -98,29 +100,31 @@ export default function ClientProfile() {
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const { data: photos } = useQuery({
-    queryKey: ["client-photos", id],
-    queryFn: async () => {
-      const { data, error } = await supabase
-        .from("client_photos")
-        .select("*")
-        .eq("client_id", id!)
-        .order("created_at", { ascending: false });
-      if (error) throw error;
+  const { data: photos } = useClientPhotos(id!);
 
-      // Bucket is private — generate signed URLs (1 h TTL)
-      const withUrls = await Promise.all(
-        (data ?? []).map(async (photo: ClientPhoto) => {
-          const { data: signed } = await supabase.storage
-            .from("client-photos")
-            .createSignedUrl(photo.storage_path, 3600);
-          return { ...photo, signedUrl: signed?.signedUrl ?? "" };
-        })
-      );
-      return withUrls;
-    },
-    enabled: !!id,
-  });
+  // Session quick-edit state
+  const [editingSession, setEditingSession] = useState<{ id: string; paid: boolean; price: number | null; notes: string | null } | null>(null);
+  const [editPaid, setEditPaid] = useState(false);
+  const [editPrice, setEditPrice] = useState("");
+  const [editNotes, setEditNotes] = useState("");
+
+  const openEditSession = (s: any) => {
+    setEditingSession({ id: s.id, paid: s.paid, price: s.price, notes: s.notes });
+    setEditPaid(s.paid);
+    setEditPrice(s.price != null ? String(s.price) : "");
+    setEditNotes(s.notes ?? "");
+  };
+
+  const handleEditSession = async () => {
+    if (!editingSession) return;
+    await updateSession.mutateAsync({
+      id: editingSession.id,
+      paid: editPaid,
+      price: editPrice ? parseFloat(editPrice) : null,
+      notes: editNotes || null,
+    });
+    setEditingSession(null);
+  };
 
   const startEdit = () => {
     if (!client) return;
@@ -311,20 +315,35 @@ export default function ClientProfile() {
                     className="w-full h-full object-cover cursor-pointer"
                     onClick={() => setLightboxPhoto(photo.signedUrl)}
                   />
-                  {photo.is_cover ? (
+                  {photo.is_cover && (
                     <div className="absolute top-1 left-1 bg-primary rounded-full p-0.5 pointer-events-none">
                       <Star className="w-3 h-3 text-primary-foreground fill-current" />
                     </div>
-                  ) : (
-                    <button
-                      className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-1"
-                      onClick={() => setCoverPhoto.mutate({ photoId: photo.id, clientId: id! })}
-                      title="Usar como foto de perfil"
-                    >
-                      <Star className="w-5 h-5 text-white" />
-                      <span className="text-white text-[10px] font-['IBM_Plex_Mono']">Perfil</span>
-                    </button>
                   )}
+                  <div className="absolute inset-0 bg-black/50 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center gap-2">
+                    {!photo.is_cover && (
+                      <button
+                        onClick={() => setCoverPhoto.mutate({ photoId: photo.id, clientId: id! })}
+                        title="Usar como foto de perfil"
+                        className="flex flex-col items-center gap-0.5"
+                      >
+                        <Star className="w-4 h-4 text-white" />
+                        <span className="text-white text-[9px] font-['IBM_Plex_Mono']">Perfil</span>
+                      </button>
+                    )}
+                    <button
+                      onClick={() => {
+                        if (confirm("¿Eliminar esta foto?")) {
+                          deletePhoto.mutate({ photoId: photo.id, storagePath: photo.storage_path, clientId: id! });
+                        }
+                      }}
+                      title="Eliminar foto"
+                      className="flex flex-col items-center gap-0.5"
+                    >
+                      <Trash2 className="w-4 h-4 text-red-400" />
+                      <span className="text-red-400 text-[9px] font-['IBM_Plex_Mono']">Borrar</span>
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
@@ -356,7 +375,7 @@ export default function ClientProfile() {
               {(sessions ?? []).map((s) => (
                 <div
                   key={s.id}
-                  className="flex items-center gap-4 p-3 rounded-lg bg-background border border-border"
+                  className="flex items-center gap-4 p-3 rounded-lg bg-background border border-border group"
                 >
                   <div className="text-xs font-['IBM_Plex_Mono'] text-muted-foreground w-24 shrink-0">
                     {format(new Date(s.date + "T00:00:00"), "d MMM yyyy", { locale: es })}
@@ -374,6 +393,14 @@ export default function ClientProfile() {
                     <Badge variant={s.paid ? "default" : "destructive"} className="text-xs">
                       {s.paid ? "Pagado" : "Pendiente"}
                     </Badge>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
+                      onClick={() => openEditSession(s)}
+                    >
+                      <Pencil className="w-3.5 h-3.5" />
+                    </Button>
                   </div>
                 </div>
               ))}
@@ -395,6 +422,56 @@ export default function ClientProfile() {
           />
         </div>
       )}
+
+      {/* Session quick-edit modal */}
+      <Dialog open={!!editingSession} onOpenChange={(open) => { if (!open) setEditingSession(null); }}>
+        <DialogContent className="bg-card border-border">
+          <DialogHeader>
+            <DialogTitle>Editar sesión</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 mt-2">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Precio (€)</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={editPrice}
+                  onChange={(e) => setEditPrice(e.target.value)}
+                  className="bg-background border-border"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Estado</Label>
+                <div className="flex items-center gap-2 h-10">
+                  <Checkbox
+                    id="edit-paid"
+                    checked={editPaid}
+                    onCheckedChange={(v) => setEditPaid(!!v)}
+                  />
+                  <Label htmlFor="edit-paid" className="text-sm cursor-pointer">Sesión pagada</Label>
+                </div>
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Notas</Label>
+              <Textarea
+                value={editNotes}
+                onChange={(e) => setEditNotes(e.target.value)}
+                className="bg-background border-border"
+                rows={2}
+              />
+            </div>
+          </div>
+          <DialogFooter className="mt-4">
+            <Button variant="ghost" onClick={() => setEditingSession(null)}>Cancelar</Button>
+            <Button className="cta-button" onClick={handleEditSession} disabled={updateSession.isPending}>
+              {updateSession.isPending ? "Guardando..." : "Guardar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       {/* Session modal */}
       <Dialog open={showSessionModal} onOpenChange={setShowSessionModal}>

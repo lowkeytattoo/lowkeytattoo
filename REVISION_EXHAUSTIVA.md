@@ -78,12 +78,12 @@ El más completo: fotos con conversión WebP automática (1920px max, 0.85 quali
 - `supabase.from("client_photos").select()` está inline en el componente en vez de en un hook — inconsistente con el resto del codebase
 
 ### Finances ✅
-KPIs, gráfico de barras apilado por artista, listado de impagados, CSV export, tabs por artista para owner.
+KPIs con comparativa de periodo anterior, gráfico de barras apilado por artista, listado de impagados con botón de recibo, CSV export respetando filtros, tabs por artista para owner, selector de periodo (este mes / mes anterior / 3 meses / año / todo).
 
-**Gaps:**
-- Sin **comparativa mes anterior** — los KPIs muestran totales del filtro activo, no un periodo concreto con comparativa
-- Sin **generación de factura/recibo** — útil para clientes que necesitan justificante
-- El CSV exporta todo sin respetar filtros aplicados (siempre todas las sesiones del artista activo, no el rango de fechas seleccionado)
+**Gaps resueltos:**
+- ✅ **Comparativa periodo anterior** — selector de periodo (este mes / mes anterior / 3m / año / todo) con delta % en cada KPI card (verde/rojo)
+- ✅ **Generación de recibo** — botón de impresora visible en hover en cada fila de sesiones sin cobrar; abre ventana de impresión con justificante formateado (fecha, cliente, artista, servicio, zona, depósito, total, dirección del estudio)
+- ✅ **CSV respeta filtros** — `useSessions` ahora recibe `from`/`to` del periodo activo; el export usa ese array filtrado y nombra el fichero con el rango de fechas
 
 ### Stock ✅
 Grid de productos con barra de progreso, filtros por categoría, historial de movimientos, create/delete para owner.

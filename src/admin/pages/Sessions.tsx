@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useSessions, useCreateSession, useUpdateSession } from "@admin/hooks/useSessions";
+import { useSessions, useCreateSession, useUpdateSession, useDeleteSession } from "@admin/hooks/useSessions";
 import { useClients } from "@admin/hooks/useClients";
 import { useArtistProfiles } from "@admin/hooks/useArtistProfiles";
 import { useAdminAuth } from "@admin/contexts/AdminAuthContext";
@@ -26,7 +26,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Pencil, CalendarIcon } from "lucide-react";
+import { Plus, Pencil, CalendarIcon, Trash2, Search } from "lucide-react";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import { cn } from "@shared/lib/utils";
@@ -49,6 +49,7 @@ function useSessionForm() {
   const [type, setType] = useState("tattoo");
   const [price, setPrice] = useState("");
   const [deposit, setDeposit] = useState("");
+  const [duration, setDuration] = useState("");
   const [zone, setZone] = useState("");
   const [style, setStyle] = useState("");
   const [notes, setNotes] = useState("");
@@ -56,8 +57,8 @@ function useSessionForm() {
 
   const reset = () => {
     setClientId(""); setArtistId(""); setDate(format(new Date(), "yyyy-MM-dd"));
-    setType("tattoo"); setPrice(""); setDeposit(""); setZone(""); setStyle("");
-    setNotes(""); setPaid(false);
+    setType("tattoo"); setPrice(""); setDeposit(""); setDuration(""); setZone("");
+    setStyle(""); setNotes(""); setPaid(false);
   };
 
   const fill = (s: SessionRow) => {
@@ -67,6 +68,7 @@ function useSessionForm() {
     setType(s.type);
     setPrice(s.price != null ? String(s.price) : "");
     setDeposit(s.deposit != null ? String(s.deposit) : "");
+    setDuration(s.duration_minutes != null ? String(s.duration_minutes) : "");
     setZone(s.body_zone ?? "");
     setStyle(s.style ?? "");
     setNotes(s.notes ?? "");
@@ -74,14 +76,15 @@ function useSessionForm() {
   };
 
   return { clientId, setClientId, artistId, setArtistId, date, setDate, type, setType,
-    price, setPrice, deposit, setDeposit, zone, setZone, style, setStyle,
-    notes, setNotes, paid, setPaid, reset, fill };
+    price, setPrice, deposit, setDeposit, duration, setDuration, zone, setZone,
+    style, setStyle, notes, setNotes, paid, setPaid, reset, fill };
 }
 
 export default function Sessions() {
   const { profile } = useAdminAuth();
   const isOwner = profile?.role === "owner";
 
+  const [filterSearch, setFilterSearch] = useState("");
   const [filterFrom, setFilterFrom] = useState("");
   const [filterTo, setFilterTo] = useState("");
   const [filterArtist, setFilterArtist] = useState("all");
@@ -101,11 +104,18 @@ export default function Sessions() {
   const { data: artists } = useArtistProfiles();
   const createSession = useCreateSession();
   const updateSession = useUpdateSession();
+  const deleteSession = useDeleteSession();
 
   const form = useSessionForm();
 
-  const totalRevenue = (sessions ?? []).reduce((s, sess) => s + (sess.price ?? 0), 0);
-  const paidRevenue = (sessions ?? []).filter((s) => s.paid).reduce((s, sess) => s + (sess.price ?? 0), 0);
+  const filteredSessions = filterSearch
+    ? (sessions ?? []).filter((s) =>
+        ((s.client as any)?.name ?? "").toLowerCase().includes(filterSearch.toLowerCase())
+      )
+    : (sessions ?? []);
+
+  const totalRevenue = filteredSessions.reduce((s, sess) => s + (sess.price ?? 0), 0);
+  const paidRevenue = filteredSessions.filter((s) => s.paid).reduce((s, sess) => s + (sess.price ?? 0), 0);
   const pendingRevenue = totalRevenue - paidRevenue;
 
   const openCreate = () => {
@@ -136,7 +146,7 @@ export default function Sessions() {
       price: form.price ? parseFloat(form.price) : null,
       deposit: form.deposit ? parseFloat(form.deposit) : 0,
       paid: form.paid,
-      duration_minutes: null,
+      duration_minutes: form.duration ? parseInt(form.duration) : null,
       body_zone: form.zone || null,
       style: form.style || null,
       notes: form.notes || null,
@@ -189,6 +199,15 @@ export default function Sessions() {
 
       {/* Filters */}
       <div className="flex flex-wrap gap-3">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+          <Input
+            placeholder="Buscar cliente..."
+            value={filterSearch}
+            onChange={(e) => setFilterSearch(e.target.value)}
+            className="pl-9 w-44 bg-background border-border"
+          />
+        </div>
         <Input type="date" value={filterFrom} onChange={(e) => setFilterFrom(e.target.value)} className="w-36 bg-background border-border" />
         <Input type="date" value={filterTo} onChange={(e) => setFilterTo(e.target.value)} className="w-36 bg-background border-border" />
         <Select value={filterType} onValueChange={setFilterType}>
@@ -215,8 +234,8 @@ export default function Sessions() {
             </SelectContent>
           </Select>
         )}
-        {(filterFrom || filterTo || filterType !== "all" || filterArtist !== "all") && (
-          <Button variant="ghost" size="sm" onClick={() => { setFilterFrom(""); setFilterTo(""); setFilterType("all"); setFilterArtist("all"); }}>
+        {(filterSearch || filterFrom || filterTo || filterType !== "all" || filterArtist !== "all") && (
+          <Button variant="ghost" size="sm" onClick={() => { setFilterSearch(""); setFilterFrom(""); setFilterTo(""); setFilterType("all"); setFilterArtist("all"); }}>
             Limpiar
           </Button>
         )}
@@ -233,21 +252,22 @@ export default function Sessions() {
               <TableHead className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Tipo</TableHead>
               <TableHead className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Zona</TableHead>
               <TableHead className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider text-right">Precio</TableHead>
+              <TableHead className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider text-right">Dur.</TableHead>
               <TableHead className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Pago</TableHead>
-              <TableHead className="w-10" />
+              <TableHead className="w-16" />
             </TableRow>
           </TableHeader>
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={isOwner ? 8 : 7} className="text-center py-12 text-muted-foreground">Cargando...</TableCell>
+                <TableCell colSpan={isOwner ? 9 : 8} className="text-center py-12 text-muted-foreground">Cargando...</TableCell>
               </TableRow>
-            ) : (sessions ?? []).length === 0 ? (
+            ) : filteredSessions.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={isOwner ? 8 : 7} className="text-center py-12 text-muted-foreground">Sin sesiones</TableCell>
+                <TableCell colSpan={isOwner ? 9 : 8} className="text-center py-12 text-muted-foreground">Sin sesiones</TableCell>
               </TableRow>
             ) : (
-              (sessions ?? []).map((s) => (
+              filteredSessions.map((s) => (
                 <TableRow key={s.id} className="border-border group">
                   <TableCell className="text-sm font-['IBM_Plex_Mono']">
                     {format(new Date(s.date + "T00:00:00"), "d MMM yyyy", { locale: es })}
@@ -265,6 +285,9 @@ export default function Sessions() {
                   <TableCell className="text-right font-['IBM_Plex_Mono'] text-sm">
                     {s.price != null ? `€${s.price.toFixed(0)}` : "—"}
                   </TableCell>
+                  <TableCell className="text-right font-['IBM_Plex_Mono'] text-sm text-muted-foreground">
+                    {s.duration_minutes != null ? `${s.duration_minutes}m` : "—"}
+                  </TableCell>
                   <TableCell>
                     <button onClick={() => togglePaid(s.id, s.paid)}>
                       <Badge
@@ -276,14 +299,30 @@ export default function Sessions() {
                     </button>
                   </TableCell>
                   <TableCell>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="opacity-0 group-hover:opacity-100 transition-opacity h-7 w-7 p-0"
-                      onClick={() => openEdit(s as SessionRow)}
-                    >
-                      <Pencil className="w-3.5 h-3.5" />
-                    </Button>
+                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 w-7 p-0"
+                        onClick={() => openEdit(s as SessionRow)}
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                      </Button>
+                      {isOwner && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 w-7 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
+                          onClick={() => {
+                            if (confirm(`¿Eliminar sesión de ${(s.client as any)?.name ?? "este cliente"}?`)) {
+                              deleteSession.mutate(s.id);
+                            }
+                          }}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                      )}
+                    </div>
                   </TableCell>
                 </TableRow>
               ))
@@ -404,7 +443,7 @@ export default function Sessions() {
               </div>
             )}
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-3 gap-3">
               <div className="space-y-1.5">
                 <Label className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Zona del cuerpo</Label>
                 <Input
@@ -419,6 +458,18 @@ export default function Sessions() {
                   value={form.style}
                   onChange={(e) => form.setStyle(e.target.value)}
                   className="bg-background border-border"
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Duración (min)</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  step="15"
+                  value={form.duration}
+                  onChange={(e) => form.setDuration(e.target.value)}
+                  className="bg-background border-border"
+                  placeholder="120"
                 />
               </div>
             </div>
