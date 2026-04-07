@@ -73,9 +73,6 @@ const Navbar = () => {
           <a href="/#studio" className="text-muted-foreground text-sm hover:text-foreground transition-colors duration-250">
             {t("nav.studio")}
           </a>
-          <a href="/#contact" className="text-muted-foreground text-sm hover:text-foreground transition-colors duration-250">
-            {t("nav.location")}
-          </a>
           <Link to="/blog" className="text-muted-foreground text-sm hover:text-foreground transition-colors duration-250">
             Blog
           </Link>
@@ -147,7 +144,6 @@ const Navbar = () => {
           </div>
 
           <a href="/#studio" onClick={() => setOpen(false)} className="text-muted-foreground text-sm hover:text-foreground py-2">{t("nav.studio")}</a>
-          <a href="/#contact" onClick={() => setOpen(false)} className="text-muted-foreground text-sm hover:text-foreground py-2">{t("nav.location")}</a>
           <Link to="/blog" onClick={() => setOpen(false)} className="text-muted-foreground text-sm hover:text-foreground py-2">Blog</Link>
           <button
             onClick={() => { setOpen(false); trackCtaClick("mobile_menu"); openModal(); }}
