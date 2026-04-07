@@ -6,13 +6,13 @@ import { ARTISTS, Artist } from "@shared/config/artists";
 import { InstagramIcon } from "@/components/ui/InstagramIcon";
 import { trackCategorySelect, trackArtistView, trackIgClick } from "@web/lib/analytics";
 
-import gallery1 from "@/assets/gallery-1.jpg";
-import gallery2 from "@/assets/gallery-2.jpg";
-import gallery3 from "@/assets/gallery-3.jpg";
-import gallery4 from "@/assets/gallery-4.jpg";
-import gallery5 from "@/assets/gallery-5.jpg";
-import gallery6 from "@/assets/gallery-6.jpg";
-import laserImg from "@/assets/laser_lowkey.jpg";
+import gallery1 from "@/assets/gallery-1.webp";
+import gallery2 from "@/assets/gallery-2.webp";
+import gallery3 from "@/assets/gallery-3.webp";
+import gallery4 from "@/assets/gallery-4.webp";
+import gallery5 from "@/assets/gallery-5.webp";
+import gallery6 from "@/assets/gallery-6.webp";
+import laserImg from "@/assets/laser_lowkey.webp";
 
 type Category = "tattoo" | "piercing" | "laser";
 

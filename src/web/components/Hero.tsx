@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import heroImage from "@/assets/hero-sacred.jpg";
+import heroImage from "@/assets/hero-sacred.webp";
 import { useI18n } from "@web/i18n/I18nProvider";
 import { useBooking } from "@web/contexts/BookingContext";
 import { trackCtaClick } from "@web/lib/analytics";
@@ -24,6 +24,7 @@ const Hero = () => {
           alt="Sacred geometry pattern"
           className="w-full h-full object-cover opacity-30"
           loading="eager"
+          fetchPriority="high"
         />
         <div className="absolute inset-0 bg-gradient-to-r from-background via-background/80 to-transparent" />
       </div>

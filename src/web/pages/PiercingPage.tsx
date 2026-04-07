@@ -4,7 +4,7 @@ import Footer from "@web/components/Footer";
 import { SEOHead } from "@web/components/SEOHead";
 import { useI18n } from "@web/i18n/I18nProvider";
 import { useBooking } from "@web/contexts/BookingContext";
-import gallery4 from "@/assets/gallery-4.jpg";
+import gallery4 from "@/assets/gallery-4.webp";
 
 export default function PiercingPage() {
   const { t } = useI18n();

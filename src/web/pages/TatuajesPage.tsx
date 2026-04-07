@@ -5,9 +5,9 @@ import { SEOHead } from "@web/components/SEOHead";
 import { useI18n } from "@web/i18n/I18nProvider";
 import { useBooking } from "@web/contexts/BookingContext";
 import { ARTISTS } from "@shared/config/artists";
-import gallery1 from "@/assets/gallery-1.jpg";
-import gallery2 from "@/assets/gallery-2.jpg";
-import gallery3 from "@/assets/gallery-3.jpg";
+import gallery1 from "@/assets/gallery-1.webp";
+import gallery2 from "@/assets/gallery-2.webp";
+import gallery3 from "@/assets/gallery-3.webp";
 
 export default function TatuajesPage() {
   const { t } = useI18n();

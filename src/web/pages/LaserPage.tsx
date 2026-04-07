@@ -4,7 +4,7 @@ import Footer from "@web/components/Footer";
 import { SEOHead } from "@web/components/SEOHead";
 import { useI18n } from "@web/i18n/I18nProvider";
 import { useBooking } from "@web/contexts/BookingContext";
-import laserImg from "@/assets/laser_lowkey.jpg";
+import laserImg from "@/assets/laser_lowkey.webp";
 
 export default function LaserPage() {
   const { t } = useI18n();

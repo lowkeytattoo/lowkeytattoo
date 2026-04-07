@@ -15,16 +15,16 @@ import { ProtectedRoute } from "@admin/components/ProtectedRoute";
 import { RoleGuard } from "@admin/components/RoleGuard";
 import { AdminLayout } from "@admin/components/AdminLayout";
 
-// Public web pages — kept eager (small, critical path)
+// Public web pages — Index eager (critical path), rest lazy
 import Index from "@web/pages/Index";
-import TatuajesPage from "@web/pages/TatuajesPage";
-import PiercingPage from "@web/pages/PiercingPage";
-import LaserPage from "@web/pages/LaserPage";
-import BlogPage from "@web/pages/BlogPage";
-import BlogPostPage from "@web/pages/BlogPostPage";
-import NotFound from "@web/pages/NotFound";
-import PrivacyPage from "@web/pages/PrivacyPage";
-import LegalPage from "@web/pages/LegalPage";
+const TatuajesPage  = lazy(() => import("@web/pages/TatuajesPage"));
+const PiercingPage  = lazy(() => import("@web/pages/PiercingPage"));
+const LaserPage     = lazy(() => import("@web/pages/LaserPage"));
+const BlogPage      = lazy(() => import("@web/pages/BlogPage"));
+const BlogPostPage  = lazy(() => import("@web/pages/BlogPostPage"));
+const NotFound      = lazy(() => import("@web/pages/NotFound"));
+const PrivacyPage   = lazy(() => import("@web/pages/PrivacyPage"));
+const LegalPage     = lazy(() => import("@web/pages/LegalPage"));
 
 // Admin pages — lazy loaded (behind auth, excluded from public bundle)
 const AdminLogin        = lazy(() => import("@admin/pages/Login"));
@@ -69,13 +69,13 @@ const App = () => (
                 <Routes>
                   {/* Public web */}
                   <Route path="/" element={<Index />} />
-                  <Route path="/tatuajes-santa-cruz-tenerife" element={<TatuajesPage />} />
-                  <Route path="/piercing-tenerife" element={<PiercingPage />} />
-                  <Route path="/laser-eliminacion-tatuajes-tenerife" element={<LaserPage />} />
-                  <Route path="/blog" element={<BlogPage />} />
-                  <Route path="/blog/:slug" element={<BlogPostPage />} />
-                  <Route path="/politica-de-privacidad" element={<PrivacyPage />} />
-                  <Route path="/aviso-legal" element={<LegalPage />} />
+                  <Route path="/tatuajes-santa-cruz-tenerife" element={<Suspense fallback={null}><TatuajesPage /></Suspense>} />
+                  <Route path="/piercing-tenerife" element={<Suspense fallback={null}><PiercingPage /></Suspense>} />
+                  <Route path="/laser-eliminacion-tatuajes-tenerife" element={<Suspense fallback={null}><LaserPage /></Suspense>} />
+                  <Route path="/blog" element={<Suspense fallback={null}><BlogPage /></Suspense>} />
+                  <Route path="/blog/:slug" element={<Suspense fallback={null}><BlogPostPage /></Suspense>} />
+                  <Route path="/politica-de-privacidad" element={<Suspense fallback={null}><PrivacyPage /></Suspense>} />
+                  <Route path="/aviso-legal" element={<Suspense fallback={null}><LegalPage /></Suspense>} />
 
                   {/* Admin login */}
                   <Route
