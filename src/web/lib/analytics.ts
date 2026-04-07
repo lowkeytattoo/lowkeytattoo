@@ -20,16 +20,25 @@ declare global {
   interface Window {
     dataLayer: unknown[];
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    gtag: (...args: any[]) => void;
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     fbq: (...args: any[]) => void;
   }
 }
 
 // ── Internal helpers ──────────────────────────────────────────────────────────
+// GA4 requires Arguments objects in dataLayer, not plain arrays.
+// We delegate to the global window.gtag defined in index.html, which uses
+// `arguments` internally → dataLayer.push(arguments) → correct format.
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 function gtag(...args: any[]): void {
   if (typeof window === "undefined") return;
-  window.dataLayer = window.dataLayer || [];
-  window.dataLayer.push(args);
+  if (typeof window.gtag === "function") {
+    window.gtag(...args);
+  } else {
+    window.dataLayer = window.dataLayer || [];
+    window.dataLayer.push(args);
+  }
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
