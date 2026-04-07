@@ -106,13 +106,13 @@ export default function ClientProfile() {
   const [editingSession, setEditingSession] = useState<{ id: string; paid: boolean; price: number | null; notes: string | null } | null>(null);
   const [editPaid, setEditPaid] = useState(false);
   const [editPrice, setEditPrice] = useState("");
-  const [editNotes, setEditNotes] = useState("");
+  const [editSessionNotes, setEditSessionNotes] = useState("");
 
   const openEditSession = (s: any) => {
     setEditingSession({ id: s.id, paid: s.paid, price: s.price, notes: s.notes });
     setEditPaid(s.paid);
     setEditPrice(s.price != null ? String(s.price) : "");
-    setEditNotes(s.notes ?? "");
+    setEditSessionNotes(s.notes ?? "");
   };
 
   const handleEditSession = async () => {
@@ -121,7 +121,7 @@ export default function ClientProfile() {
       id: editingSession.id,
       paid: editPaid,
       price: editPrice ? parseFloat(editPrice) : null,
-      notes: editNotes || null,
+      notes: editSessionNotes || null,
     });
     setEditingSession(null);
   };
@@ -457,8 +457,8 @@ export default function ClientProfile() {
             <div className="space-y-1.5">
               <Label className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Notas</Label>
               <Textarea
-                value={editNotes}
-                onChange={(e) => setEditNotes(e.target.value)}
+                value={editSessionNotes}
+                onChange={(e) => setEditSessionNotes(e.target.value)}
                 className="bg-background border-border"
                 rows={2}
               />
