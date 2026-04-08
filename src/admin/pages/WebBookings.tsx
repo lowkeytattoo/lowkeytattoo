@@ -51,6 +51,7 @@ export default function WebBookings() {
       let query = supabase
         .from("web_bookings")
         .select("*")
+        .not("preferred_date", "is", null)
         .order("created_at", { ascending: false });
       const { data, error } = await query;
       if (error) throw error;

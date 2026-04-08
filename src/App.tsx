@@ -36,6 +36,7 @@ const AdminFinances     = lazy(() => import("@admin/pages/Finances"));
 const AdminStock        = lazy(() => import("@admin/pages/Stock"));
 const AdminArtists      = lazy(() => import("@admin/pages/Artists"));
 const AdminWebBookings  = lazy(() => import("@admin/pages/WebBookings"));
+const AdminMessages     = lazy(() => import("@admin/pages/Messages"));
 const AdminBlog         = lazy(() => import("@admin/pages/BlogAdmin"));
 const BlogPreview       = lazy(() => import("@admin/pages/BlogPreview"));
 
@@ -114,6 +115,7 @@ const App = () => (
                       }
                     />
                     <Route path="bookings" element={<AdminWebBookings />} />
+                    <Route path="messages" element={<AdminMessages />} />
                     <Route path="blog" element={<AdminBlog />} />
                     <Route path="blog/preview/:id" element={<BlogPreview />} />
                   </Route>

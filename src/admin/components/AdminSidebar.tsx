@@ -9,12 +9,14 @@ import {
   UserCog,
   BookOpen,
   FileText,
+  MessageSquare,
   LogOut,
   MoreHorizontal,
   X,
 } from "lucide-react";
 import { useAdminAuth } from "@admin/contexts/AdminAuthContext";
 import { StockAlertBadge } from "@admin/components/StockAlertBadge";
+import { MessagesUnreadBadge } from "@admin/components/MessagesUnreadBadge";
 import {
   Sheet,
   SheetContent,
@@ -30,6 +32,7 @@ const navItems = [
   { to: "/admin/finances",  label: "Finanzas",   icon: TrendingUp },
   { to: "/admin/stock",     label: "Stock",      icon: Package, badge: true },
   { to: "/admin/bookings",  label: "Citas Web",  icon: BookOpen },
+  { to: "/admin/messages",  label: "Mensajes",   icon: MessageSquare, messagesBadge: true },
   { to: "/admin/blog",      label: "Blog",       icon: FileText },
 ];
 
@@ -38,7 +41,7 @@ const ownerNavItems = [
 ];
 
 // Items shown in the mobile bottom bar (most used)
-const MOBILE_ITEMS = ["/admin/dashboard", "/admin/clients", "/admin/sessions", "/admin/bookings", "/admin/blog"];
+const MOBILE_ITEMS = ["/admin/dashboard", "/admin/clients", "/admin/sessions", "/admin/finances", "/admin/bookings"];
 
 export const AdminSidebar = () => {
   const { profile, signOut } = useAdminAuth();
@@ -69,7 +72,7 @@ export const AdminSidebar = () => {
         {/* Nav */}
         <nav className="flex-1 py-4 overflow-y-auto">
           <ul className="space-y-0.5 px-3">
-            {allItems.map(({ to, label, icon: Icon, badge }) => (
+            {allItems.map(({ to, label, icon: Icon, badge, messagesBadge }) => (
               <li key={to}>
                 <NavLink
                   to={to}
@@ -85,6 +88,7 @@ export const AdminSidebar = () => {
                   <Icon className="w-4 h-4 shrink-0" />
                   <span className="flex-1">{label}</span>
                   {badge && <StockAlertBadge />}
+                  {messagesBadge && <MessagesUnreadBadge />}
                 </NavLink>
               </li>
             ))}
@@ -112,7 +116,7 @@ export const AdminSidebar = () => {
       {/* ── Mobile bottom nav ───────────────────────────── */}
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border">
         <ul className="flex">
-          {mobileItems.map(({ to, label, icon: Icon, badge }) => (
+          {mobileItems.map(({ to, label, icon: Icon, badge, messagesBadge }) => (
             <li key={to} className="flex-1">
               <NavLink
                 to={to}
@@ -128,6 +132,11 @@ export const AdminSidebar = () => {
                   {badge && (
                     <span className="absolute -top-1 -right-1">
                       <StockAlertBadge />
+                    </span>
+                  )}
+                  {messagesBadge && (
+                    <span className="absolute -top-1 -right-1">
+                      <MessagesUnreadBadge />
                     </span>
                   )}
                 </div>
@@ -172,7 +181,7 @@ export const AdminSidebar = () => {
             </div>
           </SheetHeader>
           <ul className="space-y-1">
-            {moreItems.map(({ to, label, icon: Icon, badge }) => (
+            {moreItems.map(({ to, label, icon: Icon, badge, messagesBadge }) => (
               <li key={to}>
                 <NavLink
                   to={to}
@@ -189,6 +198,7 @@ export const AdminSidebar = () => {
                   <Icon className="w-5 h-5 shrink-0" />
                   <span className="flex-1">{label}</span>
                   {badge && <StockAlertBadge />}
+                  {messagesBadge && <MessagesUnreadBadge />}
                 </NavLink>
               </li>
             ))}
