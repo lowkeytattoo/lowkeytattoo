@@ -53,20 +53,22 @@ const Navbar = () => {
 
             <div
               className={cn(
-                "absolute top-full left-1/2 -translate-x-1/2 mt-2 w-52 bg-card border border-border rounded-md shadow-lg py-1 transition-all duration-150",
+                "absolute top-full left-1/2 -translate-x-1/2 pt-2 w-52 transition-all duration-150",
                 servicesOpen ? "opacity-100 translate-y-0 pointer-events-auto" : "opacity-0 -translate-y-1 pointer-events-none"
               )}
             >
-              {serviceLinks.map(({ to, label }) => (
-                <Link
-                  key={to}
-                  to={to}
-                  onClick={() => setServicesOpen(false)}
-                  className="block px-4 py-2.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
-                >
-                  {label}
-                </Link>
-              ))}
+              <div className="bg-card border border-border rounded-md shadow-lg py-1">
+                {serviceLinks.map(({ to, label }) => (
+                  <Link
+                    key={to}
+                    to={to}
+                    onClick={() => setServicesOpen(false)}
+                    className="block px-4 py-2.5 text-sm text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+                  >
+                    {label}
+                  </Link>
+                ))}
+              </div>
             </div>
           </div>
 

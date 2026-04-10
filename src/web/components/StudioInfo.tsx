@@ -48,7 +48,7 @@ const StudioInfo = () => {
   };
 
   return (
-    <section id="studio" className="py-14 md:py-20 border-t border-border">
+    <section id="studio" className="pt-8 pb-14 md:pt-10 md:pb-20 border-t border-border">
       <div className="max-w-7xl mx-auto px-6">
         <motion.div
           initial={{ opacity: 0, y: 10 }}

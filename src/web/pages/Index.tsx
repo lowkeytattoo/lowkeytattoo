@@ -1,6 +1,7 @@
 import Navbar from "@web/components/Navbar";
 import Hero from "@web/components/Hero";
 import Gallery from "@web/components/Gallery";
+import ArtistsSection from "@web/components/ArtistsSection";
 import InstagramFeed from "@web/components/InstagramFeed";
 import StudioInfo from "@web/components/StudioInfo";
 import Footer from "@web/components/Footer";
@@ -24,6 +25,7 @@ const Index = () => {
       <Navbar />
       <Hero />
       <Gallery />
+      <ArtistsSection />
       <InstagramFeed />
       <StudioInfo />
       <Footer />
