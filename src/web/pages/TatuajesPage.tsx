@@ -13,9 +13,6 @@ import { useI18n } from "@web/i18n/I18nProvider";
 import { useBooking } from "@web/contexts/BookingContext";
 import { ARTISTS } from "@shared/config/artists";
 import { ArtistCard } from "@web/components/Gallery";
-import gallery1 from "@/assets/gallery-1.webp";
-import gallery2 from "@/assets/gallery-2.webp";
-import gallery3 from "@/assets/gallery-3.webp";
 
 export default function TatuajesPage() {
   const { t } = useI18n();
@@ -43,10 +40,10 @@ export default function TatuajesPage() {
   ];
 
   const styles = [
-    { key: "fineline", img: gallery1 },
-    { key: "blackwork", img: gallery2 },
-    { key: "custom", img: null },
-    { key: "anime", img: null },
+    { key: "fineline" },
+    { key: "blackwork" },
+    { key: "custom" },
+    { key: "anime" },
   ] as const;
 
   const whyItems = [
@@ -84,17 +81,10 @@ export default function TatuajesPage() {
             {t("tattoos.intro")}
           </p>
 
-          {/* Gallery preview */}
-          <div className="grid grid-cols-3 gap-2 mb-16 rounded-lg overflow-hidden">
-            {[gallery1, gallery2, gallery3].map((src, i) => (
-              <div key={i} className="aspect-square overflow-hidden">
-                <img
-                  src={src}
-                  alt={`${t("tattoos.h1")} — Lowkey Tattoo ${i + 1}`}
-                  className="h-full w-full object-cover"
-                  loading={i === 0 ? "eager" : "lazy"}
-                />
-              </div>
+          {/* Artists */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-16">
+            {ARTISTS.map((artist, i) => (
+              <ArtistCard key={artist.id} artist={artist} index={i} />
             ))}
           </div>
 
@@ -111,16 +101,6 @@ export default function TatuajesPage() {
                     {t(`tattoos.${key}.desc`)}
                   </p>
                 </div>
-              ))}
-            </div>
-          </section>
-
-          {/* Artistas */}
-          <section className="mb-16">
-            <h2 className="text-2xl font-medium text-foreground mb-6">{t("tattoos.artists.title")}</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-              {ARTISTS.map((artist, i) => (
-                <ArtistCard key={artist.id} artist={artist} index={i} />
               ))}
             </div>
           </section>
