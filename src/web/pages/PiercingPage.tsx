@@ -61,7 +61,7 @@ export default function PiercingPage() {
             <span>{t("piercing.h1")}</span>
           </nav>
 
-          <h1 className="text-4xl md:text-5xl font-medium text-foreground mb-6 leading-tight">
+          <h1 className="text-3xl md:text-4xl lg:text-5xl font-medium text-foreground mb-6 leading-tight text-balance text-center">
             {t("piercing.h1")}
           </h1>
           <p className="text-lg text-muted-foreground mb-12 leading-relaxed">
