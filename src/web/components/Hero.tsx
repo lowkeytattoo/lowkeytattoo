@@ -57,7 +57,7 @@ const Hero = () => {
               {t("nav.book")}
             </button>
             <a
-              href={CONTACT.whatsapp}
+              href={`${CONTACT.whatsapp}?text=${encodeURIComponent(t("hero.wa.msg"))}`}
               target="_blank"
               rel="noopener noreferrer"
               className="inline-flex items-center gap-2 rounded-sm border border-border px-6 py-3 font-mono text-sm text-foreground tracking-wide hover:border-foreground transition-colors duration-200"

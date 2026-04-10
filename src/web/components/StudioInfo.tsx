@@ -111,7 +111,7 @@ const StudioInfo = () => {
                 <span>{CONTACT.phonePretty}</span>
               </a>
               <a
-                href={CONTACT.whatsapp}
+                href={`${CONTACT.whatsapp}?text=${encodeURIComponent(t("studio.wa.msg"))}`}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="flex items-center gap-3 font-mono text-sm text-foreground hover:text-muted-foreground transition-colors duration-200"

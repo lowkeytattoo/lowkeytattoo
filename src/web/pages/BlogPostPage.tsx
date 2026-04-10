@@ -1,4 +1,5 @@
 import { Link, useParams, Navigate } from "react-router-dom";
+import { CONTACT } from "@web/config/contact";
 import Navbar from "@web/components/Navbar";
 import Footer from "@web/components/Footer";
 import { SEOHead } from "@web/components/SEOHead";
@@ -126,7 +127,7 @@ export default function BlogPostPage() {
             <p className="font-medium text-foreground mb-2">{t("blog.cta.title")}</p>
             <p className="text-sm text-muted-foreground mb-4">{t("blog.cta.desc")}</p>
             <a
-              href="https://wa.me/34674116189"
+              href={`${CONTACT.whatsapp}?text=${encodeURIComponent(t("blog.wa.msg"))}`}
               target="_blank"
               rel="noopener noreferrer"
               className="cta-button rounded-sm text-xs tracking-[0.1em] uppercase px-6 py-3 inline-block"

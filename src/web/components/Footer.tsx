@@ -45,7 +45,7 @@ const Footer = () => {
             <a href={`tel:${CONTACT.phone}`} className="font-mono text-xs text-muted-foreground hover:text-foreground transition-colors tabular-nums">
               {CONTACT.phonePretty}
             </a>
-            <a href={CONTACT.whatsapp} target="_blank" rel="noopener noreferrer" className="font-mono text-xs text-muted-foreground hover:text-foreground transition-colors">
+            <a href={`${CONTACT.whatsapp}?text=${encodeURIComponent(t("hero.wa.msg"))}`} target="_blank" rel="noopener noreferrer" className="font-mono text-xs text-muted-foreground hover:text-foreground transition-colors">
               WhatsApp
             </a>
             <address className="font-mono text-xs text-muted-foreground not-italic">

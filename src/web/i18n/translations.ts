@@ -43,6 +43,11 @@ export const translations: Record<Locale, Record<string, string>> = {
     "gallery.laser.title": "Laser Removal in Tenerife",
     "gallery.laser.desc": "Professional tattoo removal in Santa Cruz de Tenerife using the latest laser technology. Safe, effective and personalised treatment.",
     "gallery.laser.cta": "More about the service",
+    "gallery.tattoo.desc": "Custom fine line, geometric and blackwork designs. Book your appointment online or contact us on WhatsApp.",
+    "gallery.tattoo.wa": "Hi! I'd like to book an appointment for a tattoo at Lowkey Tattoo.",
+    "gallery.piercing.desc": "Professional piercing in Santa Cruz de Tenerife with sterile single-use material and implant-grade jewellery.",
+    "gallery.piercing.wa": "Hi! I'd like to book an appointment for a piercing at Lowkey Tattoo.",
+    "gallery.laser.wa": "Hi! I'd like more information about laser tattoo removal at Lowkey Tattoo.",
 
     // Studio
     "studio.label": "The Studio",
@@ -102,6 +107,9 @@ export const translations: Record<Locale, Record<string, string>> = {
 
     // Studio
     "studio.whatsapp": "Book via WhatsApp",
+    "studio.wa.msg": "Hi! I'd like to book an appointment at Lowkey Tattoo.",
+    "hero.wa.msg": "Hi! I'd like more information about Lowkey Tattoo in Santa Cruz de Tenerife.",
+    "blog.wa.msg": "Hi! I've been reading your blog and I'd like more information about Lowkey Tattoo.",
 
     // Tattoos page
     "tattoos.meta.title": "Tattoos in Santa Cruz de Tenerife | Lowkey Tattoo",
@@ -265,6 +273,11 @@ export const translations: Record<Locale, Record<string, string>> = {
     "gallery.laser.title": "Eliminación Láser en Tenerife",
     "gallery.laser.desc": "Eliminación profesional de tatuajes en Santa Cruz de Tenerife con la última tecnología láser. Tratamiento seguro, eficaz y personalizado.",
     "gallery.laser.cta": "Más sobre el servicio",
+    "gallery.tattoo.desc": "Diseños personalizados de fine line, geométrico y blackwork. Solicita tu cita online o escríbenos por WhatsApp.",
+    "gallery.tattoo.wa": "¡Hola! Me gustaría solicitar cita para hacerme un tatuaje en Lowkey Tattoo.",
+    "gallery.piercing.desc": "Piercing profesional en Santa Cruz de Tenerife con material estéril de un solo uso y joyas implant-grade.",
+    "gallery.piercing.wa": "¡Hola! Me gustaría solicitar cita para un piercing en Lowkey Tattoo.",
+    "gallery.laser.wa": "¡Hola! Me gustaría obtener más información sobre la eliminación láser de tatuajes en Lowkey Tattoo.",
 
     // Studio
     "studio.label": "El Estudio",
@@ -324,6 +337,9 @@ export const translations: Record<Locale, Record<string, string>> = {
 
     // Studio
     "studio.whatsapp": "Reservar por WhatsApp",
+    "studio.wa.msg": "¡Hola! Me gustaría reservar cita en Lowkey Tattoo.",
+    "hero.wa.msg": "¡Hola! Me gustaría obtener más información sobre Lowkey Tattoo en Santa Cruz de Tenerife.",
+    "blog.wa.msg": "¡Hola! He estado leyendo vuestro blog y me gustaría obtener más información sobre Lowkey Tattoo.",
 
     // Página Tatuajes
     "tattoos.meta.title": "Tatuajes en Santa Cruz de Tenerife | Lowkey Tattoo",
