@@ -15,7 +15,7 @@ export const ARTISTS: Artist[] = [
     handle: "@pablomatostattoo",
     email: "pablo@lowkeytattoo.com",
     calendarId: "", // ← fill with real Google Calendar ID
-    styles: ["Fine Line", "Geometric"],
+    styles: ["Fine Line", "Geometric", "Polynesian", "Dotwork", "Piercing", "Laser"],
     laser: true,
   },
   {
@@ -24,7 +24,7 @@ export const ARTISTS: Artist[] = [
     handle: "@bohemianttt",
     email: "sergio@lowkeytattoo.com",
     calendarId: "",
-    styles: ["Blackwork", "Dotwork"],
+    styles: ["Realism", "Blackwork"],
   },
   {
     id: "fifo",
@@ -32,6 +32,6 @@ export const ARTISTS: Artist[] = [
     handle: "@fifo_punk",
     email: "fifo@lowkeytattoo.com",
     calendarId: "",
-    styles: ["Blackwork", "Piercing"],
+    styles: ["Tradicional", "American Traditional"],
   },
 ];
