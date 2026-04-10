@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { MapPin, Clock, Phone, MessageSquare } from "lucide-react";
+import emailjs from "@emailjs/browser";
 import { useI18n } from "@web/i18n/I18nProvider";
 import { CONTACT } from "@web/config/contact";
 import { supabase } from "@shared/lib/supabase";
@@ -40,6 +41,18 @@ const StudioInfo = () => {
         is_first_time: null,
         status: "pending",
       });
+
+      const serviceId = import.meta.env.VITE_EMAILJS_SERVICE_ID;
+      const templateId = import.meta.env.VITE_EMAILJS_CONTACT_TEMPLATE_ID;
+      const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
+      if (serviceId && templateId && publicKey) {
+        await emailjs.send(serviceId, templateId, {
+          from_name: name,
+          from_contact: contact,
+          message,
+        }, publicKey);
+      }
+
       setSent(true);
       setName(""); setContact(""); setMessage("");
     } finally {

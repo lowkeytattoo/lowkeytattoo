@@ -25,6 +25,11 @@ export async function sendBookingRequest(booking: BookingData): Promise<void> {
     (a) => a.name === booking.artistName || a.email === booking.artistEmail
   );
 
+  // Convert dd/MM/yyyy → yyyy-MM-dd for Supabase
+  const isoDate = booking.date
+    ? booking.date.split("/").reverse().join("-")
+    : null;
+
   // Save to Supabase web_bookings (best-effort, don't block email)
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
   if (supabaseUrl) {
@@ -35,7 +40,7 @@ export async function sendBookingRequest(booking: BookingData): Promise<void> {
         client_name: booking.clientName || null,
         client_phone: booking.clientPhone || null,
         client_email: booking.clientEmail || null,
-        preferred_date: booking.date || null,
+        preferred_date: isoDate,
         preferred_time: booking.time || null,
         description: booking.description || null,
         body_zone: booking.bodyZone || null,
@@ -52,10 +57,7 @@ export async function sendBookingRequest(booking: BookingData): Promise<void> {
     return;
   }
 
-  await emailjs.send(
-    serviceId,
-    templateId,
-    {
+  const params = {
       artist_name: booking.artistName,
       artist_email: booking.artistEmail,
       client_name: booking.clientName,
@@ -66,7 +68,7 @@ export async function sendBookingRequest(booking: BookingData): Promise<void> {
       description: booking.description,
       body_zone: booking.bodyZone,
       is_first_time: booking.isFirstTime ? "Sí" : "No",
-    },
-    publicKey
-  );
+  };
+
+  await emailjs.send(serviceId, templateId, params, publicKey);
 }
