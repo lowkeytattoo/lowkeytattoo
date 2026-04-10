@@ -1,6 +1,15 @@
 import { Artist } from "@shared/config/artists";
 import { useI18n } from "@web/i18n/I18nProvider";
 import { cn } from "@shared/lib/utils";
+import pabloImg  from "@/assets/pablo_lowkey_tattoo_tenerife.webp";
+import sergioImg from "@/assets/sergio_lowkey_tattoo_tenerife.webp";
+import fifoImg   from "@/assets/fifo_lowkey_tattoo_tenerife.webp";
+
+const ARTIST_PHOTO: Record<string, string> = {
+  pablo:  pabloImg,
+  sergio: sergioImg,
+  fifo:   fifoImg,
+};
 
 interface ArtistStepProps {
   artists: Artist[];
@@ -33,10 +42,20 @@ export const ArtistStep = ({ artists, selected, onSelect, onContinue }: ArtistSt
                 : "border-border bg-card hover:border-muted-foreground"
             )}
           >
-            <div className="h-10 w-10 rounded-full bg-muted flex items-center justify-center shrink-0">
-              <span className="font-gothic text-foreground text-lg leading-none">
-                {artist.name.charAt(0)}
-              </span>
+            <div className="h-12 w-12 rounded-full overflow-hidden shrink-0 bg-muted">
+              {ARTIST_PHOTO[artist.id] ? (
+                <img
+                  src={ARTIST_PHOTO[artist.id]}
+                  alt={artist.name}
+                  className="h-full w-full object-cover object-top"
+                />
+              ) : (
+                <div className="h-full w-full flex items-center justify-center">
+                  <span className="font-gothic text-foreground text-lg leading-none">
+                    {artist.name.charAt(0)}
+                  </span>
+                </div>
+              )}
             </div>
             <div className="min-w-0">
               <p className="text-sm font-medium text-foreground">{artist.name}</p>
