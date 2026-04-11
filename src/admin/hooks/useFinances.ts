@@ -12,30 +12,32 @@ export const useFinancesOverview = (artistId?: string) => {
       const monthStart = format(startOfMonth(now), "yyyy-MM-dd");
       const monthEnd = format(endOfMonth(now), "yyyy-MM-dd");
 
-      let query = supabase
+      // Sesiones del mes actual (filtradas en BD, no en cliente)
+      let monthQuery = supabase
         .from("sessions")
-        .select("price, deposit, paid, date, artist_id");
+        .select("price, date, artist_id")
+        .gte("date", monthStart)
+        .lte("date", monthEnd);
+      if (artistId) monthQuery = monthQuery.eq("artist_id", artistId);
+      const { data: monthData, error: monthError } = await monthQuery;
+      if (monthError) throw monthError;
 
-      if (artistId) query = query.eq("artist_id", artistId);
-
-      const { data, error } = await query;
-      if (error) throw error;
-
-      const allSessions = data ?? [];
-      const monthSessions = allSessions.filter(
-        (s) => s.date >= monthStart && s.date <= monthEnd
-      );
-
-      const revenueMonth = monthSessions.reduce((sum, s) => sum + toNum(s.price), 0);
-      const sessionsMonth = monthSessions.length;
+      // Sesiones impagadas (todo el historial)
+      let pendingQuery = supabase
+        .from("sessions")
+        .select("price")
+        .eq("paid", false);
+      if (artistId) pendingQuery = pendingQuery.eq("artist_id", artistId);
+      const { data: pendingData, error: pendingError } = await pendingQuery;
+      if (pendingError) throw pendingError;
 
       const { count: totalClients } = await supabase
         .from("clients")
         .select("id", { count: "exact", head: true });
 
-      const pendingAmount = allSessions
-        .filter((s) => !s.paid)
-        .reduce((sum, s) => sum + toNum(s.price), 0);
+      const revenueMonth = (monthData ?? []).reduce((sum, s) => sum + toNum(s.price), 0);
+      const sessionsMonth = (monthData ?? []).length;
+      const pendingAmount = (pendingData ?? []).reduce((sum, s) => sum + toNum(s.price), 0);
 
       return {
         revenueMonth,

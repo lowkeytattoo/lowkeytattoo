@@ -27,6 +27,14 @@ declare global {
 }
 
 // ── Internal helpers ──────────────────────────────────────────────────────────
+
+function hasConsent(): boolean {
+  try {
+    return localStorage.getItem("lowkey-consent") === "granted";
+  } catch {
+    return false;
+  }
+}
 // GA4 requires Arguments objects in dataLayer, not plain arrays.
 // We delegate to the global window.gtag defined in index.html, which uses
 // `arguments` internally → dataLayer.push(arguments) → correct format.
@@ -142,7 +150,7 @@ export function trackCtaClick(location: "hero" | "navbar" | "mobile_menu"): void
   if (!GA4_ID) return;
   gtag("event", "cta_click", { event_category: "engagement", event_label: location, send_to: GA4_ID });
   if (ADS_ID) gtag("event", "conversion", { send_to: `${ADS_ID}/cta_click`, event_category: "lead" });
-  fbq("track", "Contact");
+  if (hasConsent()) fbq("track", "Contact");
 }
 
 /** Booking modal opened. */

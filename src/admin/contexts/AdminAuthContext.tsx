@@ -8,6 +8,7 @@ interface AdminAuthContextValue {
   profile: Profile | null;
   session: Session | null;
   loading: boolean;
+  error: string | null;
   signOut: () => Promise<void>;
 }
 
@@ -18,21 +19,19 @@ export const AdminAuthProvider = ({ children }: { children: ReactNode }) => {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) fetchProfile(session.user.id);
-      else setLoading(false);
-    });
-
+    // onAuthStateChange fires immediately with INITIAL_SESSION on subscribe,
+    // so getSession() is redundant and would cause a double fetchProfile call.
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
-      if (session?.user) fetchProfile(session.user.id);
-      else {
+      if (session?.user) {
+        fetchProfile(session.user.id);
+      } else {
         setProfile(null);
+        setError(null);
         setLoading(false);
       }
     });
@@ -41,11 +40,12 @@ export const AdminAuthProvider = ({ children }: { children: ReactNode }) => {
   }, []);
 
   const fetchProfile = async (userId: string) => {
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("profiles")
       .select("*")
       .eq("id", userId)
       .single();
+    if (error) setError(error.message);
     setProfile(data ?? null);
     setLoading(false);
   };
@@ -55,7 +55,7 @@ export const AdminAuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AdminAuthContext.Provider value={{ user, profile, session, loading, signOut }}>
+    <AdminAuthContext.Provider value={{ user, profile, session, loading, error, signOut }}>
       {children}
     </AdminAuthContext.Provider>
   );

@@ -26,7 +26,55 @@ import {
 } from "@/components/ui/select";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import { Phone, Reply } from "lucide-react";
 import type { WebBooking, WebBookingStatus } from "@shared/types/index";
+
+function buildWhatsAppUrl(booking: WebBooking): string {
+  const phone = (booking.client_phone ?? "").replace(/\D/g, "");
+  const name = booking.client_name ?? "cliente";
+  const date = booking.preferred_date
+    ? format(new Date(booking.preferred_date + "T00:00:00"), "d 'de' MMMM", { locale: es })
+    : "la fecha solicitada";
+  const text = `Hola ${name}, te contactamos desde Lowkey Tattoo sobre tu solicitud de cita para el ${date}. `;
+  return `https://wa.me/${phone}?text=${encodeURIComponent(text)}`;
+}
+
+function buildGmailUrl(booking: WebBooking): string {
+  const name = booking.client_name ?? "cliente";
+  const date = booking.preferred_date
+    ? format(new Date(booking.preferred_date + "T00:00:00"), "d 'de' MMMM", { locale: es })
+    : "la fecha solicitada";
+  const time = booking.preferred_time ? ` a las ${booking.preferred_time}` : "";
+
+  const lines: string[] = [
+    `Hola ${name},`,
+    "",
+    `Gracias por solicitar cita en Lowkey Tattoo para el ${date}${time}.`,
+    "",
+    "[Escribe tu respuesta aquí]",
+    "",
+    "Un saludo,",
+    "Lowkey Tattoo",
+    "Calle Dr. Allart, 50 · Santa Cruz de Tenerife",
+    "tattoolowkey.com",
+  ];
+
+  const details: string[] = [];
+  if (booking.body_zone) details.push(`Zona: ${booking.body_zone}`);
+  if (booking.description) details.push(`Descripción: ${booking.description}`);
+  if (booking.is_first_time) details.push("Primera vez en el estudio: Sí");
+
+  if (details.length > 0) {
+    lines.push("", "────────────────────────", "Detalles de la solicitud:", ...details);
+  }
+
+  return [
+    "https://mail.google.com/mail/?view=cm",
+    `to=${encodeURIComponent(booking.client_email ?? "")}`,
+    `su=${encodeURIComponent(`Re: tu solicitud de cita — Lowkey Tattoo`)}`,
+    `body=${encodeURIComponent(lines.join("\n"))}`,
+  ].join("&");
+}
 
 const STATUS_LABELS: Record<WebBookingStatus, string> = {
   pending: "Pendiente",
@@ -64,7 +112,10 @@ export default function WebBookings() {
       const { error } = await supabase.from("web_bookings").update({ status }).eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["web-bookings"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["web-bookings"] });
+      qc.invalidateQueries({ queryKey: ["bookings-pending-count"] });
+    },
   });
 
   const createSession = useCreateSession();
@@ -188,13 +239,41 @@ export default function WebBookings() {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <div className="flex gap-2">
+                    <div className="flex items-center gap-1">
+                      {/* Botones de respuesta — visibles siempre que haya datos de contacto */}
+                      {b.client_phone && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-xs gap-1 text-green-500 hover:text-green-400 hover:bg-green-500/10 px-2"
+                          asChild
+                        >
+                          <a href={buildWhatsAppUrl(b)} target="_blank" rel="noopener noreferrer">
+                            <Phone className="w-3 h-3" />
+                            WA
+                          </a>
+                        </Button>
+                      )}
+                      {b.client_email && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-xs gap-1 px-2"
+                          asChild
+                        >
+                          <a href={buildGmailUrl(b)} target="_blank" rel="noopener noreferrer">
+                            <Reply className="w-3 h-3" />
+                            Gmail
+                          </a>
+                        </Button>
+                      )}
+                      {/* Acciones de estado — solo para pendientes */}
                       {b.status === "pending" && (
                         <>
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="text-xs"
+                            className="text-xs px-2"
                             onClick={() => openConvert(b)}
                           >
                             Convertir
@@ -202,7 +281,7 @@ export default function WebBookings() {
                           <Button
                             variant="ghost"
                             size="sm"
-                            className="text-xs text-destructive hover:text-destructive"
+                            className="text-xs text-destructive hover:text-destructive px-2"
                             onClick={() => updateBooking.mutate({ id: b.id, status: "cancelled" })}
                           >
                             Cancelar

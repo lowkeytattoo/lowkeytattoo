@@ -7,7 +7,7 @@ interface Props {
 }
 
 export const ProtectedRoute = ({ children }: Props) => {
-  const { user, loading } = useAdminAuth();
+  const { user, profile, loading } = useAdminAuth();
 
   if (loading) {
     return (
@@ -17,7 +17,7 @@ export const ProtectedRoute = ({ children }: Props) => {
     );
   }
 
-  if (!user) {
+  if (!user || !profile) {
     return <Navigate to="/admin/login" replace />;
   }
 

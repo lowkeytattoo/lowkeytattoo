@@ -38,6 +38,11 @@ export interface Database {
         Insert: Omit<WebBooking, "id" | "created_at">;
         Update: Partial<Omit<WebBooking, "id" | "created_at">>;
       };
+      blog_posts: {
+        Row: BlogPost;
+        Insert: Omit<BlogPost, "id" | "created_at" | "updated_at">;
+        Update: Partial<Omit<BlogPost, "id" | "created_at">>;
+      };
     };
   };
 }
@@ -142,3 +147,28 @@ export interface WebBooking {
   status: WebBookingStatus;
   created_at: string;
 }
+
+export interface BlogPost {
+  id: string;
+  slug: string;
+  title: string;
+  meta_description: string | null;
+  excerpt: string | null;
+  content: string;
+  tags: string[];
+  published: boolean;
+  date: string;
+  created_at: string;
+  updated_at: string;
+}
+
+// ─── Join types (Supabase queries con relaciones) ─────────────────────────────
+
+export type SessionWithRelations = Session & {
+  client: { id: string; name: string } | null;
+  artist: { id: string; display_name: string } | null;
+};
+
+export type ClientWithArtist = Client & {
+  primary_artist: { id: string; display_name: string } | null;
+};

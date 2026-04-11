@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { useClients, useCreateClient, useClientCoverPhotos } from "@admin/hooks/useClients";
+import { toast } from "sonner";
+import { useClientsPaged, useCreateClient, useClientCoverPhotos } from "@admin/hooks/useClients";
 import { useArtistProfiles } from "@admin/hooks/useArtistProfiles";
 import { useAdminAuth } from "@admin/contexts/AdminAuthContext";
 import { Button } from "@/components/ui/button";
@@ -29,14 +30,41 @@ export default function Clients() {
   const { profile } = useAdminAuth();
   const isOwner = profile?.role === "owner";
 
-  const { data: clients, isLoading } = useClients();
   const { data: artists } = useArtistProfiles();
   const { data: coverPhotos } = useClientCoverPhotos();
   const createClient = useCreateClient();
 
+  const PAGE_SIZE = 20;
+  const [page, setPage] = useState(0);
   const [search, setSearch] = useState("");
+  const [debouncedSearch, setDebouncedSearch] = useState("");
   const [filterArtist, setFilterArtist] = useState<string>("all");
   const [showCreate, setShowCreate] = useState(false);
+
+  // Debounce: espera 300ms tras dejar de escribir antes de lanzar la query
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(search);
+      setPage(0);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [search]);
+
+  // El artistId efectivo combina control de acceso (artistas) y filtro UI (owner)
+  const effectiveArtistId = isOwner
+    ? (filterArtist !== "all" ? filterArtist : undefined)
+    : profile?.id;
+
+  const { data, isLoading } = useClientsPaged({
+    artistId: effectiveArtistId,
+    search: debouncedSearch,
+    page,
+    pageSize: PAGE_SIZE,
+  });
+
+  const clients = data?.clients ?? [];
+  const total = data?.total ?? 0;
+  const totalPages = Math.ceil(total / PAGE_SIZE);
 
   // New client form state
   const [newName, setNewName] = useState("");
@@ -44,33 +72,26 @@ export default function Clients() {
   const [newEmail, setNewEmail] = useState("");
   const [newArtist, setNewArtist] = useState("");
 
-  const filtered = (clients ?? []).filter((c) => {
-    const matchSearch =
-      !search ||
-      c.name.toLowerCase().includes(search.toLowerCase()) ||
-      (c.email ?? "").toLowerCase().includes(search.toLowerCase()) ||
-      (c.phone ?? "").includes(search);
-    const matchArtist =
-      filterArtist === "all" || c.primary_artist_id === filterArtist;
-    return matchSearch && matchArtist;
-  });
-
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    await createClient.mutateAsync({
-      name: newName,
-      phone: newPhone || null,
-      email: newEmail || null,
-      notes: null,
-      allergies: null,
-      birthday: null,
-      primary_artist_id: newArtist || null,
-    });
-    setShowCreate(false);
-    setNewName("");
-    setNewPhone("");
-    setNewEmail("");
-    setNewArtist("");
+    try {
+      await createClient.mutateAsync({
+        name: newName,
+        phone: newPhone || null,
+        email: newEmail || null,
+        notes: null,
+        allergies: null,
+        birthday: null,
+        primary_artist_id: newArtist || null,
+      });
+      setShowCreate(false);
+      setNewName("");
+      setNewPhone("");
+      setNewEmail("");
+      setNewArtist("");
+    } catch {
+      toast.error("Error al crear el cliente. Inténtalo de nuevo.");
+    }
   };
 
   return (
@@ -78,7 +99,7 @@ export default function Clients() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Clientes</h1>
-          <p className="text-muted-foreground text-sm mt-1">{filtered.length} clientes</p>
+          <p className="text-muted-foreground text-sm mt-1">{total} clientes</p>
         </div>
         <Button onClick={() => setShowCreate(true)} className="cta-button gap-2">
           <Plus className="w-4 h-4" />
@@ -134,14 +155,14 @@ export default function Clients() {
                   Cargando...
                 </TableCell>
               </TableRow>
-            ) : filtered.length === 0 ? (
+            ) : clients.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={isOwner ? 4 : 3} className="text-center py-12 text-muted-foreground">
                   No hay clientes
                 </TableCell>
               </TableRow>
             ) : (
-              filtered.map((client) => (
+              clients.map((client) => (
                 <TableRow
                   key={client.id}
                   className="border-border cursor-pointer hover:bg-muted/30 transition-colors"
@@ -169,9 +190,9 @@ export default function Clients() {
                   </TableCell>
                   {isOwner && (
                     <TableCell>
-                      {(client as any).primary_artist?.display_name ? (
+                      {client.primary_artist?.display_name ? (
                         <Badge variant="outline" className="text-xs font-['IBM_Plex_Mono']">
-                          {(client as any).primary_artist.display_name}
+                          {client.primary_artist.display_name}
                         </Badge>
                       ) : (
                         <span className="text-muted-foreground text-sm">—</span>
@@ -184,6 +205,35 @@ export default function Clients() {
           </TableBody>
         </Table>
       </div>
+
+      {/* Paginación */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between">
+          <span className="text-xs text-muted-foreground font-['IBM_Plex_Mono']">
+            {page * PAGE_SIZE + 1}–{Math.min((page + 1) * PAGE_SIZE, total)} de {total}
+          </span>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-xs border-border"
+              onClick={() => setPage((p) => p - 1)}
+              disabled={page === 0}
+            >
+              Anterior
+            </Button>
+            <Button
+              variant="outline"
+              size="sm"
+              className="text-xs border-border"
+              onClick={() => setPage((p) => p + 1)}
+              disabled={page >= totalPages - 1}
+            >
+              Siguiente
+            </Button>
+          </div>
+        </div>
+      )}
 
       {/* Create dialog */}
       <Dialog open={showCreate} onOpenChange={setShowCreate}>

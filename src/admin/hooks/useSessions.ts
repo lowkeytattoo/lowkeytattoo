@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@shared/lib/supabase";
-import type { Session } from "@shared/types/index";
+import type { Session, SessionWithRelations } from "@shared/types/index";
 
 interface SessionFilters {
   artistId?: string;
@@ -32,7 +32,7 @@ export const useSessions = (filters: SessionFilters = {}) => {
 
       const { data, error } = await query;
       if (error) throw error;
-      return data;
+      return (data ?? []) as SessionWithRelations[];
     },
   });
 };

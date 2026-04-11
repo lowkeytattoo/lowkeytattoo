@@ -1,10 +1,12 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@shared/lib/supabase";
-import type { Client, ClientPhoto } from "@shared/types/index";
+import type { Client, ClientPhoto, ClientWithArtist } from "@shared/types/index";
 
 export const useClientPhotos = (clientId: string) => {
   return useQuery({
     queryKey: ["client-photos", clientId],
+    // staleTime < TTL de las signed URLs (3600s) para refrescarlas antes de que expiren
+    staleTime: 50 * 60 * 1000,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("client_photos")
@@ -54,6 +56,7 @@ export const useDeleteClientPhoto = () => {
 export const useClientCoverPhotos = () => {
   return useQuery({
     queryKey: ["client-cover-photos"],
+    staleTime: 50 * 60 * 1000,
     queryFn: async () => {
       const { data, error } = await supabase
         .from("client_photos")
@@ -90,6 +93,7 @@ export const useSetCoverPhoto = () => {
   });
 };
 
+/** Lista completa sin paginar — para dropdowns (Sessions, WebBookings). */
 export const useClients = (artistId?: string) => {
   return useQuery({
     queryKey: ["clients", artistId],
@@ -98,10 +102,58 @@ export const useClients = (artistId?: string) => {
         .from("clients")
         .select("*, primary_artist:profiles(id, display_name)")
         .order("name");
+      if (artistId) query = query.eq("primary_artist_id", artistId);
       const { data, error } = await query;
       if (error) throw error;
-      return data;
+      return (data ?? []) as ClientWithArtist[];
     },
+  });
+};
+
+interface ClientsPagedFilter {
+  /** Limita por primary_artist_id (control de acceso o filtro de owner). */
+  artistId?: string;
+  /** Búsqueda por nombre, email o teléfono (server-side, ilike). */
+  search?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+/** Lista paginada con búsqueda server-side — para la página de Clientes. */
+export const useClientsPaged = ({
+  artistId,
+  search,
+  page = 0,
+  pageSize = 20,
+}: ClientsPagedFilter = {}) => {
+  return useQuery({
+    queryKey: ["clients-paged", artistId, search, page, pageSize],
+    queryFn: async () => {
+      const from = page * pageSize;
+      const to = from + pageSize - 1;
+
+      let query = supabase
+        .from("clients")
+        .select("*, primary_artist:profiles(id, display_name)", { count: "exact" })
+        .order("name")
+        .range(from, to);
+
+      if (artistId) query = query.eq("primary_artist_id", artistId);
+      if (search) {
+        query = query.or(
+          `name.ilike.%${search}%,email.ilike.%${search}%,phone.ilike.%${search}%`
+        );
+      }
+
+      const { data, error, count } = await query;
+      if (error) throw error;
+      return {
+        clients: (data ?? []) as ClientWithArtist[],
+        total: count ?? 0,
+      };
+    },
+    // Mantiene los datos de la página anterior mientras carga la siguiente
+    placeholderData: (prev) => prev,
   });
 };
 
@@ -115,7 +167,7 @@ export const useClient = (id: string) => {
         .eq("id", id)
         .single();
       if (error) throw error;
-      return data;
+      return data as ClientWithArtist;
     },
     enabled: !!id,
   });

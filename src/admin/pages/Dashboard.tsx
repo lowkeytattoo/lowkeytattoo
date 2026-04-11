@@ -216,9 +216,9 @@ export default function Dashboard() {
                     <TableCell className="text-sm">
                       {format(new Date(s.date + "T00:00:00"), "d MMM yyyy", { locale: es })}
                     </TableCell>
-                    <TableCell className="text-sm">{(s.client as any)?.name ?? "—"}</TableCell>
+                    <TableCell className="text-sm">{s.client?.name ?? "—"}</TableCell>
                     {isOwner && (
-                      <TableCell className="text-sm">{(s.artist as any)?.display_name ?? "—"}</TableCell>
+                      <TableCell className="text-sm">{s.artist?.display_name ?? "—"}</TableCell>
                     )}
                     <TableCell>
                       <Badge variant="outline" className="text-xs font-['IBM_Plex_Mono']">

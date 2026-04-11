@@ -1,9 +1,88 @@
 # REVISIÓN EXHAUSTIVA — LOWKEY TATTOO
-> Generado: 2026-04-07 · Última actualización: 2026-04-09
+> Generado: 2026-04-07 · Última actualización: 2026-04-11
 
 ---
 
-## BUGS CRÍTICOS
+## REVISIÓN CÓDIGO — 2026-04-11
+
+Revisión exhaustiva del código fuente completo. Se inspeccionaron todos los hooks, contextos, páginas admin y componentes web.
+
+### 🔴 NUEVOS BUGS CRÍTICOS
+
+#### A. `useClients` ignora el parámetro `artistId` — fuga de datos ✅ RESUELTO
+**Archivo:** `src/admin/hooks/useClients.ts`
+
+Aplicado filtro `.eq("primary_artist_id", artistId)` en el query de Supabase. Además, `Clients.tsx` ahora pasa `profile?.id` como `artistId` cuando el usuario no es owner, de forma que los artistas solo ven sus propios clientes a nivel de datos (no solo UI). Tipos actualizados a `ClientWithArtist` eliminando todos los casts `as any`.
+
+#### B. Actualización de stock no atómica — condición de carrera ✅ RESUELTO
+**Archivo:** `src/admin/hooks/useStock.ts`
+
+Trigger `trg_stock_movement_qty` creado en Supabase. El `AFTER INSERT ON stock_movements` actualiza `products.quantity` atómicamente en la BD. Eliminado el código de read-modify-write del cliente — `useCreateStockMovement` ahora solo inserta el movimiento y la BD hace el resto.
+
+### 🟠 NUEVOS BUGS ALTOS
+
+#### C. Signed URLs de fotos privadas expiran en 1h — imágenes rotas en cache ✅ RESUELTO
+**Archivo:** `src/admin/hooks/useClients.ts`
+
+Añadido `staleTime: 50 * 60 * 1000` (50 minutos) en `useClientPhotos` y `useClientCoverPhotos`. React Query refrescará las URLs antes de que caduquen.
+
+#### D. `ProtectedRoute` no verifica existencia de perfil ✅ RESUELTO
+**Archivo:** `src/admin/components/ProtectedRoute.tsx`
+
+Ahora verifica `!user || !profile`. Un usuario con sesión de auth pero sin perfil en `profiles` es redirigido al login.
+
+#### E. Race condition en `AdminAuthContext` ✅ RESUELTO
+**Archivo:** `src/admin/contexts/AdminAuthContext.tsx`
+
+Eliminada la llamada inicial a `getSession()`. Supabase v2 dispara `INITIAL_SESSION` a través de `onAuthStateChange` al registrarse, por lo que el estado inicial se gestiona correctamente desde un único listener.
+
+#### F. `fetchProfile` sin manejo de errores ✅ RESUELTO
+**Archivo:** `src/admin/contexts/AdminAuthContext.tsx`
+
+Añadido estado `error: string | null` al contexto. `fetchProfile` ahora llama a `setError(error.message)` si Supabase devuelve un error. Los consumidores pueden usar `error` para mostrar mensajes de fallo en lugar de quedarse con pantalla en blanco.
+
+### 🟡 NUEVOS BUGS MEDIOS
+
+#### G. Sin feedback de error en mutaciones del admin ✅ RESUELTO
+**Archivos:** `src/admin/pages/Clients.tsx`, `src/admin/pages/Stock.tsx`
+
+`handleCreate` y `handleUsage` envueltos en `try/catch`. En caso de error, se muestra un `toast.error()` con mensaje descriptivo. El diálogo permanece abierto para que el usuario pueda reintentar.
+
+#### H. `useFinancesOverview` descarga todo el historial de sesiones ✅ RESUELTO
+**Archivo:** `src/admin/hooks/useFinances.ts`
+
+Refactorizado en dos queries separados con filtros en BD: uno para el mes actual (`.gte`/`.lte` por fecha) y otro para impagados (`.eq("paid", false)`). Ya no se descarga ni filtra en cliente el historial completo.
+
+#### I. `trackCtaClick` envía evento Meta Pixel sin verificar consentimiento ✅ RESUELTO
+**Archivo:** `src/web/lib/analytics.ts`
+
+Añadida función interna `hasConsent()` que lee `localStorage.getItem("lowkey-consent")`. La llamada `fbq("track", "Contact")` ahora solo se ejecuta si `hasConsent()` devuelve `true`.
+
+#### J. Casts `as any` en datos de Supabase con joins ✅ RESUELTO
+**Archivos:** `src/shared/types/index.ts`, `src/admin/hooks/useSessions.ts`, `src/admin/hooks/useClients.ts`, `src/admin/pages/Dashboard.tsx`, `src/admin/pages/Clients.tsx`
+
+Añadidos tipos `SessionWithRelations` y `ClientWithArtist` en `shared/types/index.ts`. Los hooks `useSessions` y `useClients` castean el resultado al tipo correcto. `Dashboard.tsx` y `Clients.tsx` ya acceden a `.client?.name`, `.artist?.display_name` y `.primary_artist?.display_name` sin ningún `as any`.
+
+### 🟢 NUEVOS ITEMS DE CALIDAD
+
+#### K. `blog_posts` no está en el tipo `Database` ✅ RESUELTO
+Añadida interfaz `BlogPost` y entrada `blog_posts` en el tipo `Database` de `src/shared/types/index.ts`. El cliente de Supabase ahora tiene tipado completo para esta tabla.
+
+#### L. `confirm()` del navegador para confirmar eliminación de producto ✅ RESUELTO
+`src/admin/pages/Stock.tsx` — Reemplazado `window.confirm()` por un `AlertDialog` de shadcn/ui con botones "Cancelar" y "Eliminar", integrado con el design system.
+
+#### M. Sin paginación en la lista de clientes ✅ RESUELTO
+Nuevo hook `useClientsPaged` en `useClients.ts` con paginación y búsqueda server-side (Supabase `.range()` + `.or()` con `ilike`). `Clients.tsx` refactorizado: búsqueda con debounce de 300ms, filtro por artista integrado en la query, controles Anterior/Siguiente con contador "X–Y de Z". `useClients` sin paginar se mantiene para los dropdowns de Sessions y WebBookings.
+
+#### N. `useAdminAuth.ts` es un re-export de una sola línea ⚠️ PENDIENTE (bajo impacto)
+Sin cambios — el archivo no causa bugs, solo es una indirección innecesaria.
+
+#### O. `calendarId` vacío — disponibilidad no real ⚠️ PENDIENTE
+El `DateTimeStep` ya muestra un aviso cuando `calendarUnavailable` es `true` (componente con `AlertCircle`). Requiere rellenar los `calendarId` reales en `artists.ts`.
+
+---
+
+## BUGS CRÍTICOS (histórico)
 
 ### 1. FAQPage duplicado en LaserPage ✅ RESUELTO
 `LaserPage.tsx` ya no genera su propio schema `FAQPage`. Las FAQs de láser (ES+EN), tatuajes (ES+EN) y piercing (ES+EN) se movieron al FAQPage global de `index.html`, que ahora contiene **36 preguntas** con propiedad `inLanguage` por respuesta. Google ve un único FAQPage por documento en todas las URLs.
@@ -114,8 +193,13 @@ Editor TipTap, validación de slug duplicado, contador de meta description, prev
 ### WebBookings ✅
 Lista de reservas web, gestión de estado, conversión a sesión. Ahora solo muestra citas reales (excluye mensajes de contacto).
 
+**Mejoras aplicadas (2026-04-11):**
+- ✅ Badge numérico en sidebar (desktop + mobile + sheet "Más") con citas pendientes — refresco automático cada 60s
+- ✅ Botón **WA** (verde) abre WhatsApp con mensaje pre-rellenado si el cliente tiene teléfono
+- ✅ Botón **Email** abre `mailto:` con asunto y cuerpo pre-rellenados si el cliente tiene email
+- ✅ El contador del badge se invalida al confirmar/cancelar una cita
+
 **Gaps pendientes:**
-- Sin **notificación en tiempo real** al llegar una nueva cita
 - Sin **filtros** en la lista
 
 ### Mensajes ✅ NUEVO
@@ -213,13 +297,24 @@ KPIs (revenue, sesiones, clientes, pendientes), gráfico de ingresos, últimas 1
 
 | Prioridad | Acción | Área | Estado |
 |-----------|--------|------|--------|
+| Prioridad | Acción | Área | Estado |
+| 🔴 Crítico | **[A]** `useClients` ignora `artistId` — fuga de datos | Código / Seguridad | ✅ Resuelto |
+| 🔴 Crítico | **[B]** Update de stock no atómico — race condition | Código / BD | ✅ Resuelto |
 | 🔴 Crítico | Rellenar `calendarId` de los 3 artistas | Booking online | ⚠️ Pendiente |
 | 🔴 Crítico | Actualizar emails artistas en `artists.ts` | Notificaciones | ⚠️ Pendiente |
 | 🔴 Crítico | FAQPage duplicado en LaserPage | SEO | ✅ Resuelto |
 | 🔴 Crítico | Meta Pixel configurado | Analytics | ✅ Resuelto |
+| 🟠 Alto | **[C]** Signed URLs expiran en 1h sin staleTime | Admin / Fotos | ✅ Resuelto |
+| 🟠 Alto | **[D]** `ProtectedRoute` no verifica `profile` | Seguridad | ✅ Resuelto |
+| 🟠 Alto | **[E]** Race condition en `AdminAuthContext` | Código | ✅ Resuelto |
+| 🟠 Alto | **[F]** `fetchProfile` sin manejo de errores | Código | ✅ Resuelto |
 | 🟠 Alto | Google Business Profile | SEO local | ⚠️ Pendiente |
 | 🟠 Alto | Añadir "entrada" (restock) en Stock | Admin | ⚠️ Pendiente |
 | 🟠 Alto | Notificaciones email formulario contacto (EmailJS) | Admin UX | ⚠️ Pendiente |
+| 🟡 Medio | **[G]** Sin feedback de error en mutaciones admin | UX / Código | ✅ Resuelto |
+| 🟡 Medio | **[H]** `useFinancesOverview` carga todo el historial | Performance | ✅ Resuelto |
+| 🟡 Medio | **[I]** `trackCtaClick` ignora consentimiento en fbq | RGPD | ✅ Resuelto |
+| 🟡 Medio | **[J]** Casts `as any` en joins de Supabase | Código | ✅ Resuelto |
 | 🟡 Medio | Delete session | Admin Sessions | ✅ Resuelto |
 | 🟡 Medio | Delete photo en ClientProfile | Admin | ✅ Resuelto |
 | 🟡 Medio | Duration + búsqueda en Sessions | Admin | ✅ Resuelto |
@@ -230,6 +325,9 @@ KPIs (revenue, sesiones, clientes, pendientes), gráfico de ingresos, últimas 1
 | 🟡 Medio | Performance web (WebP, fonts, lazy routes, LCP) | Técnico | ✅ Resuelto |
 | 🟡 Medio | 2 nuevos posts de blog | SEO / contenido | ⚠️ Pendiente |
 | 🟡 Medio | Campo birthday en Clients / ClientProfile | Admin | ⚠️ Pendiente |
+| 🟢 Bajo | **[K]** `blog_posts` falta en tipo `Database` | Código | ✅ Resuelto |
+| 🟢 Bajo | **[L]** `confirm()` nativo → `AlertDialog` en Stock | UX | ✅ Resuelto |
+| 🟢 Bajo | **[M]** Sin paginación en lista de clientes | Performance | ✅ Resuelto |
 | 🟢 Bajo | Primer lote de reseñas Google | Credibilidad | ⚠️ Pendiente |
-| 🟢 Bajo | Tipar relaciones `session.client` / `session.artist` | Código | ⚠️ Pendiente |
+| 🟢 Bajo | Tipar relaciones `session.client` / `session.artist` | Código | ✅ Resuelto |
 | 🟢 Bajo | Helper compartido para format de fechas | Código | ⚠️ Pendiente |

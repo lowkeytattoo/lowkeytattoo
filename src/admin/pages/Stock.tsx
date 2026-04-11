@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { toast } from "sonner";
 import {
   useProducts,
   useCreateProduct,
@@ -15,6 +16,16 @@ import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent } from "@/components/ui/card";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import {
   Dialog,
   DialogContent,
@@ -62,6 +73,7 @@ export default function Stock() {
   const [showCreate, setShowCreate] = useState(false);
   const [showHistory, setShowHistory] = useState<Product | null>(null);
   const [showUsage, setShowUsage] = useState<Product | null>(null);
+  const [deleteTarget, setDeleteTarget] = useState<Product | null>(null);
 
   const { data: products, isLoading } = useProducts(filterCategory !== "all" ? filterCategory : undefined);
   const createProduct = useCreateProduct();
@@ -83,33 +95,41 @@ export default function Stock() {
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
-    await createProduct.mutateAsync({
-      name: formName,
-      brand: formBrand || null,
-      category: formCategory,
-      quantity: parseFloat(formQty) || 0,
-      min_quantity: parseFloat(formMinQty) || 0,
-      unit: formUnit || "ud",
-      price_per_unit: formPrice ? parseFloat(formPrice) : null,
-      notes: null,
-    });
-    setShowCreate(false);
-    setFormName(""); setFormBrand(""); setFormQty(""); setFormMinQty(""); setFormPrice("");
+    try {
+      await createProduct.mutateAsync({
+        name: formName,
+        brand: formBrand || null,
+        category: formCategory,
+        quantity: parseFloat(formQty) || 0,
+        min_quantity: parseFloat(formMinQty) || 0,
+        unit: formUnit || "ud",
+        price_per_unit: formPrice ? parseFloat(formPrice) : null,
+        notes: null,
+      });
+      setShowCreate(false);
+      setFormName(""); setFormBrand(""); setFormQty(""); setFormMinQty(""); setFormPrice("");
+    } catch {
+      toast.error("Error al crear el producto. Inténtalo de nuevo.");
+    }
   };
 
   const handleUsage = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!showUsage) return;
-    await createMovement.mutateAsync({
-      product_id: showUsage.id,
-      quantity_change: -(parseFloat(usageAmount) || 0),
-      type: "salida",
-      notes: usageNotes || null,
-      created_by: profile?.id ?? null,
-    });
-    setShowUsage(null);
-    setUsageAmount("");
-    setUsageNotes("");
+    try {
+      await createMovement.mutateAsync({
+        product_id: showUsage.id,
+        quantity_change: -(parseFloat(usageAmount) || 0),
+        type: "salida",
+        notes: usageNotes || null,
+        created_by: profile?.id ?? null,
+      });
+      setShowUsage(null);
+      setUsageAmount("");
+      setUsageNotes("");
+    } catch {
+      toast.error("Error al registrar el uso. Inténtalo de nuevo.");
+    }
   };
 
   return (
@@ -217,11 +237,7 @@ export default function Stock() {
                         variant="ghost"
                         size="sm"
                         className="text-xs text-destructive hover:text-destructive"
-                        onClick={() => {
-                          if (confirm(`¿Eliminar "${product.name}"?`)) {
-                            deleteProduct.mutate(product.id);
-                          }
-                        }}
+                        onClick={() => setDeleteTarget(product)}
                       >
                         <Trash2 className="w-3 h-3" />
                       </Button>
@@ -353,6 +369,30 @@ export default function Stock() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Delete confirmation dialog */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent className="bg-card border-border">
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar producto?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Vas a eliminar <strong>{deleteTarget?.name}</strong>. Esta acción no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                if (deleteTarget) deleteProduct.mutate(deleteTarget.id);
+                setDeleteTarget(null);
+              }}
+            >
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

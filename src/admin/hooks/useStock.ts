@@ -102,21 +102,8 @@ export const useCreateStockMovement = () => {
         .select()
         .single();
       if (error) throw error;
-
-      // Update product quantity
-      const { data: product } = await supabase
-        .from("products")
-        .select("quantity")
-        .eq("id", movement.product_id)
-        .single();
-
-      if (product) {
-        await supabase
-          .from("products")
-          .update({ quantity: product.quantity + movement.quantity_change })
-          .eq("id", movement.product_id);
-      }
-
+      // La cantidad del producto se actualiza automáticamente mediante el trigger
+      // `trg_stock_movement_qty` en Supabase (AFTER INSERT ON stock_movements).
       return data;
     },
     onSuccess: (_data, variables) => {
