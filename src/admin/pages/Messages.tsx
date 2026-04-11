@@ -4,7 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { MailOpen, Phone, Mail, Reply } from "lucide-react";
+import { MailOpen, Phone, Mail, Reply, Trash2 } from "lucide-react";
 
 export default function Messages() {
   const qc = useQueryClient();
@@ -19,6 +19,20 @@ export default function Messages() {
         .order("created_at", { ascending: false });
       if (error) throw error;
       return data ?? [];
+    },
+  });
+
+  const deleteMsg = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("web_bookings")
+        .delete()
+        .eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["contact-messages"] });
+      qc.invalidateQueries({ queryKey: ["messages-unread-count"] });
     },
   });
 
@@ -100,7 +114,7 @@ export default function Messages() {
 
                   {/* Actions */}
                   <div className="flex flex-col gap-1 shrink-0">
-                    {isEmail && (
+                    {isEmail ? (
                       <Button
                         variant="ghost"
                         size="sm"
@@ -108,7 +122,7 @@ export default function Messages() {
                         asChild
                       >
                         <a
-                          href={`https://mail.google.com/mail/?view=cm&to=${encodeURIComponent(m.client_email)}&su=${encodeURIComponent(`Re: mensaje de ${m.client_name}`)}`}
+                          href={`https://mail.google.com/mail/?view=cm&to=${encodeURIComponent(m.client_email)}&su=${encodeURIComponent(`Re: tu consulta — Lowkey Tattoo`)}&body=${encodeURIComponent(`Hola ${m.client_name},\n\nGracias por ponerte en contacto con nosotros.\n\n[Escribe tu respuesta aquí]\n\nUn saludo,\nLowkey Tattoo\nCalle Dr. Allart, 50 · Santa Cruz de Tenerife\ntattoolowkey.com\n\n\n────────────────────────\nMensaje original:\n${m.description ?? ""}`)}`}
                           target="_blank"
                           rel="noopener noreferrer"
                         >
@@ -116,7 +130,23 @@ export default function Messages() {
                           Responder
                         </a>
                       </Button>
-                    )}
+                    ) : m.client_phone ? (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="text-xs gap-1.5 text-muted-foreground"
+                        asChild
+                      >
+                        <a
+                          href={`https://wa.me/${m.client_phone.replace(/\D/g, "")}?text=${encodeURIComponent(`Hola ${m.client_name}, te contactamos desde Lowkey Tattoo en respuesta a tu mensaje:\n\n"${m.description ?? ""}"\n\n`)}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                        >
+                          <Phone className="w-3.5 h-3.5" />
+                          WhatsApp
+                        </a>
+                      </Button>
+                    ) : null}
                     {isUnread && (
                       <Button
                         variant="ghost"
@@ -129,6 +159,16 @@ export default function Messages() {
                         Leído
                       </Button>
                     )}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-xs gap-1.5 text-destructive hover:text-destructive"
+                      onClick={() => deleteMsg.mutate(m.id)}
+                      disabled={deleteMsg.isPending}
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      Eliminar
+                    </Button>
                   </div>
                 </div>
               </div>
