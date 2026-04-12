@@ -5,7 +5,7 @@ import { SEOHead } from "@web/components/SEOHead";
 import { useI18n } from "@web/i18n/I18nProvider";
 import { useBooking } from "@web/contexts/BookingContext";
 import { CONTACT } from "@web/config/contact";
-import gallery4 from "@/assets/gallery-4.webp";
+import piercingPablo1 from "@/assets/lowkey_tattoo_tenerife_piercing_pablo.webp";
 
 const WhatsAppIcon = ({ size = 16 }: { size?: number }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -70,7 +70,7 @@ export default function PiercingPage() {
 
           <div className="mb-16 rounded-lg overflow-hidden aspect-[16/7]">
             <img
-              src={gallery4}
+              src={piercingPablo1}
               alt={`${t("piercing.h1")} — Lowkey Tattoo`}
               className="h-full w-full object-cover"
               loading="eager"

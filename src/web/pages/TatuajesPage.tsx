@@ -12,7 +12,7 @@ import { SEOHead } from "@web/components/SEOHead";
 import { useI18n } from "@web/i18n/I18nProvider";
 import { useBooking } from "@web/contexts/BookingContext";
 import { ARTISTS } from "@shared/config/artists";
-import { ArtistCard } from "@web/components/Gallery";
+import { ArtistWorkRow } from "@web/components/Gallery";
 
 export default function TatuajesPage() {
   const { t } = useI18n();
@@ -97,9 +97,9 @@ export default function TatuajesPage() {
           </div>
 
           {/* Artists */}
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-16">
+          <div className="flex flex-col gap-4 mb-16">
             {ARTISTS.map((artist, i) => (
-              <ArtistCard key={artist.id} artist={artist} index={i} />
+              <ArtistWorkRow key={artist.id} artist={artist} index={i} />
             ))}
           </div>
 

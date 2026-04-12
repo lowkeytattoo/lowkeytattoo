@@ -8,7 +8,6 @@ import { trackCategorySelect, trackArtistView, trackIgClick } from "@web/lib/ana
 import { useBooking } from "@web/contexts/BookingContext";
 import { CONTACT } from "@web/config/contact";
 
-import gallery1 from "@/assets/gallery-1.webp";
 import gallery2 from "@/assets/gallery-2.webp";
 import gallery3 from "@/assets/gallery-3.webp";
 import gallery4 from "@/assets/gallery-4.webp";
@@ -18,11 +17,16 @@ import laserImg from "@/assets/laser_lowkey.webp";
 import pabloImg from "@/assets/pablo_lowkey_tattoo_tenerife.webp";
 import sergioImg from "@/assets/sergio_lowkey_tattoo_tenerife.webp";
 import fifoImg from "@/assets/fifo_lowkey_tattoo_tenerife.webp";
+import pablo1 from "@/assets/lowkey_tattoo_tenerife_pablo_matos_1.webp";
+import pablo2 from "@/assets/lowkey_tattoo_tenerife_pablo_matos_2.webp";
+import pablo3 from "@/assets/lowkey_tattoo_tenerife_pablo_matos_3.webp";
+import piercingPablo1 from "@/assets/lowkey_tattoo_tenerife_piercing_pablo.webp";
+import piercingPablo2 from "@/assets/lowkey_tattoo_tenerife_piercing_pablo_2.webp";
 
 type Category = "tattoo" | "piercing" | "laser";
 
 const ARTIST_WORKS: Record<string, string[]> = {
-  pablo:  [gallery1, gallery3, gallery6],
+  pablo:  [pablo1, pablo2, pablo3],
   sergio: [gallery2, gallery5, gallery6],
   fifo:   [gallery4, gallery3],
 };
@@ -34,8 +38,8 @@ const ARTIST_PHOTO: Record<string, string> = {
 };
 
 const CATEGORIES: { id: Category; labelKey: string; bg: string | null }[] = [
-  { id: "tattoo",   labelKey: "gallery.cat.tattoo",  bg: gallery2 },
-  { id: "piercing", labelKey: "gallery.cat.piercing", bg: gallery4 },
+  { id: "tattoo",   labelKey: "gallery.cat.tattoo",  bg: pablo3 },
+  { id: "piercing", labelKey: "gallery.cat.piercing", bg: piercingPablo1 },
   { id: "laser",    labelKey: "gallery.cat.laser",    bg: laserImg },
 ];
 
@@ -50,7 +54,66 @@ const fadeSlide = {
   transition: { duration: 0.35, ease: [0.4, 0, 0.2, 1] },
 };
 
-// ── Artist card ──────────────────────────────────────────────────────────────
+// ── Artist + works row ───────────────────────────────────────────────────────
+// Desktop: [square artist card] | [work img × 3]
+// Mobile:  artist card on top, work images below
+export const ArtistWorkRow = ({ artist, index }: { artist: Artist; index: number }) => {
+  const photo = ARTIST_PHOTO[artist.id];
+  const works = ARTIST_WORKS[artist.id] ?? [];
+  const igHref = igUrl(artist.handle);
+
+  useEffect(() => { trackArtistView(artist.id, artist.name); }, [artist.id, artist.name]);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 16 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.45, delay: index * 0.1, ease: [0.4, 0, 0.2, 1] }}
+      className="flex flex-col md:flex-row gap-3"
+    >
+      {/* Artist card — 4:3 on mobile, square auto-height on desktop */}
+      <a
+        href={igHref}
+        target="_blank"
+        rel="noopener noreferrer"
+        onClick={() => trackIgClick(artist.handle, "gallery")}
+        className="group relative w-full aspect-[4/3] md:w-48 lg:w-56 md:aspect-auto flex-shrink-0 overflow-hidden rounded-lg border border-border bg-card hover:border-muted-foreground transition-colors duration-200"
+      >
+        <img
+          src={photo ?? works[0]}
+          alt={artist.name}
+          className="absolute inset-0 h-full w-full object-cover object-top transition-transform duration-500 group-hover:scale-105"
+          loading="lazy"
+        />
+        {/* Bottom gradient info overlay */}
+        <div className="absolute inset-0 bg-gradient-to-t from-background/85 via-background/10 to-transparent" />
+        <div className="absolute inset-x-0 bottom-0 p-3 flex flex-col gap-0.5">
+          <p className="text-sm font-semibold text-foreground leading-tight">{artist.name}</p>
+          <span className="inline-flex items-center gap-1.5 font-mono text-[11px] text-muted-foreground group-hover:text-foreground transition-colors duration-200">
+            <InstagramIcon size={11} />
+            {artist.handle}
+          </span>
+        </div>
+      </a>
+
+      {/* Work images — 3-col grid, fills remaining space */}
+      <div className="grid grid-cols-3 gap-2 md:gap-3 flex-1">
+        {works.slice(0, 3).map((src, i) => (
+          <div key={i} className="aspect-square overflow-hidden rounded-lg">
+            <img
+              src={src}
+              alt={`${artist.name} — trabajo ${i + 1}`}
+              className="h-full w-full object-cover gallery-image"
+              loading="lazy"
+            />
+          </div>
+        ))}
+      </div>
+    </motion.div>
+  );
+};
+
+// ── Legacy card (used by LaserView artist section) ───────────────────────────
 export const ArtistCard = ({ artist, index }: { artist: Artist; index: number }) => {
   const photo = ARTIST_PHOTO[artist.id];
   const works = ARTIST_WORKS[artist.id] ?? [];
@@ -69,7 +132,6 @@ export const ArtistCard = ({ artist, index }: { artist: Artist; index: number })
       transition={{ duration: 0.45, delay: index * 0.1, ease: [0.4, 0, 0.2, 1] }}
       className="group flex flex-col rounded-lg border border-border overflow-hidden bg-card hover:border-muted-foreground transition-colors duration-200"
     >
-      {/* Artist photo */}
       <div className="aspect-[4/3] w-full relative overflow-hidden">
         <img
           src={photo ?? works[0]}
@@ -78,8 +140,6 @@ export const ArtistCard = ({ artist, index }: { artist: Artist; index: number })
           loading="lazy"
         />
       </div>
-
-      {/* Info */}
       <div className="flex flex-col justify-between gap-3 p-5 flex-1 min-w-0">
         <div>
           <p className="text-base font-medium text-foreground">{artist.name}</p>
@@ -147,9 +207,9 @@ const TattooView = () => {
         </p>
         <CategoryCTAs waMessage={t("gallery.tattoo.wa")} />
       </div>
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+      <div className="flex flex-col gap-4">
         {ARTISTS.map((artist, i) => (
-          <ArtistCard key={artist.id} artist={artist} index={i} />
+          <ArtistWorkRow key={artist.id} artist={artist} index={i} />
         ))}
       </div>
     </div>
@@ -170,7 +230,7 @@ const PiercingView = () => {
         <CategoryCTAs waMessage={t("gallery.piercing.wa")} />
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 md:gap-4">
-        {[gallery4, gallery3].map((src, i) => (
+        {[piercingPablo1, piercingPablo2].map((src, i) => (
           <motion.div
             key={i}
             initial={{ opacity: 0, y: 10 }}
@@ -178,7 +238,7 @@ const PiercingView = () => {
             transition={{ duration: 0.4, delay: i * 0.1 }}
             className="aspect-square overflow-hidden rounded-lg"
           >
-            <img src={src} alt={`Piercing ${i + 1}`} className="h-full w-full object-cover gallery-image rounded-lg" loading="lazy" />
+            <img src={src} alt={`Piercing en Tenerife — Lowkey Tattoo ${i + 1}`} className="h-full w-full object-cover gallery-image rounded-lg" loading="lazy" />
           </motion.div>
         ))}
       </div>
@@ -239,7 +299,7 @@ const LaserArtistCard = ({ artist }: { artist: Artist }) => {
 
 const LaserView = () => {
   const { t } = useI18n();
-  const laserArtists = ARTISTS.filter((a) => a.laser);
+  const laserArtists = ARTISTS.filter((a) => a.services.includes("laser"));
 
   return (
     <div className="flex flex-col gap-8">
