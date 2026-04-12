@@ -13,18 +13,12 @@ import {
   MessageSquare,
   LogOut,
   MoreHorizontal,
-  X,
+  Home,
 } from "lucide-react";
 import { useAdminAuth } from "@admin/contexts/AdminAuthContext";
 import { StockAlertBadge } from "@admin/components/StockAlertBadge";
 import { MessagesUnreadBadge } from "@admin/components/MessagesUnreadBadge";
 import { BookingsPendingBadge } from "@admin/components/BookingsPendingBadge";
-import {
-  Sheet,
-  SheetContent,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet";
 import { cn } from "@shared/lib/utils";
 
 const navItems = [
@@ -43,8 +37,8 @@ const ownerNavItems = [
   { to: "/admin/calendar", label: "Calendario",  icon: CalendarDays },
 ];
 
-// Items shown in the mobile bottom bar (most used)
-const MOBILE_ITEMS = ["/admin/dashboard", "/admin/clients", "/admin/sessions", "/admin/finances", "/admin/bookings"];
+// Items shown in the mobile bottom bar — dashboard is center (index 2)
+const MOBILE_ITEMS = ["/admin/clients", "/admin/sessions", "/admin/dashboard", "/admin/finances", "/admin/bookings"];
 
 export const AdminSidebar = () => {
   const { profile, signOut } = useAdminAuth();
@@ -57,7 +51,12 @@ export const AdminSidebar = () => {
   };
 
   const allItems = profile?.role === "owner" ? [...navItems, ...ownerNavItems] : navItems;
-  const mobileItems = allItems.filter((i) => MOBILE_ITEMS.includes(i.to));
+
+  // Sort mobileItems according to MOBILE_ITEMS order
+  const mobileItems = MOBILE_ITEMS
+    .map((path) => allItems.find((i) => i.to === path))
+    .filter((i): i is NonNullable<typeof i> => i != null);
+
   const moreItems = allItems.filter((i) => !MOBILE_ITEMS.includes(i.to));
 
   return (
@@ -118,50 +117,135 @@ export const AdminSidebar = () => {
       </aside>
 
       {/* ── Mobile bottom nav ───────────────────────────── */}
-      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border">
-        <ul className="flex">
-          {mobileItems.map(({ to, label, icon: Icon, badge, messagesBadge, bookingsBadge }) => (
-            <li key={to} className="flex-1">
-              <NavLink
-                to={to}
-                className={({ isActive }) =>
-                  cn(
-                    "flex flex-col items-center justify-center gap-1 py-2 w-full transition-colors",
-                    isActive ? "text-primary" : "text-muted-foreground"
-                  )
-                }
-              >
-                <div className="relative">
-                  <Icon className="w-5 h-5" />
-                  {badge && (
-                    <span className="absolute -top-1 -right-1">
-                      <StockAlertBadge />
-                    </span>
-                  )}
-                  {messagesBadge && (
-                    <span className="absolute -top-1 -right-1">
-                      <MessagesUnreadBadge />
-                    </span>
-                  )}
-                  {bookingsBadge && (
-                    <span className="absolute -top-1 -right-1">
-                      <BookingsPendingBadge />
-                    </span>
-                  )}
-                </div>
-                <span className="text-[10px] font-mono uppercase tracking-wider leading-none">
-                  {label}
-                </span>
-              </NavLink>
-            </li>
-          ))}
+      {/* Backdrop — closes the "Más" secondary row when tapped */}
+      {moreOpen && (
+        <div
+          className="md:hidden fixed inset-0 z-40"
+          onClick={() => setMoreOpen(false)}
+        />
+      )}
 
-          {/* "Más" button — only shown if there are extra items */}
+      <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border">
+        {/* Secondary row — slides up above the nav bar */}
+        {moreItems.length > 0 && (
+          <div
+            className={cn(
+              "absolute bottom-full left-0 right-0 bg-card border-t border-border transition-all duration-200",
+              moreOpen
+                ? "opacity-100 translate-y-0 pointer-events-auto"
+                : "opacity-0 translate-y-2 pointer-events-none"
+            )}
+          >
+            <ul className="flex">
+              {moreItems.map(({ to, label, icon: Icon, badge, messagesBadge, bookingsBadge }) => (
+                <li key={to} className="flex-1">
+                  <NavLink
+                    to={to}
+                    onClick={() => setMoreOpen(false)}
+                    className={({ isActive }) =>
+                      cn(
+                        "flex flex-col items-center justify-center gap-1 py-2 w-full transition-colors",
+                        isActive ? "text-primary" : "text-muted-foreground"
+                      )
+                    }
+                  >
+                    <div className="relative">
+                      <Icon className="w-5 h-5" />
+                      {badge && (
+                        <span className="absolute -top-1 -right-1">
+                          <StockAlertBadge />
+                        </span>
+                      )}
+                      {messagesBadge && (
+                        <span className="absolute -top-1 -right-1">
+                          <MessagesUnreadBadge />
+                        </span>
+                      )}
+                      {bookingsBadge && (
+                        <span className="absolute -top-1 -right-1">
+                          <BookingsPendingBadge />
+                        </span>
+                      )}
+                    </div>
+                    <span className="text-[10px] font-mono uppercase tracking-wider leading-none">
+                      {label}
+                    </span>
+                  </NavLink>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {/* Main bar */}
+        <ul className="flex">
+          {mobileItems.map(({ to, label, icon, badge, messagesBadge, bookingsBadge }) => {
+            const isCenterItem = to === "/admin/dashboard";
+            // Center dashboard item uses Home icon; others use their own icon
+            const Icon = isCenterItem ? Home : icon;
+
+            return (
+              <li key={to} className="flex-1">
+                <NavLink
+                  to={to}
+                  onClick={() => setMoreOpen(false)}
+                  className={({ isActive }) =>
+                    cn(
+                      "flex flex-col items-center justify-center gap-1 py-2 w-full transition-colors",
+                      isActive ? "text-primary" : "text-muted-foreground"
+                    )
+                  }
+                >
+                  {({ isActive }) => (
+                    <>
+                      <div className="relative">
+                        {isCenterItem ? (
+                          <div
+                            className={cn(
+                              "flex items-center justify-center rounded-full w-9 h-9 transition-colors",
+                              isActive ? "bg-primary/15" : "bg-muted/40"
+                            )}
+                          >
+                            <Icon className="w-6 h-6" />
+                          </div>
+                        ) : (
+                          <Icon className="w-5 h-5" />
+                        )}
+                        {badge && (
+                          <span className="absolute -top-1 -right-1">
+                            <StockAlertBadge />
+                          </span>
+                        )}
+                        {messagesBadge && (
+                          <span className="absolute -top-1 -right-1">
+                            <MessagesUnreadBadge />
+                          </span>
+                        )}
+                        {bookingsBadge && (
+                          <span className="absolute -top-1 -right-1">
+                            <BookingsPendingBadge />
+                          </span>
+                        )}
+                      </div>
+                      <span className="text-[10px] font-mono uppercase tracking-wider leading-none">
+                        {label}
+                      </span>
+                    </>
+                  )}
+                </NavLink>
+              </li>
+            );
+          })}
+
+          {/* "Más" button — toggles secondary row */}
           {moreItems.length > 0 && (
             <li className="flex-1">
               <button
-                onClick={() => setMoreOpen(true)}
-                className="flex flex-col items-center justify-center gap-1 py-2 w-full text-muted-foreground hover:text-foreground transition-colors"
+                onClick={() => setMoreOpen((o) => !o)}
+                className={cn(
+                  "flex flex-col items-center justify-center gap-1 py-2 w-full transition-colors",
+                  moreOpen ? "text-primary" : "text-muted-foreground hover:text-foreground"
+                )}
               >
                 <MoreHorizontal className="w-5 h-5" />
                 <span className="text-[10px] font-mono uppercase tracking-wider leading-none">
@@ -172,60 +256,6 @@ export const AdminSidebar = () => {
           )}
         </ul>
       </nav>
-
-      {/* ── "Más" Sheet (mobile extra items) ────────────── */}
-      <Sheet open={moreOpen} onOpenChange={setMoreOpen}>
-        <SheetContent side="bottom" className="bg-card border-t border-border pb-safe rounded-t-xl">
-          <SheetHeader className="mb-4">
-            <div className="flex items-center justify-between">
-              <SheetTitle className="font-mono text-xs uppercase tracking-widest text-muted-foreground">
-                Más secciones
-              </SheetTitle>
-              <button
-                onClick={() => setMoreOpen(false)}
-                className="text-muted-foreground hover:text-foreground transition-colors"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          </SheetHeader>
-          <ul className="space-y-1">
-            {moreItems.map(({ to, label, icon: Icon, badge, messagesBadge, bookingsBadge }) => (
-              <li key={to}>
-                <NavLink
-                  to={to}
-                  onClick={() => setMoreOpen(false)}
-                  className={({ isActive }) =>
-                    cn(
-                      "flex items-center gap-3 px-3 py-3 rounded-md text-sm transition-colors",
-                      isActive
-                        ? "bg-primary/10 text-primary font-medium"
-                        : "text-muted-foreground hover:text-foreground hover:bg-muted/50"
-                    )
-                  }
-                >
-                  <Icon className="w-5 h-5 shrink-0" />
-                  <span className="flex-1">{label}</span>
-                  {badge && <StockAlertBadge />}
-                  {messagesBadge && <MessagesUnreadBadge />}
-                  {bookingsBadge && <BookingsPendingBadge />}
-                </NavLink>
-              </li>
-            ))}
-          </ul>
-
-          {/* Sign out inside sheet */}
-          <div className="mt-6 pt-4 border-t border-border">
-            <button
-              onClick={() => { setMoreOpen(false); handleSignOut(); }}
-              className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors w-full px-3 py-2"
-            >
-              <LogOut className="w-4 h-4" />
-              Cerrar sesión — {profile?.display_name}
-            </button>
-          </div>
-        </SheetContent>
-      </Sheet>
     </>
   );
 };

@@ -34,6 +34,7 @@ import { useArtistBusyDays } from "@web/hooks/useCalendarAvailability";
 import { ARTISTS } from "@shared/config/artists";
 import { useArtistProfiles } from "@admin/hooks/useArtistProfiles";
 import { toast } from "sonner";
+import { ArtistAvatar } from "@admin/components/ArtistAvatar";
 
 function buildWhatsAppUrl(booking: WebBooking): string {
   const phone = (booking.client_phone ?? "").replace(/\D/g, "");
@@ -160,6 +161,13 @@ export default function WebBookings() {
   const isOwner = profile?.role === "owner";
   const qc = useQueryClient();
 
+  const { data: profiles } = useArtistProfiles();
+
+  const getArtistName = (configId: string | null | undefined) => {
+    if (!configId) return null;
+    return (profiles ?? []).find((p) => p.artist_config_id === configId)?.display_name ?? configId;
+  };
+
   const { data: bookings, isLoading } = useQuery({
     queryKey: ["web-bookings", profile?.artist_config_id],
     queryFn: async () => {
@@ -280,11 +288,15 @@ export default function WebBookings() {
         <Table>
           <TableHeader>
             <TableRow className="border-border">
-              <TableHead className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Recibida</TableHead>
+              <TableHead className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider hidden sm:table-cell">Recibida</TableHead>
               <TableHead className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Cliente</TableHead>
-              {isOwner && <TableHead className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Artista</TableHead>}
+              {isOwner && (
+                <TableHead className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">
+                  <span className="hidden sm:inline">Artista</span>
+                </TableHead>
+              )}
               <TableHead className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Servicio</TableHead>
-              <TableHead className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Fecha preferida</TableHead>
+              <TableHead className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Fecha</TableHead>
               <TableHead className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Estado</TableHead>
               <TableHead className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Acciones</TableHead>
             </TableRow>
@@ -301,32 +313,39 @@ export default function WebBookings() {
             ) : (
               filteredBookings.map((b) => (
                 <TableRow key={b.id} className="border-border">
-                  <TableCell className="text-xs font-['IBM_Plex_Mono'] text-muted-foreground">
+                  <TableCell className="text-xs font-['IBM_Plex_Mono'] text-muted-foreground hidden sm:table-cell whitespace-nowrap">
                     {format(new Date(b.created_at), "d MMM yyyy", { locale: es })}
                   </TableCell>
                   <TableCell>
-                    <div className="text-sm font-medium">{b.client_name ?? "—"}</div>
+                    <div className="text-sm font-medium leading-tight">{b.client_name ?? "—"}</div>
                     {b.client_phone && (
-                      <div className="text-xs text-muted-foreground font-['IBM_Plex_Mono']">{b.client_phone}</div>
+                      <div className="text-xs text-muted-foreground font-['IBM_Plex_Mono'] hidden sm:block">{b.client_phone}</div>
                     )}
                   </TableCell>
                   {isOwner && (
-                    <TableCell className="text-sm text-muted-foreground">
-                      {b.artist_config_id ?? "—"}
+                    <TableCell>
+                      <span className="sm:hidden"><ArtistAvatar name={getArtistName(b.artist_config_id)} /></span>
+                      <span className="hidden sm:inline text-sm text-muted-foreground">{getArtistName(b.artist_config_id) ?? "—"}</span>
                     </TableCell>
                   )}
                   <TableCell>
-                    <Badge variant="outline" className="text-xs font-['IBM_Plex_Mono'] capitalize">
+                    <Badge variant="outline" className="text-[10px] font-['IBM_Plex_Mono'] capitalize whitespace-nowrap">
                       {SERVICE_LABELS[b.service_type] ?? b.service_type}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-sm font-['IBM_Plex_Mono']">
-                    <div className="flex items-center gap-1.5">
+                  <TableCell className="text-xs font-['IBM_Plex_Mono'] whitespace-nowrap">
+                    <div className="flex items-center gap-1">
                       <span>
-                        {b.preferred_date
-                          ? format(new Date(b.preferred_date + "T00:00:00"), "d MMM yyyy", { locale: es })
-                          : "—"}
-                        {b.preferred_time && ` ${b.preferred_time}`}
+                        <span className="hidden sm:inline">
+                          {b.preferred_date
+                            ? format(new Date(b.preferred_date + "T00:00:00"), "d MMM yyyy", { locale: es })
+                            : "—"}
+                        </span>
+                        <span className="sm:hidden">
+                          {b.preferred_date
+                            ? format(new Date(b.preferred_date + "T00:00:00"), "d MMM", { locale: es })
+                            : "—"}
+                        </span>
                       </span>
                       {b.status === "pending" && <ConflictBadge booking={b} />}
                     </div>

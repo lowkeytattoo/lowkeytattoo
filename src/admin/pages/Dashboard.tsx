@@ -15,6 +15,7 @@ import {
 import { format, startOfDay, endOfDay, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import { TrendingUp, Users, Calendar, AlertCircle, ExternalLink, Clock } from "lucide-react";
+import { ArtistAvatar } from "@admin/components/ArtistAvatar";
 import { useCalendarEvents } from "@admin/hooks/useGoogleCalendar";
 
 const SESSION_TYPE_LABELS: Record<string, string> = {
@@ -41,10 +42,8 @@ export default function Dashboard() {
   const { data: lowStockCount } = useLowStockCount();
   const { data: profiles } = useArtistProfiles();
 
-  // Find the first profile with a calendar_id set, regardless of artist_config_id
   const firstCalendarProfile = (profiles ?? []).find((p) => !!p.calendar_id) ?? null;
 
-  // Fetch events from start of current month to end of next month
   const calTimeMin = startOfDay(new Date(new Date().getFullYear(), new Date().getMonth(), 1)).toISOString();
   const calTimeMax = endOfDay(new Date(new Date().getFullYear(), new Date().getMonth() + 2, 0)).toISOString();
   const { data: upcomingEvents = [] } = useCalendarEvents(
@@ -52,7 +51,6 @@ export default function Dashboard() {
     isOwner && firstCalendarProfile ? calTimeMax : "",
   );
 
-  // Sort all events chronologically, group by day
   const calDays = isOwner && firstCalendarProfile
     ? (() => {
         const dayMap = new Map<string, typeof upcomingEvents>();
@@ -77,7 +75,7 @@ export default function Dashboard() {
   );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <div>
         <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
         <p className="text-muted-foreground text-sm mt-1">
@@ -85,15 +83,15 @@ export default function Dashboard() {
         </p>
       </div>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+      {/* KPI Cards — 2 cols mobile, 4 cols tablet+ */}
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Card className="bg-card border-border">
           <CardContent className="p-4">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-['IBM_Plex_Mono'] uppercase tracking-wider text-muted-foreground">
+              <span className="text-[10px] font-['IBM_Plex_Mono'] uppercase tracking-wider text-muted-foreground leading-tight">
                 Ingresos mes
               </span>
-              <TrendingUp className="w-4 h-4 text-primary" />
+              <TrendingUp className="w-4 h-4 text-primary shrink-0" />
             </div>
             <div className="text-2xl font-bold text-foreground">
               €{(overview?.revenueMonth ?? 0).toFixed(0)}
@@ -104,10 +102,10 @@ export default function Dashboard() {
         <Card className="bg-card border-border">
           <CardContent className="p-4">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-['IBM_Plex_Mono'] uppercase tracking-wider text-muted-foreground">
+              <span className="text-[10px] font-['IBM_Plex_Mono'] uppercase tracking-wider text-muted-foreground leading-tight">
                 Sesiones mes
               </span>
-              <Calendar className="w-4 h-4 text-primary" />
+              <Calendar className="w-4 h-4 text-primary shrink-0" />
             </div>
             <div className="text-2xl font-bold text-foreground">
               {overview?.sessionsMonth ?? 0}
@@ -119,10 +117,10 @@ export default function Dashboard() {
           <Card className="bg-card border-border">
             <CardContent className="p-4">
               <div className="flex items-center justify-between mb-2">
-                <span className="text-xs font-['IBM_Plex_Mono'] uppercase tracking-wider text-muted-foreground">
+                <span className="text-[10px] font-['IBM_Plex_Mono'] uppercase tracking-wider text-muted-foreground leading-tight">
                   Clientes totales
                 </span>
-                <Users className="w-4 h-4 text-primary" />
+                <Users className="w-4 h-4 text-primary shrink-0" />
               </div>
               <div className="text-2xl font-bold text-foreground">
                 {overview?.totalClients ?? 0}
@@ -134,10 +132,10 @@ export default function Dashboard() {
         <Card className="bg-card border-border">
           <CardContent className="p-4">
             <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-['IBM_Plex_Mono'] uppercase tracking-wider text-muted-foreground">
+              <span className="text-[10px] font-['IBM_Plex_Mono'] uppercase tracking-wider text-muted-foreground leading-tight">
                 Pendiente cobro
               </span>
-              <AlertCircle className="w-4 h-4 text-destructive" />
+              <AlertCircle className="w-4 h-4 text-destructive shrink-0" />
             </div>
             <div className="text-2xl font-bold text-destructive">
               €{(overview?.pendingAmount ?? 0).toFixed(0)}
@@ -149,7 +147,7 @@ export default function Dashboard() {
       {/* Stock alert banner */}
       {isOwner && !!lowStockCount && lowStockCount > 0 && (
         <Card className="bg-destructive/10 border-destructive/30">
-          <CardContent className="p-4 flex items-center gap-3">
+          <CardContent className="p-3 flex items-center gap-3">
             <AlertCircle className="w-5 h-5 text-destructive shrink-0" />
             <span className="text-sm text-foreground">
               <strong>{lowStockCount}</strong>{" "}
@@ -162,23 +160,33 @@ export default function Dashboard() {
       {/* Revenue Chart */}
       {hasChartData && (
         <Card className="bg-card border-border">
-          <CardHeader className="pb-2">
+          <CardHeader className="pb-2 px-4 pt-4">
             <CardTitle className="text-base font-['IBM_Plex_Mono'] uppercase tracking-wider text-muted-foreground">
               Ingresos últimos 6 meses
             </CardTitle>
           </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={220}>
+          <CardContent className="px-2 pb-4">
+            <ResponsiveContainer width="100%" height={180}>
               {isOwner ? (
-                <LineChart data={revenueRows}>
+                <LineChart data={revenueRows} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis dataKey="month" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} />
-                  <YAxis tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} tickFormatter={(v) => `€${v}`} />
+                  <XAxis
+                    dataKey="month"
+                    tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+                    tickLine={false}
+                  />
+                  <YAxis
+                    tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+                    tickFormatter={(v) => `€${v}`}
+                    width={42}
+                    tickLine={false}
+                    axisLine={false}
+                  />
                   <Tooltip
-                    contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))" }}
+                    contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", fontSize: 12 }}
                     formatter={(v: number) => [`€${v.toFixed(0)}`, undefined]}
                   />
-                  <Legend />
+                  <Legend wrapperStyle={{ fontSize: 11 }} />
                   {artistNames.map((name, i) => (
                     <Line
                       key={name}
@@ -191,12 +199,22 @@ export default function Dashboard() {
                   ))}
                 </LineChart>
               ) : (
-                <BarChart data={revenueRows}>
+                <BarChart data={revenueRows} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis dataKey="month" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} />
-                  <YAxis tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} tickFormatter={(v) => `€${v}`} />
+                  <XAxis
+                    dataKey="month"
+                    tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+                    tickLine={false}
+                  />
+                  <YAxis
+                    tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }}
+                    tickFormatter={(v) => `€${v}`}
+                    width={42}
+                    tickLine={false}
+                    axisLine={false}
+                  />
                   <Tooltip
-                    contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))" }}
+                    contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", fontSize: 12 }}
                     formatter={(v: number) => [`€${v.toFixed(0)}`, undefined]}
                   />
                   {artistNames.map((name, i) => (
@@ -214,19 +232,19 @@ export default function Dashboard() {
         </Card>
       )}
 
-      {/* Calendar widget (owner only) — full width, above sessions */}
+      {/* Calendar widget (owner only) */}
       {isOwner && firstCalendarProfile && (
         <Card className="bg-card border-border">
           <CardHeader className="pb-2">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-base font-['IBM_Plex_Mono'] uppercase tracking-wider text-muted-foreground">
-                Calendario — {format(new Date(), "MMMM yyyy", { locale: es })}
+            <div className="flex items-center justify-between gap-2">
+              <CardTitle className="text-base font-['IBM_Plex_Mono'] uppercase tracking-wider text-muted-foreground truncate">
+                Calendario — {format(new Date(), "MMM yyyy", { locale: es })}
               </CardTitle>
               <Link
                 to="/admin/calendar"
-                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors font-mono"
+                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors font-mono shrink-0"
               >
-                Ver calendario completo
+                <span className="hidden sm:inline">Ver completo</span>
                 <ExternalLink className="w-3 h-3" />
               </Link>
             </div>
@@ -242,7 +260,11 @@ export default function Dashboard() {
                   <div key={day.toISOString()}>
                     {/* Day label */}
                     <div className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-2">
-                      <span>{format(day, "EEEE d 'de' MMMM", { locale: es })}</span>
+                      <span className="capitalize">
+                        {/* Short date on mobile, full on sm+ */}
+                        <span className="sm:hidden">{format(day, "EEE d MMM", { locale: es })}</span>
+                        <span className="hidden sm:inline">{format(day, "EEEE d 'de' MMMM", { locale: es })}</span>
+                      </span>
                       <span className="flex-1 h-px bg-border" />
                       <span>{events.length} {events.length === 1 ? "cita" : "citas"}</span>
                     </div>
@@ -259,9 +281,7 @@ export default function Dashboard() {
                             key={ev.id}
                             className="rounded-lg border border-border bg-background p-3 flex flex-col gap-1.5"
                           >
-                            {/* Main row: title left, description right on desktop */}
                             <div className="flex flex-col sm:flex-row sm:gap-4 gap-1.5">
-                              {/* Left: service + client */}
                               <div className="flex flex-col gap-1 sm:min-w-[130px] sm:max-w-[160px]">
                                 <span className="font-['IBM_Plex_Mono'] text-[10px] uppercase tracking-widest text-muted-foreground">
                                   {service}
@@ -272,14 +292,12 @@ export default function Dashboard() {
                                   </span>
                                 )}
                               </div>
-                              {/* Right: description */}
                               {ev.description && (
                                 <p className="text-xs text-muted-foreground leading-relaxed whitespace-pre-line sm:border-l sm:border-border sm:pl-4 flex-1">
                                   {ev.description}
                                 </p>
                               )}
                             </div>
-                            {/* Time */}
                             {timeStart && (
                               <div className="flex items-center gap-1 text-xs text-muted-foreground font-mono mt-auto pt-1 border-t border-border">
                                 <Clock className="w-3 h-3 shrink-0" />
@@ -298,7 +316,7 @@ export default function Dashboard() {
         </Card>
       )}
 
-      {/* Recent sessions — full width */}
+      {/* Recent sessions */}
       <Card className="bg-card border-border">
         <CardHeader className="pb-2">
           <CardTitle className="text-base font-['IBM_Plex_Mono'] uppercase tracking-wider text-muted-foreground">
@@ -306,54 +324,96 @@ export default function Dashboard() {
           </CardTitle>
         </CardHeader>
         <CardContent className="p-0">
-          <Table>
-            <TableHeader>
-              <TableRow className="border-border">
-                <TableHead className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Fecha</TableHead>
-                <TableHead className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Cliente</TableHead>
-                {isOwner && (
-                  <TableHead className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Artista</TableHead>
-                )}
-                <TableHead className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Tipo</TableHead>
-                <TableHead className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider text-right">Precio</TableHead>
-                <TableHead className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Pago</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {last10Sessions.length === 0 ? (
-                <TableRow>
-                  <TableCell colSpan={isOwner ? 6 : 5} className="text-center text-muted-foreground py-8">
-                    No hay sesiones registradas
-                  </TableCell>
-                </TableRow>
-              ) : (
-                last10Sessions.map((s) => (
-                  <TableRow key={s.id} className="border-border">
-                    <TableCell className="text-sm">
+
+          {/* ── Mobile: card list ─────────────────────────── */}
+          <div className="md:hidden divide-y divide-border">
+            {last10Sessions.length === 0 ? (
+              <p className="text-center text-muted-foreground py-8 text-sm">
+                No hay sesiones registradas
+              </p>
+            ) : (
+              last10Sessions.map((s) => (
+                <div key={s.id} className="px-4 py-3 space-y-1.5">
+                  {/* Row 1: date + price */}
+                  <div className="flex items-center justify-between">
+                    <span className="font-['IBM_Plex_Mono'] text-xs text-muted-foreground">
                       {format(new Date(s.date + "T00:00:00"), "d MMM yyyy", { locale: es })}
-                    </TableCell>
-                    <TableCell className="text-sm">{s.client?.name ?? "—"}</TableCell>
-                    {isOwner && (
-                      <TableCell className="text-sm">{s.artist?.display_name ?? "—"}</TableCell>
-                    )}
-                    <TableCell>
-                      <Badge variant="outline" className="text-xs font-['IBM_Plex_Mono']">
-                        {SESSION_TYPE_LABELS[s.type] ?? s.type}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-right font-['IBM_Plex_Mono'] text-sm">
+                    </span>
+                    <span className="font-['IBM_Plex_Mono'] text-sm font-semibold text-foreground">
                       {s.price != null ? `€${parseFloat(String(s.price)).toFixed(0)}` : "—"}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={s.paid ? "default" : "destructive"} className="text-xs">
-                        {s.paid ? "Pagado" : "Pendiente"}
-                      </Badge>
+                    </span>
+                  </div>
+                  {/* Row 2: client name */}
+                  <div className="text-sm font-medium text-foreground">
+                    {s.client?.name ?? "—"}
+                  </div>
+                  {/* Row 3: type + artist avatar + paid badge */}
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <Badge variant="outline" className="text-[10px] font-['IBM_Plex_Mono']">
+                      {SESSION_TYPE_LABELS[s.type] ?? s.type}
+                    </Badge>
+                    {isOwner && <ArtistAvatar name={s.artist?.display_name} size="xs" />}
+                    <Badge variant={s.paid ? "default" : "destructive"} className="text-[10px]">
+                      {s.paid ? "Pagado" : "Pendiente"}
+                    </Badge>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+
+          {/* ── Desktop: table ────────────────────────────── */}
+          <div className="hidden md:block">
+            <Table>
+              <TableHeader>
+                <TableRow className="border-border">
+                  <TableHead className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Fecha</TableHead>
+                  <TableHead className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Cliente</TableHead>
+                  {isOwner && (
+                    <TableHead className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Artista</TableHead>
+                  )}
+                  <TableHead className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Tipo</TableHead>
+                  <TableHead className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider text-right">Precio</TableHead>
+                  <TableHead className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Pago</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {last10Sessions.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={isOwner ? 6 : 5} className="text-center text-muted-foreground py-8">
+                      No hay sesiones registradas
                     </TableCell>
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
+                ) : (
+                  last10Sessions.map((s) => (
+                    <TableRow key={s.id} className="border-border">
+                      <TableCell className="text-sm">
+                        {format(new Date(s.date + "T00:00:00"), "d MMM yyyy", { locale: es })}
+                      </TableCell>
+                      <TableCell className="text-sm">{s.client?.name ?? "—"}</TableCell>
+                      {isOwner && (
+                        <TableCell className="text-sm">{s.artist?.display_name ?? "—"}</TableCell>
+                      )}
+                      <TableCell>
+                        <Badge variant="outline" className="text-xs font-['IBM_Plex_Mono']">
+                          {SESSION_TYPE_LABELS[s.type] ?? s.type}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-right font-['IBM_Plex_Mono'] text-sm">
+                        {s.price != null ? `€${parseFloat(String(s.price)).toFixed(0)}` : "—"}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={s.paid ? "default" : "destructive"} className="text-xs">
+                          {s.paid ? "Pagado" : "Pendiente"}
+                        </Badge>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
+
         </CardContent>
       </Card>
     </div>

@@ -15,6 +15,7 @@ import {
 import { format, startOfMonth, endOfMonth, subMonths, startOfYear } from "date-fns";
 import { es } from "date-fns/locale";
 import { Download, Printer } from "lucide-react";
+import { ArtistAvatar } from "@admin/components/ArtistAvatar";
 
 const CHART_COLORS = [
   "hsl(var(--primary))",
@@ -330,27 +331,27 @@ function FinancesContent({
 
       {/* Chart */}
       <Card className="bg-card border-border">
-        <CardHeader className="pb-2">
+        <CardHeader className="pb-2 px-4 pt-4">
           <CardTitle className="text-base font-['IBM_Plex_Mono'] uppercase tracking-wider text-muted-foreground">
             Ingresos últimos 6 meses
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="px-2 pb-4">
           {!hasChartData ? (
-            <div className="h-[240px] flex items-center justify-center text-muted-foreground text-sm">
+            <div className="h-[180px] flex items-center justify-center text-muted-foreground text-sm">
               Sin datos de ingresos en los últimos 6 meses
             </div>
           ) : (
-            <ResponsiveContainer width="100%" height={240}>
-              <BarChart data={revenueRows}>
+            <ResponsiveContainer width="100%" height={180}>
+              <BarChart data={revenueRows} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                <XAxis dataKey="month" tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} />
-                <YAxis tick={{ fontSize: 11, fill: "hsl(var(--muted-foreground))" }} tickFormatter={(v) => `€${v}`} />
+                <XAxis dataKey="month" tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} tickLine={false} />
+                <YAxis tick={{ fontSize: 10, fill: "hsl(var(--muted-foreground))" }} tickFormatter={(v) => `€${v}`} width={42} tickLine={false} axisLine={false} />
                 <Tooltip
-                  contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))" }}
+                  contentStyle={{ background: "hsl(var(--card))", border: "1px solid hsl(var(--border))", fontSize: 12 }}
                   formatter={(v: number) => [`€${v.toFixed(0)}`, undefined]}
                 />
-                <Legend />
+                <Legend wrapperStyle={{ fontSize: 11 }} />
                 {artistNames.map((name, i) => (
                   <Bar
                     key={name}
@@ -381,20 +382,30 @@ function FinancesContent({
                 <TableRow className="border-border">
                   <TableHead className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Fecha</TableHead>
                   <TableHead className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Cliente</TableHead>
-                  {isOwner && <TableHead className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Artista</TableHead>}
-                  <TableHead className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider text-right">Importe</TableHead>
+                  {isOwner && (
+                    <TableHead className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">
+                      <span className="hidden sm:inline">Artista</span>
+                    </TableHead>
+                  )}
+                  <TableHead className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider text-right">€</TableHead>
                   <TableHead className="w-10" />
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {(unpaid ?? []).map((s) => (
                   <TableRow key={s.id} className="border-border group">
-                    <TableCell className="text-sm font-['IBM_Plex_Mono']">
-                      {format(new Date(s.date + "T00:00:00"), "d MMM yyyy", { locale: es })}
+                    <TableCell className="text-xs font-['IBM_Plex_Mono'] whitespace-nowrap">
+                      <span className="hidden sm:inline">{format(new Date(s.date + "T00:00:00"), "d MMM yyyy", { locale: es })}</span>
+                      <span className="sm:hidden">{format(new Date(s.date + "T00:00:00"), "d MMM", { locale: es })}</span>
                     </TableCell>
-                    <TableCell className="text-sm">{(s.client as any)?.name ?? "—"}</TableCell>
-                    {isOwner && <TableCell className="text-sm">{(s.artist as any)?.display_name ?? "—"}</TableCell>}
-                    <TableCell className="text-right font-['IBM_Plex_Mono'] text-sm text-destructive">
+                    <TableCell className="text-sm max-w-[100px] truncate">{(s.client as any)?.name ?? "—"}</TableCell>
+                    {isOwner && (
+                      <TableCell>
+                        <span className="sm:hidden"><ArtistAvatar name={(s.artist as any)?.display_name} /></span>
+                        <span className="hidden sm:inline text-sm">{(s.artist as any)?.display_name ?? "—"}</span>
+                      </TableCell>
+                    )}
+                    <TableCell className="text-right font-['IBM_Plex_Mono'] text-sm text-destructive whitespace-nowrap">
                       €{parseFloat(String(s.price ?? 0)).toFixed(0)}
                     </TableCell>
                     <TableCell className="text-right">

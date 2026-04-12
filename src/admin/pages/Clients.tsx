@@ -7,7 +7,6 @@ import { useAdminAuth } from "@admin/contexts/AdminAuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   Dialog,
@@ -24,6 +23,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Plus, Search, UserCircle } from "lucide-react";
+import { ArtistAvatar } from "@admin/components/ArtistAvatar";
 
 export default function Clients() {
   const navigate = useNavigate();
@@ -141,10 +141,12 @@ export default function Clients() {
           <TableHeader>
             <TableRow className="border-border">
               <TableHead className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Nombre</TableHead>
-              <TableHead className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Teléfono</TableHead>
-              <TableHead className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Email</TableHead>
+              <TableHead className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider hidden sm:table-cell">Teléfono</TableHead>
+              <TableHead className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider hidden sm:table-cell">Email</TableHead>
               {isOwner && (
-                <TableHead className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Artista</TableHead>
+                <TableHead className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">
+                  <span className="hidden sm:inline">Artista</span>
+                </TableHead>
               )}
             </TableRow>
           </TableHeader>
@@ -182,21 +184,16 @@ export default function Clients() {
                       {client.name}
                     </div>
                   </TableCell>
-                  <TableCell className="font-['IBM_Plex_Mono'] text-sm text-muted-foreground">
+                  <TableCell className="font-['IBM_Plex_Mono'] text-sm text-muted-foreground hidden sm:table-cell">
                     {client.phone ?? "—"}
                   </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
+                  <TableCell className="text-sm text-muted-foreground hidden sm:table-cell">
                     {client.email ?? "—"}
                   </TableCell>
                   {isOwner && (
                     <TableCell>
-                      {client.primary_artist?.display_name ? (
-                        <Badge variant="outline" className="text-xs font-['IBM_Plex_Mono']">
-                          {client.primary_artist.display_name}
-                        </Badge>
-                      ) : (
-                        <span className="text-muted-foreground text-sm">—</span>
-                      )}
+                      <span className="sm:hidden"><ArtistAvatar name={client.primary_artist?.display_name} /></span>
+                      <span className="hidden sm:inline text-sm text-muted-foreground">{client.primary_artist?.display_name ?? "—"}</span>
                     </TableCell>
                   )}
                 </TableRow>

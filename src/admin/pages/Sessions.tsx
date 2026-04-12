@@ -27,6 +27,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Plus, Pencil, CalendarIcon, Trash2, Search } from "lucide-react";
+import { ArtistAvatar } from "@admin/components/ArtistAvatar";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import { cn } from "@shared/lib/utils";
@@ -248,13 +249,17 @@ export default function Sessions() {
             <TableRow className="border-border">
               <TableHead className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Fecha</TableHead>
               <TableHead className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Cliente</TableHead>
-              {isOwner && <TableHead className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Artista</TableHead>}
+              {isOwner && (
+                <TableHead className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">
+                  <span className="hidden sm:inline">Artista</span>
+                </TableHead>
+              )}
               <TableHead className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Tipo</TableHead>
-              <TableHead className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Zona</TableHead>
-              <TableHead className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider text-right">Precio</TableHead>
-              <TableHead className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider text-right">Dur.</TableHead>
+              <TableHead className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider hidden sm:table-cell">Zona</TableHead>
+              <TableHead className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider text-right">€</TableHead>
+              <TableHead className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider text-right hidden sm:table-cell">Dur.</TableHead>
               <TableHead className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Pago</TableHead>
-              <TableHead className="w-16" />
+              <TableHead className="w-12" />
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -269,37 +274,43 @@ export default function Sessions() {
             ) : (
               filteredSessions.map((s) => (
                 <TableRow key={s.id} className="border-border group">
-                  <TableCell className="text-sm font-['IBM_Plex_Mono']">
-                    {format(new Date(s.date + "T00:00:00"), "d MMM yyyy", { locale: es })}
+                  <TableCell className="text-xs font-['IBM_Plex_Mono'] whitespace-nowrap">
+                    <span className="hidden sm:inline">{format(new Date(s.date + "T00:00:00"), "d MMM yyyy", { locale: es })}</span>
+                    <span className="sm:hidden">{format(new Date(s.date + "T00:00:00"), "d MMM", { locale: es })}</span>
                   </TableCell>
-                  <TableCell className="text-sm">{(s.client as any)?.name ?? "—"}</TableCell>
-                  {isOwner && <TableCell className="text-sm">{(s.artist as any)?.display_name ?? "—"}</TableCell>}
+                  <TableCell className="text-sm max-w-[100px] truncate">{(s.client as any)?.name ?? "—"}</TableCell>
+                  {isOwner && (
+                    <TableCell>
+                      <span className="sm:hidden"><ArtistAvatar name={(s.artist as any)?.display_name} /></span>
+                      <span className="hidden sm:inline text-sm">{(s.artist as any)?.display_name ?? "—"}</span>
+                    </TableCell>
+                  )}
                   <TableCell>
-                    <Badge variant="outline" className="text-xs font-['IBM_Plex_Mono']">
+                    <Badge variant="outline" className="text-[10px] font-['IBM_Plex_Mono'] whitespace-nowrap">
                       {SESSION_TYPE_LABELS[s.type]}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-sm text-muted-foreground">
+                  <TableCell className="text-xs text-muted-foreground hidden sm:table-cell max-w-[80px] truncate">
                     {s.body_zone ?? "—"}
                   </TableCell>
-                  <TableCell className="text-right font-['IBM_Plex_Mono'] text-sm">
+                  <TableCell className="text-right font-['IBM_Plex_Mono'] text-sm whitespace-nowrap">
                     {s.price != null ? `€${s.price.toFixed(0)}` : "—"}
                   </TableCell>
-                  <TableCell className="text-right font-['IBM_Plex_Mono'] text-sm text-muted-foreground">
+                  <TableCell className="text-right font-['IBM_Plex_Mono'] text-xs text-muted-foreground hidden sm:table-cell whitespace-nowrap">
                     {s.duration_minutes != null ? `${s.duration_minutes}m` : "—"}
                   </TableCell>
                   <TableCell>
                     <button onClick={() => togglePaid(s.id, s.paid)}>
                       <Badge
                         variant={s.paid ? "default" : "destructive"}
-                        className="text-xs cursor-pointer hover:opacity-80 transition-opacity"
+                        className="text-[10px] cursor-pointer hover:opacity-80 transition-opacity whitespace-nowrap"
                       >
-                        {s.paid ? "Pagado" : "Pendiente"}
+                        {s.paid ? "✓" : "Pdte."}
                       </Badge>
                     </button>
                   </TableCell>
                   <TableCell>
-                    <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
                       <Button
                         variant="ghost"
                         size="sm"
