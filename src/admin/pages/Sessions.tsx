@@ -26,7 +26,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Pencil, CalendarIcon, Trash2, Search } from "lucide-react";
+import { Plus, Pencil, CalendarIcon, Trash2, Search, SlidersHorizontal } from "lucide-react";
 import { ArtistAvatar } from "@admin/components/ArtistAvatar";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
@@ -93,6 +93,7 @@ export default function Sessions() {
 
   const [showModal, setShowModal] = useState(false);
   const [editingSession, setEditingSession] = useState<SessionRow | null>(null);
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   const { data: sessions, isLoading } = useSessions({
     artistId: isOwner ? (filterArtist !== "all" ? filterArtist : undefined) : profile?.id,
@@ -199,48 +200,89 @@ export default function Sessions() {
       </div>
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-3">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <Input
-            placeholder="Buscar cliente..."
-            value={filterSearch}
-            onChange={(e) => setFilterSearch(e.target.value)}
-            className="pl-9 w-44 bg-background border-border"
-          />
-        </div>
-        <Input type="date" value={filterFrom} onChange={(e) => setFilterFrom(e.target.value)} className="w-36 bg-background border-border" />
-        <Input type="date" value={filterTo} onChange={(e) => setFilterTo(e.target.value)} className="w-36 bg-background border-border" />
-        <Select value={filterType} onValueChange={setFilterType}>
-          <SelectTrigger className="w-36 bg-background border-border">
-            <SelectValue placeholder="Tipo" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Todos los tipos</SelectItem>
-            {SESSION_TYPES.map((t) => (
-              <SelectItem key={t} value={t}>{SESSION_TYPE_LABELS[t]}</SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        {isOwner && (
-          <Select value={filterArtist} onValueChange={setFilterArtist}>
-            <SelectTrigger className="w-40 bg-background border-border">
-              <SelectValue placeholder="Artista" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">Todos</SelectItem>
-              {(artists ?? []).map((a) => (
-                <SelectItem key={a.id} value={a.id}>{a.display_name}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        )}
-        {(filterSearch || filterFrom || filterTo || filterType !== "all" || filterArtist !== "all") && (
-          <Button variant="ghost" size="sm" onClick={() => { setFilterSearch(""); setFilterFrom(""); setFilterTo(""); setFilterType("all"); setFilterArtist("all"); }}>
-            Limpiar
-          </Button>
-        )}
-      </div>
+      {(() => {
+        const hasActive = !!(filterSearch || filterFrom || filterTo || filterType !== "all" || filterArtist !== "all");
+        const extraFilters = (
+          <>
+            <Input type="date" value={filterFrom} onChange={(e) => setFilterFrom(e.target.value)} className="w-36 bg-background border-border" />
+            <Input type="date" value={filterTo} onChange={(e) => setFilterTo(e.target.value)} className="w-36 bg-background border-border" />
+            <Select value={filterType} onValueChange={setFilterType}>
+              <SelectTrigger className="w-36 bg-background border-border">
+                <SelectValue placeholder="Tipo" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos los tipos</SelectItem>
+                {SESSION_TYPES.map((t) => (
+                  <SelectItem key={t} value={t}>{SESSION_TYPE_LABELS[t]}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+            {isOwner && (
+              <Select value={filterArtist} onValueChange={setFilterArtist}>
+                <SelectTrigger className="w-40 bg-background border-border">
+                  <SelectValue placeholder="Artista" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Todos</SelectItem>
+                  {(artists ?? []).map((a) => (
+                    <SelectItem key={a.id} value={a.id}>{a.display_name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+            {hasActive && (
+              <Button variant="ghost" size="sm" onClick={() => { setFilterSearch(""); setFilterFrom(""); setFilterTo(""); setFilterType("all"); setFilterArtist("all"); }}>
+                Limpiar
+              </Button>
+            )}
+          </>
+        );
+
+        return (
+          <>
+            {/* Mobile: search + toggle button */}
+            <div className="flex gap-2 sm:hidden">
+              <div className="relative flex-1">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar cliente..."
+                  value={filterSearch}
+                  onChange={(e) => setFilterSearch(e.target.value)}
+                  className="pl-9 bg-background border-border w-full"
+                />
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className={`shrink-0 px-2 border-border ${(filtersOpen || (hasActive && !filterSearch)) ? "border-primary text-primary" : ""}`}
+                onClick={() => setFiltersOpen((o) => !o)}
+              >
+                <SlidersHorizontal className="w-4 h-4" />
+              </Button>
+            </div>
+            {/* Mobile: expanded extra filters */}
+            {filtersOpen && (
+              <div className="flex flex-col gap-2 sm:hidden">
+                {extraFilters}
+              </div>
+            )}
+
+            {/* Desktop: all filters in one row */}
+            <div className="hidden sm:flex flex-wrap gap-3">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                <Input
+                  placeholder="Buscar cliente..."
+                  value={filterSearch}
+                  onChange={(e) => setFilterSearch(e.target.value)}
+                  className="pl-9 w-44 bg-background border-border"
+                />
+              </div>
+              {extraFilters}
+            </div>
+          </>
+        );
+      })()}
 
       {/* Table */}
       <div className="rounded-lg border border-border overflow-hidden bg-card">

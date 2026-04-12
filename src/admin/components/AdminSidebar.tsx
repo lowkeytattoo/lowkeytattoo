@@ -12,7 +12,7 @@ import {
   FileText,
   MessageSquare,
   LogOut,
-  MoreHorizontal,
+  MoreVertical,
   Home,
 } from "lucide-react";
 import { useAdminAuth } from "@admin/contexts/AdminAuthContext";
@@ -38,7 +38,7 @@ const ownerNavItems = [
 ];
 
 // Items shown in the mobile bottom bar — dashboard is center (index 2)
-const MOBILE_ITEMS = ["/admin/clients", "/admin/sessions", "/admin/dashboard", "/admin/finances", "/admin/bookings"];
+const MOBILE_ITEMS = ["/admin/bookings", "/admin/calendar", "/admin/dashboard", "/admin/finances", "/admin/sessions"];
 
 export const AdminSidebar = () => {
   const { profile, signOut } = useAdminAuth();
@@ -239,18 +239,15 @@ export const AdminSidebar = () => {
 
           {/* "Más" button — toggles secondary row */}
           {moreItems.length > 0 && (
-            <li className="flex-1">
+            <li className="w-8 shrink-0">
               <button
                 onClick={() => setMoreOpen((o) => !o)}
                 className={cn(
-                  "flex flex-col items-center justify-center gap-1 py-2 w-full transition-colors",
+                  "flex flex-col items-center justify-center py-2 w-full h-full transition-colors",
                   moreOpen ? "text-primary" : "text-muted-foreground hover:text-foreground"
                 )}
               >
-                <MoreHorizontal className="w-5 h-5" />
-                <span className="text-[10px] font-mono uppercase tracking-wider leading-none">
-                  Más
-                </span>
+                <MoreVertical className="w-3.5 h-3.5" />
               </button>
             </li>
           )}

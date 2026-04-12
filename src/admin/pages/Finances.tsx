@@ -8,6 +8,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   BarChart, Bar,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
@@ -209,8 +210,22 @@ export default function Finances() {
         </Button>
       </div>
 
-      {/* Period selector */}
-      <div className="flex gap-2 flex-wrap">
+      {/* Period selector — Select on mobile, buttons on sm+ */}
+      <div className="sm:hidden">
+        <Select value={activePeriod} onValueChange={(v) => setActivePeriod(v as Period)}>
+          <SelectTrigger className="w-full bg-background border-border font-['IBM_Plex_Mono'] text-xs">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            {(Object.keys(PERIOD_LABELS) as Period[]).map((p) => (
+              <SelectItem key={p} value={p} className="font-['IBM_Plex_Mono'] text-xs">
+                {PERIOD_LABELS[p]}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="hidden sm:flex gap-2 flex-wrap">
         {(Object.keys(PERIOD_LABELS) as Period[]).map((p) => (
           <Button
             key={p}
@@ -226,14 +241,17 @@ export default function Finances() {
 
       {isOwner ? (
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="bg-card border border-border">
-            <TabsTrigger value="global">Global</TabsTrigger>
-            {(artists ?? []).map((a) => (
-              <TabsTrigger key={a.id} value={a.id}>
-                {a.display_name}
-              </TabsTrigger>
-            ))}
-          </TabsList>
+          {/* Tabs — scrollable on mobile, normal on sm+ */}
+          <div className="overflow-x-auto">
+            <TabsList className="bg-card border border-border w-max min-w-full sm:w-auto">
+              <TabsTrigger value="global">Global</TabsTrigger>
+              {(artists ?? []).map((a) => (
+                <TabsTrigger key={a.id} value={a.id}>
+                  {a.display_name}
+                </TabsTrigger>
+              ))}
+            </TabsList>
+          </div>
 
           <TabsContent value={activeTab} className="mt-4 space-y-4" forceMount>
             <FinancesContent
