@@ -16,7 +16,7 @@ export const ARTISTS: Artist[] = [
     name: "Pablo Matos",
     handle: "@pablomatostattoo",
     email: "pablo@lowkeytattoo.com",
-    calendarId: "", // ← fill with real Google Calendar ID
+    calendarId: "",
     styles: ["Fine Line", "Geometric", "Polynesian", "Dotwork", "Piercing", "Laser"],
     services: ["tattoo", "piercing", "laser"],
   },

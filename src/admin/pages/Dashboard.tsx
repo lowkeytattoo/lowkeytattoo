@@ -1,4 +1,6 @@
+import { Link } from "react-router-dom";
 import { useAdminAuth } from "@admin/contexts/AdminAuthContext";
+import { useArtistProfiles } from "@admin/hooks/useArtistProfiles";
 import { useFinancesOverview, useRevenueByMonth } from "@admin/hooks/useFinances";
 import { useSessions } from "@admin/hooks/useSessions";
 import { useLowStockCount } from "@admin/hooks/useStock";
@@ -10,9 +12,10 @@ import {
   BarChart, Bar,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
 } from "recharts";
-import { format } from "date-fns";
+import { format, startOfDay, endOfDay, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
-import { TrendingUp, Users, Calendar, AlertCircle } from "lucide-react";
+import { TrendingUp, Users, Calendar, AlertCircle, ExternalLink, Clock } from "lucide-react";
+import { useCalendarEvents } from "@admin/hooks/useGoogleCalendar";
 
 const SESSION_TYPE_LABELS: Record<string, string> = {
   tattoo: "Tatuaje",
@@ -36,6 +39,35 @@ export default function Dashboard() {
   const { data: revenueResult } = useRevenueByMonth(6, artistId);
   const { data: recentSessions } = useSessions({ artistId });
   const { data: lowStockCount } = useLowStockCount();
+  const { data: profiles } = useArtistProfiles();
+
+  // Find the first profile with a calendar_id set, regardless of artist_config_id
+  const firstCalendarProfile = (profiles ?? []).find((p) => !!p.calendar_id) ?? null;
+
+  // Fetch events from start of current month to end of next month
+  const calTimeMin = startOfDay(new Date(new Date().getFullYear(), new Date().getMonth(), 1)).toISOString();
+  const calTimeMax = endOfDay(new Date(new Date().getFullYear(), new Date().getMonth() + 2, 0)).toISOString();
+  const { data: upcomingEvents = [] } = useCalendarEvents(
+    isOwner && firstCalendarProfile ? calTimeMin : "",
+    isOwner && firstCalendarProfile ? calTimeMax : "",
+  );
+
+  // Sort all events chronologically, group by day
+  const calDays = isOwner && firstCalendarProfile
+    ? (() => {
+        const dayMap = new Map<string, typeof upcomingEvents>();
+        for (const ev of upcomingEvents) {
+          const d = ev.start.dateTime ? parseISO(ev.start.dateTime) : ev.start.date ? parseISO(ev.start.date) : null;
+          if (!d) continue;
+          const key = format(d, "yyyy-MM-dd");
+          if (!dayMap.has(key)) dayMap.set(key, []);
+          dayMap.get(key)!.push(ev);
+        }
+        return Array.from(dayMap.entries())
+          .sort(([a], [b]) => a.localeCompare(b))
+          .map(([key, events]) => ({ day: parseISO(key), events }));
+      })()
+    : [];
 
   const last10Sessions = recentSessions?.slice(0, 10) ?? [];
   const revenueRows = revenueResult?.rows ?? [];
@@ -182,7 +214,91 @@ export default function Dashboard() {
         </Card>
       )}
 
-      {/* Recent sessions */}
+      {/* Calendar widget (owner only) — full width, above sessions */}
+      {isOwner && firstCalendarProfile && (
+        <Card className="bg-card border-border">
+          <CardHeader className="pb-2">
+            <div className="flex items-center justify-between">
+              <CardTitle className="text-base font-['IBM_Plex_Mono'] uppercase tracking-wider text-muted-foreground">
+                Calendario — {format(new Date(), "MMMM yyyy", { locale: es })}
+              </CardTitle>
+              <Link
+                to="/admin/calendar"
+                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors font-mono"
+              >
+                Ver calendario completo
+                <ExternalLink className="w-3 h-3" />
+              </Link>
+            </div>
+          </CardHeader>
+          <CardContent>
+            {calDays.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-6">
+                Sin citas este mes
+              </p>
+            ) : (
+              <div className="space-y-5">
+                {calDays.map(({ day, events }) => (
+                  <div key={day.toISOString()}>
+                    {/* Day label */}
+                    <div className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-2">
+                      <span>{format(day, "EEEE d 'de' MMMM", { locale: es })}</span>
+                      <span className="flex-1 h-px bg-border" />
+                      <span>{events.length} {events.length === 1 ? "cita" : "citas"}</span>
+                    </div>
+                    {/* Event cards */}
+                    <div className="flex flex-col gap-2">
+                      {events.map((ev) => {
+                        const timeStart = ev.start.dateTime ? format(parseISO(ev.start.dateTime), "HH:mm") : null;
+                        const timeEnd   = ev.end.dateTime   ? format(parseISO(ev.end.dateTime),   "HH:mm") : null;
+                        const [service, client] = ev.summary.includes(" — ")
+                          ? ev.summary.split(" — ")
+                          : [ev.summary, null];
+                        return (
+                          <div
+                            key={ev.id}
+                            className="rounded-lg border border-border bg-background p-3 flex flex-col gap-1.5"
+                          >
+                            {/* Main row: title left, description right on desktop */}
+                            <div className="flex flex-col sm:flex-row sm:gap-4 gap-1.5">
+                              {/* Left: service + client */}
+                              <div className="flex flex-col gap-1 sm:min-w-[130px] sm:max-w-[160px]">
+                                <span className="font-['IBM_Plex_Mono'] text-[10px] uppercase tracking-widest text-muted-foreground">
+                                  {service}
+                                </span>
+                                {client && (
+                                  <span className="text-sm font-medium text-foreground leading-tight">
+                                    {client}
+                                  </span>
+                                )}
+                              </div>
+                              {/* Right: description */}
+                              {ev.description && (
+                                <p className="text-xs text-muted-foreground leading-relaxed whitespace-pre-line sm:border-l sm:border-border sm:pl-4 flex-1">
+                                  {ev.description}
+                                </p>
+                              )}
+                            </div>
+                            {/* Time */}
+                            {timeStart && (
+                              <div className="flex items-center gap-1 text-xs text-muted-foreground font-mono mt-auto pt-1 border-t border-border">
+                                <Clock className="w-3 h-3 shrink-0" />
+                                {timeStart}{timeEnd && timeEnd !== timeStart ? ` — ${timeEnd}` : ""}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {/* Recent sessions — full width */}
       <Card className="bg-card border-border">
         <CardHeader className="pb-2">
           <CardTitle className="text-base font-['IBM_Plex_Mono'] uppercase tracking-wider text-muted-foreground">

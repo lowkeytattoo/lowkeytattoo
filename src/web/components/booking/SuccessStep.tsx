@@ -2,7 +2,6 @@ import { motion } from "framer-motion";
 import { Check } from "lucide-react";
 import { useI18n } from "@web/i18n/I18nProvider";
 import { Artist } from "@shared/config/artists";
-import { TimeSlot } from "@web/hooks/useCalendarAvailability";
 import { CONTACT } from "@web/config/contact";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
@@ -12,11 +11,10 @@ interface SuccessStepProps {
   artist: Artist;
   serviceType: ServiceType;
   date: Date;
-  slot: TimeSlot;
   onClose: () => void;
 }
 
-export const SuccessStep = ({ artist, serviceType, date, slot, onClose }: SuccessStepProps) => {
+export const SuccessStep = ({ artist, serviceType, date, onClose }: SuccessStepProps) => {
   const { t, locale } = useI18n();
 
   const formattedDate = format(date, "d 'de' MMMM yyyy", {
@@ -24,7 +22,7 @@ export const SuccessStep = ({ artist, serviceType, date, slot, onClose }: Succes
   });
 
   const waMessage = encodeURIComponent(
-    `Hola, acabo de enviar una solicitud de cita.\nArtista: ${artist.name}\nFecha: ${formattedDate}\nHora: ${slot.label}`
+    `Hola, acabo de enviar una solicitud de cita.\nArtista: ${artist.name}\nFecha preferida: ${formattedDate}`
   );
   const waUrl = `${CONTACT.whatsapp}?text=${waMessage}`;
 
@@ -36,13 +34,7 @@ export const SuccessStep = ({ artist, serviceType, date, slot, onClose }: Succes
         transition={{ duration: 0.4, ease: [0.4, 0, 0.2, 1] }}
         className="flex h-16 w-16 items-center justify-center rounded-full border border-foreground"
       >
-        <motion.div
-          initial={{ pathLength: 0, opacity: 0 }}
-          animate={{ pathLength: 1, opacity: 1 }}
-          transition={{ delay: 0.2, duration: 0.3 }}
-        >
-          <Check size={28} strokeWidth={1.5} className="text-foreground" />
-        </motion.div>
+        <Check size={28} strokeWidth={1.5} className="text-foreground" />
       </motion.div>
 
       <motion.div
@@ -64,10 +56,9 @@ export const SuccessStep = ({ artist, serviceType, date, slot, onClose }: Succes
         className="w-full rounded-md border border-border bg-card px-4 py-3 text-left"
       >
         <div className="flex flex-col gap-1.5">
-          <Row label={t("booking.summary.artist")} value={artist.name} />
+          <Row label={t("booking.summary.artist")}  value={artist.name} />
           <Row label={t("booking.summary.service")} value={t(`booking.service.${serviceType}`)} />
-          <Row label={t("booking.summary.date")} value={formattedDate} />
-          <Row label={t("booking.summary.time")} value={slot.label} />
+          <Row label={t("booking.summary.date")}    value={formattedDate} />
         </div>
       </motion.div>
 

@@ -1,7 +1,8 @@
-import { isSunday, isSaturday, isPast, startOfDay } from "date-fns";
-import { AlertCircle } from "lucide-react";
+import { isSunday, isSaturday, isPast, startOfDay, format, addMonths } from "date-fns";
+import { es } from "date-fns/locale";
 import { Calendar } from "@/components/ui/calendar";
-import { useCalendarAvailability, TimeSlot } from "@web/hooks/useCalendarAvailability";
+import { useArtistBusyDays } from "@web/hooks/useCalendarAvailability";
+import { isHoliday } from "@shared/config/holidays";
 import { Artist } from "@shared/config/artists";
 import { useI18n } from "@web/i18n/I18nProvider";
 import { cn } from "@shared/lib/utils";
@@ -9,9 +10,7 @@ import { cn } from "@shared/lib/utils";
 interface DateTimeStepProps {
   artist: Artist;
   selectedDate: Date | null;
-  selectedSlot: TimeSlot | null;
   onDateChange: (date: Date | null) => void;
-  onSlotChange: (slot: TimeSlot) => void;
   onContinue: () => void;
   onBack: () => void;
 }
@@ -19,25 +18,33 @@ interface DateTimeStepProps {
 export const DateTimeStep = ({
   artist,
   selectedDate,
-  selectedSlot,
   onDateChange,
-  onSlotChange,
   onContinue,
   onBack,
 }: DateTimeStepProps) => {
-  const { t } = useI18n();
-  const { slots, isLoading, calendarUnavailable } = useCalendarAvailability(
-    artist.calendarId,
-    selectedDate
-  );
+  const { t, locale } = useI18n();
+  const { blockedDays, partialDays, isLoading } = useArtistBusyDays(artist.calendarId || null);
+
+  const dateKey = (d: Date) => format(d, "yyyy-MM-dd");
 
   const isDisabled = (date: Date) => {
-    return isSunday(date) || isSaturday(date) || isPast(startOfDay(date)) && !isToday(date);
+    if (isPast(startOfDay(date)) && !isToday(date)) return true;
+    if (isSaturday(date) || isSunday(date)) return true;
+    if (isHoliday(date)) return true;
+    if (blockedDays.has(dateKey(date))) return true;
+    return false;
   };
 
-  const isToday = (date: Date) => {
-    const today = startOfDay(new Date());
-    return startOfDay(date).getTime() === today.getTime();
+  const isToday = (date: Date) =>
+    startOfDay(date).getTime() === startOfDay(new Date()).getTime();
+
+  // Custom day rendering to show partial indicator
+  const modifiers = {
+    partial: (date: Date) => partialDays.has(dateKey(date)) && !blockedDays.has(dateKey(date)),
+  };
+
+  const modifiersClassNames = {
+    partial: "relative after:absolute after:bottom-1 after:left-1/2 after:-translate-x-1/2 after:w-1 after:h-1 after:rounded-full after:bg-amber-400",
   };
 
   return (
@@ -47,66 +54,48 @@ export const DateTimeStep = ({
           {t("booking.step2.label")}
         </p>
         <h2 className="text-lg font-semibold text-foreground">{t("booking.step2.title")}</h2>
+        <p className="text-sm text-muted-foreground mt-1">{t("booking.step2.subtitle")}</p>
       </div>
 
-      <div className="flex flex-col md:flex-row gap-6">
-        {/* Calendar */}
-        <div className="flex-shrink-0">
-          <Calendar
-            mode="single"
-            selected={selectedDate ?? undefined}
-            onSelect={(day) => {
-              onDateChange(day ?? null);
-            }}
-            disabled={isDisabled}
-            fromDate={new Date()}
-            className="rounded-md border border-border bg-card p-2"
-          />
-        </div>
-
-        {/* Time slots */}
-        <div className="flex-1 flex flex-col gap-3">
-          <p className="text-xs font-mono text-muted-foreground uppercase tracking-wider">
-            {t("booking.step2.slots")}
+      <div className="flex flex-col items-center gap-4">
+        {isLoading && (
+          <p className="text-xs font-mono text-muted-foreground animate-pulse">
+            {t("booking.step2.loadingCalendar")}
           </p>
+        )}
 
-          {!selectedDate ? (
-            <p className="text-sm text-muted-foreground">{t("booking.step2.selectDay")}</p>
-          ) : isLoading ? (
-            <div className="grid grid-cols-2 gap-2">
-              {Array.from({ length: 7 }).map((_, i) => (
-                <div key={i} className="h-10 rounded-md bg-muted animate-pulse" />
-              ))}
-            </div>
-          ) : (
-            <div className="grid grid-cols-2 gap-2">
-              {slots.map((slot) => (
-                <button
-                  key={slot.time}
-                  onClick={() => slot.available && onSlotChange(slot)}
-                  disabled={!slot.available}
-                  className={cn(
-                    "rounded-md border px-3 py-2 text-sm font-mono transition-all duration-150",
-                    slot.available
-                      ? selectedSlot?.time === slot.time
-                        ? "border-foreground bg-primary text-primary-foreground"
-                        : "border-border bg-card text-foreground hover:border-muted-foreground"
-                      : "border-border bg-muted text-muted-foreground opacity-40 cursor-not-allowed"
-                  )}
-                >
-                  {slot.label}
-                </button>
-              ))}
-            </div>
-          )}
+        <Calendar
+          mode="single"
+          selected={selectedDate ?? undefined}
+          onSelect={(day) => onDateChange(day ?? null)}
+          disabled={isDisabled}
+          fromDate={new Date()}
+          toDate={addMonths(new Date(), 3)}
+          locale={locale === "es" ? es : undefined}
+          modifiers={modifiers}
+          modifiersClassNames={modifiersClassNames}
+          className="rounded-md border border-border bg-card p-2"
+        />
 
-          {calendarUnavailable && selectedDate && (
-            <div className="flex items-start gap-2 rounded-md border border-border bg-muted/30 px-3 py-2 mt-1">
-              <AlertCircle size={14} className="text-muted-foreground mt-0.5 shrink-0" />
-              <p className="text-xs text-muted-foreground">{t("booking.step2.unavailable")}</p>
-            </div>
-          )}
-        </div>
+        {/* Legend */}
+        {artist.calendarId && (
+          <div className="flex items-center gap-4 text-xs text-muted-foreground font-mono">
+            <span className="flex items-center gap-1.5">
+              <span className="w-3 h-3 rounded-sm bg-muted opacity-50" />
+              {t("booking.step2.legend.blocked")}
+            </span>
+            <span className="flex items-center gap-1.5">
+              <span className="w-3 h-3 rounded-sm bg-card border border-border relative after:absolute after:bottom-0.5 after:left-1/2 after:-translate-x-1/2 after:w-1 after:h-1 after:rounded-full after:bg-amber-400" />
+              {t("booking.step2.legend.partial")}
+            </span>
+          </div>
+        )}
+
+        {selectedDate && (
+          <p className="text-sm text-foreground">
+            {format(selectedDate, "EEEE d 'de' MMMM yyyy", { locale: locale === "es" ? es : undefined })}
+          </p>
+        )}
       </div>
 
       <div className="flex gap-3">
@@ -118,8 +107,11 @@ export const DateTimeStep = ({
         </button>
         <button
           onClick={onContinue}
-          disabled={!selectedDate || !selectedSlot}
-          className="flex-1 cta-button rounded-sm text-xs tracking-[0.1em] uppercase disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none"
+          disabled={!selectedDate}
+          className={cn(
+            "flex-1 cta-button rounded-sm text-xs tracking-[0.1em] uppercase",
+            "disabled:opacity-40 disabled:cursor-not-allowed disabled:shadow-none"
+          )}
         >
           {t("booking.continue")}
         </button>

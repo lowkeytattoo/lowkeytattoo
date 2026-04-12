@@ -26,8 +26,14 @@ import {
 } from "@/components/ui/select";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { Phone, Reply } from "lucide-react";
+import { Phone, Reply, AlertTriangle } from "lucide-react";
+import { DatePickerInput } from "@admin/components/DatePickerInput";
 import type { WebBooking, WebBookingStatus } from "@shared/types/index";
+import { useCreateCalendarEvent, buildBookingEvent } from "@admin/hooks/useGoogleCalendar";
+import { useArtistBusyDays } from "@web/hooks/useCalendarAvailability";
+import { ARTISTS } from "@shared/config/artists";
+import { useArtistProfiles } from "@admin/hooks/useArtistProfiles";
+import { toast } from "sonner";
 
 function buildWhatsAppUrl(booking: WebBooking): string {
   const phone = (booking.client_phone ?? "").replace(/\D/g, "");
@@ -96,6 +102,59 @@ const SERVICE_LABELS: Record<string, string> = {
   laser: "Láser",
 };
 
+// Per-row conflict badge — fetches busy days for the artist and checks the booking date
+function ConflictBadge({ booking }: { booking: WebBooking }) {
+  const { data: profiles } = useArtistProfiles();
+  const artistConfig = ARTISTS.find((a) => a.id === booking.artist_config_id);
+  const profileOverride = (profiles ?? []).find((p) => p.artist_config_id === booking.artist_config_id);
+  const calendarId = profileOverride?.calendar_id ?? artistConfig?.calendarId ?? null;
+
+  const { blockedDays, partialDays } = useArtistBusyDays(calendarId || null);
+
+  if (!booking.preferred_date || !calendarId) return null;
+
+  const isBlocked = blockedDays.has(booking.preferred_date);
+  const isPartial  = partialDays.has(booking.preferred_date);
+
+  if (!isBlocked && !isPartial) return null;
+
+  return (
+    <span
+      title={isBlocked ? "Día completamente ocupado en el calendario" : "El artista tiene otras citas ese día"}
+      className="inline-flex items-center"
+    >
+      <AlertTriangle className={`w-3.5 h-3.5 ${isBlocked ? "text-destructive" : "text-amber-400"}`} />
+    </span>
+  );
+}
+
+function ConflictWarning({ booking }: { booking: WebBooking }) {
+  const { data: profiles } = useArtistProfiles();
+  const artistConfig = ARTISTS.find((a) => a.id === booking.artist_config_id);
+  const profileOverride = (profiles ?? []).find((p) => p.artist_config_id === booking.artist_config_id);
+  const calendarId = profileOverride?.calendar_id ?? artistConfig?.calendarId ?? null;
+
+  const { blockedDays, partialDays } = useArtistBusyDays(calendarId || null);
+
+  if (!booking.preferred_date || !calendarId) return null;
+
+  const isBlocked = blockedDays.has(booking.preferred_date);
+  const isPartial  = partialDays.has(booking.preferred_date);
+
+  if (!isBlocked && !isPartial) return null;
+
+  return (
+    <div className={`flex items-start gap-2 rounded-md border px-3 py-2 text-sm ${isBlocked ? "border-destructive/40 bg-destructive/10 text-destructive" : "border-amber-500/40 bg-amber-500/10 text-amber-400"}`}>
+      <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
+      <span>
+        {isBlocked
+          ? "El artista tiene el día completo ocupado en Google Calendar."
+          : "El artista ya tiene citas ese día. Confirma que hay disponibilidad."}
+      </span>
+    </div>
+  );
+}
+
 export default function WebBookings() {
   const { profile } = useAdminAuth();
   const isOwner = profile?.role === "owner";
@@ -128,6 +187,7 @@ export default function WebBookings() {
 
   const createSession = useCreateSession();
   const createClient = useCreateClient();
+  const createCalendarEvent = useCreateCalendarEvent();
   const { data: clients } = useClients();
 
   const [convertBooking, setConvertBooking] = useState<WebBooking | null>(null);
@@ -181,6 +241,25 @@ export default function WebBookings() {
     });
 
     await updateBooking.mutateAsync({ id: convertBooking.id, status: "confirmed" });
+
+    // Create Google Calendar event (non-blocking — don't fail the whole flow if calendar errors)
+    try {
+      const event = buildBookingEvent({
+        clientName: convertBooking.client_name ?? "Cliente",
+        serviceLabel: SERVICE_LABELS[convertBooking.service_type] ?? convertBooking.service_type,
+        date: convertDate,
+        time: convertBooking.preferred_time,
+        notes: convertNotes || null,
+        bodyZone: convertBooking.body_zone ?? null,
+        phone: convertBooking.client_phone ?? null,
+      });
+      await createCalendarEvent.mutateAsync(event);
+      toast.success("Cita confirmada y añadida al calendario");
+    } catch {
+      toast.success("Cita confirmada");
+      toast.warning("No se pudo añadir al calendario de Google");
+    }
+
     setConvertBooking(null);
   };
 
@@ -242,10 +321,15 @@ export default function WebBookings() {
                     </Badge>
                   </TableCell>
                   <TableCell className="text-sm font-['IBM_Plex_Mono']">
-                    {b.preferred_date
-                      ? format(new Date(b.preferred_date + "T00:00:00"), "d MMM yyyy", { locale: es })
-                      : "—"}
-                    {b.preferred_time && ` ${b.preferred_time}`}
+                    <div className="flex items-center gap-1.5">
+                      <span>
+                        {b.preferred_date
+                          ? format(new Date(b.preferred_date + "T00:00:00"), "d MMM yyyy", { locale: es })
+                          : "—"}
+                        {b.preferred_time && ` ${b.preferred_time}`}
+                      </span>
+                      {b.status === "pending" && <ConflictBadge booking={b} />}
+                    </div>
                   </TableCell>
                   <TableCell>
                     <Badge variant={STATUS_VARIANTS[b.status]} className="text-xs font-['IBM_Plex_Mono']">
@@ -318,11 +402,14 @@ export default function WebBookings() {
             <DialogTitle>Convertir en sesión</DialogTitle>
           </DialogHeader>
           {convertBooking && (
-            <div className="bg-background border border-border rounded-lg p-3 text-sm space-y-1 mt-2">
-              <div><strong>Cliente:</strong> {convertBooking.client_name}</div>
-              {convertBooking.description && <div><strong>Descripción:</strong> {convertBooking.description}</div>}
-              {convertBooking.body_zone && <div><strong>Zona:</strong> {convertBooking.body_zone}</div>}
-            </div>
+            <>
+              <div className="bg-background border border-border rounded-lg p-3 text-sm space-y-1 mt-2">
+                <div><strong>Cliente:</strong> {convertBooking.client_name}</div>
+                {convertBooking.description && <div><strong>Descripción:</strong> {convertBooking.description}</div>}
+                {convertBooking.body_zone && <div><strong>Zona:</strong> {convertBooking.body_zone}</div>}
+              </div>
+              <ConflictWarning booking={convertBooking} />
+            </>
           )}
           <form onSubmit={handleConvert} className="space-y-4 mt-2">
             <div className="space-y-1.5">
@@ -344,7 +431,7 @@ export default function WebBookings() {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Fecha *</Label>
-                <Input type="date" value={convertDate} onChange={(e) => setConvertDate(e.target.value)} required className="bg-background border-border" />
+                <DatePickerInput value={convertDate} onChange={setConvertDate} required />
               </div>
               <div className="space-y-1.5">
                 <Label className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Precio (€)</Label>

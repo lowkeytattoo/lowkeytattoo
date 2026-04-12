@@ -25,6 +25,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { RichTextEditor } from "@admin/components/RichTextEditor";
+import { DatePickerInput } from "@admin/components/DatePickerInput";
 import {
   useBlogPosts,
   useCreateBlogPost,
@@ -291,12 +292,10 @@ export default function BlogAdmin() {
               </div>
               <div className="space-y-1.5">
                 <Label className="font-mono text-xs uppercase tracking-wider">Fecha de publicación *</Label>
-                <Input
-                  type="date"
+                <DatePickerInput
                   value={form.date}
-                  onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))}
+                  onChange={(v) => setForm((f) => ({ ...f, date: v }))}
                   required
-                  className="bg-background border-border"
                 />
               </div>
             </div>

@@ -40,6 +40,7 @@ export default function Artists() {
   const [editRole, setEditRole] = useState<"owner" | "artist">("artist");
   const [editConfigId, setEditConfigId] = useState("");
   const [editServices, setEditServices] = useState<ServiceType[]>(["tattoo"]);
+  const [editCalendarId, setEditCalendarId] = useState("");
 
   const startEdit = (p: Profile) => {
     setEditing(p);
@@ -49,6 +50,7 @@ export default function Artists() {
     // Use DB override if set, else fall back to static config
     const staticServices = ARTISTS.find((a) => a.id === p.artist_config_id)?.services ?? ["tattoo"];
     setEditServices(p.available_services ?? staticServices);
+    setEditCalendarId(p.calendar_id ?? "");
   };
 
   const toggleService = (service: ServiceType) => {
@@ -68,6 +70,7 @@ export default function Artists() {
         role: editRole,
         artist_config_id: editConfigId || null,
         available_services: editConfigId ? editServices : null,
+        calendar_id: editCalendarId.trim() || null,
       });
       toast.success("Cambios guardados");
       setEditing(null);
@@ -208,6 +211,20 @@ export default function Artists() {
                 </p>
               </div>
             )}
+            <div className="space-y-1.5">
+              <Label className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">
+                Google Calendar ID
+              </Label>
+              <Input
+                value={editCalendarId}
+                onChange={(e) => setEditCalendarId(e.target.value)}
+                placeholder="ejemplo@gmail.com"
+                className="bg-background border-border font-mono text-sm"
+              />
+              <p className="text-xs text-muted-foreground">
+                ID del calendario de Google para sincronizar disponibilidad.
+              </p>
+            </div>
           </div>
           <DialogFooter className="mt-4">
             <Button variant="ghost" onClick={() => setEditing(null)}>Cancelar</Button>

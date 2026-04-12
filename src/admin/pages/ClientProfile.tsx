@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useClient, useUpdateClient, useSetCoverPhoto, useClientPhotos, useDeleteClientPhoto } from "@admin/hooks/useClients";
 import { useSessions, useCreateSession, useUpdateSession } from "@admin/hooks/useSessions";
 import { useAdminAuth } from "@admin/contexts/AdminAuthContext";
+import { DatePickerInput } from "@admin/components/DatePickerInput";
 import { supabase } from "@shared/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -483,7 +484,7 @@ export default function ClientProfile() {
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Fecha *</Label>
-                <Input type="date" value={sessionDate} onChange={(e) => setSessionDate(e.target.value)} required className="bg-background border-border" />
+                <DatePickerInput value={sessionDate} onChange={setSessionDate} required />
               </div>
               <div className="space-y-1.5">
                 <Label className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Tipo</Label>

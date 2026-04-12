@@ -5,7 +5,6 @@ import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useBooking } from "@web/contexts/BookingContext";
 import { Artist } from "@shared/config/artists";
 import { useArtistsWithServices } from "@web/hooks/useArtistServices";
-import { TimeSlot } from "@web/hooks/useCalendarAvailability";
 import { sendBookingRequest } from "@web/lib/email";
 import { trackBookingStep, trackBookingSubmit } from "@web/lib/analytics";
 import { ArtistStep } from "@web/components/booking/ArtistStep";
@@ -21,25 +20,15 @@ interface PartialBooking {
   artist: Artist | null;
   serviceType: ServiceType;
   date: Date | null;
-  slot: TimeSlot | null;
   details: DetailsFormValues | null;
 }
 
 const TOTAL_STEPS = 4;
 
 const slideVariants = {
-  enter: (direction: number) => ({
-    x: direction > 0 ? 40 : -40,
-    opacity: 0,
-  }),
-  center: {
-    x: 0,
-    opacity: 1,
-  },
-  exit: (direction: number) => ({
-    x: direction > 0 ? -40 : 40,
-    opacity: 0,
-  }),
+  enter: (direction: number) => ({ x: direction > 0 ? 40 : -40, opacity: 0 }),
+  center: { x: 0, opacity: 1 },
+  exit:  (direction: number) => ({ x: direction > 0 ? -40 : 40, opacity: 0 }),
 };
 
 export const BookingModal = () => {
@@ -52,7 +41,6 @@ export const BookingModal = () => {
     artist: null,
     serviceType: "tattoo",
     date: null,
-    slot: null,
     details: null,
   });
 
@@ -64,18 +52,16 @@ export const BookingModal = () => {
 
   const handleClose = () => {
     closeModal();
-    // Reset after close animation
     setTimeout(() => {
       setStep(1);
-      setBooking({ artist: null, serviceType: "tattoo", date: null, slot: null, details: null });
+      setBooking({ artist: null, serviceType: "tattoo", date: null, details: null });
     }, 300);
   };
 
   const handleArtistSelect = (artist: Artist) => {
-    // Auto-set service when artist only offers one
     const serviceType: ServiceType =
       artist.services.length === 1 ? artist.services[0] : booking.serviceType;
-    setBooking((prev) => ({ ...prev, artist, serviceType, date: null, slot: null }));
+    setBooking((prev) => ({ ...prev, artist, serviceType, date: null }));
   };
 
   const handleServiceSelect = (serviceType: ServiceType) => {
@@ -83,7 +69,7 @@ export const BookingModal = () => {
   };
 
   const handleSubmit = async (details: DetailsFormValues) => {
-    if (!booking.artist || !booking.date || !booking.slot) return;
+    if (!booking.artist || !booking.date) return;
     setIsSubmitting(true);
     try {
       await sendBookingRequest({
@@ -94,7 +80,7 @@ export const BookingModal = () => {
         clientPhone: details.clientPhone,
         clientEmail: details.clientEmail,
         date: format(booking.date, "dd/MM/yyyy"),
-        time: booking.slot.label,
+        time: "",
         description: details.description,
         bodyZone: details.bodyZone,
         isFirstTime: details.isFirstTime,
@@ -102,9 +88,7 @@ export const BookingModal = () => {
       trackBookingSubmit(booking.artist?.name ?? "Unknown");
       setBooking((prev) => ({ ...prev, details }));
       goTo(4);
-    } catch (err) {
-      console.error("Error sending booking request:", err);
-      // Still show success — email may not be configured
+    } catch {
       setBooking((prev) => ({ ...prev, details }));
       goTo(4);
     } finally {
@@ -146,7 +130,7 @@ export const BookingModal = () => {
                   artists={artistsWithServices}
                   selected={booking.artist}
                   selectedService={
-                    booking.artist && (booking.artist.services.length > 1)
+                    booking.artist && booking.artist.services.length > 1
                       ? booking.serviceType
                       : null
                   }
@@ -160,11 +144,7 @@ export const BookingModal = () => {
                 <DateTimeStep
                   artist={booking.artist}
                   selectedDate={booking.date}
-                  selectedSlot={booking.slot}
-                  onDateChange={(date) =>
-                    setBooking((prev) => ({ ...prev, date, slot: null }))
-                  }
-                  onSlotChange={(slot) => setBooking((prev) => ({ ...prev, slot }))}
+                  onDateChange={(date) => setBooking((prev) => ({ ...prev, date }))}
                   onContinue={() => goTo(3)}
                   onBack={() => goTo(1)}
                 />
@@ -180,12 +160,11 @@ export const BookingModal = () => {
                 />
               )}
 
-              {step === 4 && booking.artist && booking.date && booking.slot && (
+              {step === 4 && booking.artist && booking.date && (
                 <SuccessStep
                   artist={booking.artist}
                   serviceType={booking.serviceType}
                   date={booking.date}
-                  slot={booking.slot}
                   onClose={handleClose}
                 />
               )}

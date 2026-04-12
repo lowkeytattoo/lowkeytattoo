@@ -35,6 +35,7 @@ const AdminSessions     = lazy(() => import("@admin/pages/Sessions"));
 const AdminFinances     = lazy(() => import("@admin/pages/Finances"));
 const AdminStock        = lazy(() => import("@admin/pages/Stock"));
 const AdminArtists      = lazy(() => import("@admin/pages/Artists"));
+const AdminCalendar     = lazy(() => import("@admin/pages/Calendar"));
 const AdminWebBookings  = lazy(() => import("@admin/pages/WebBookings"));
 const AdminMessages     = lazy(() => import("@admin/pages/Messages"));
 const AdminBlog         = lazy(() => import("@admin/pages/BlogAdmin"));
@@ -111,6 +112,14 @@ const App = () => (
                       element={
                         <RoleGuard requiredRole="owner">
                           <AdminArtists />
+                        </RoleGuard>
+                      }
+                    />
+                    <Route
+                      path="calendar"
+                      element={
+                        <RoleGuard requiredRole="owner">
+                          <AdminCalendar />
                         </RoleGuard>
                       }
                     />

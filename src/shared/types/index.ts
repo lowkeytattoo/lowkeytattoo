@@ -56,6 +56,7 @@ export interface Profile {
   artist_config_id: string | null;
   avatar_url: string | null;
   available_services: ServiceType[] | null;
+  calendar_id: string | null;
   created_at: string;
 }
 

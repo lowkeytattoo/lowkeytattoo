@@ -4,6 +4,7 @@ import {
   LayoutDashboard,
   Users,
   Calendar,
+  CalendarDays,
   TrendingUp,
   Package,
   UserCog,
@@ -38,7 +39,8 @@ const navItems = [
 ];
 
 const ownerNavItems = [
-  { to: "/admin/artists", label: "Artistas", icon: UserCog },
+  { to: "/admin/artists",  label: "Artistas",    icon: UserCog },
+  { to: "/admin/calendar", label: "Calendario",  icon: CalendarDays },
 ];
 
 // Items shown in the mobile bottom bar (most used)

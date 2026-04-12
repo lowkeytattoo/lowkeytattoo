@@ -1,115 +1,63 @@
-import { useState, useEffect } from "react";
-import { addHours, format, parseISO, setHours, setMinutes, startOfDay } from "date-fns";
+import { useQuery } from "@tanstack/react-query";
+import { format, addMonths, startOfMonth, endOfMonth } from "date-fns";
 
-export interface TimeSlot {
-  time: string;      // "11:00"
-  label: string;     // "11:00 h"
-  startISO: string;
-  endISO: string;
-  available: boolean;
+export interface BusyDays {
+  blockedDays: Set<string>; // YYYY-MM-DD — fully blocked (all-day events or ≥7h)
+  partialDays: Set<string>; // YYYY-MM-DD — has appointments but still has slots
 }
 
-interface BusyPeriod {
-  start: string;
-  end: string;
+const SUPABASE_URL  = import.meta.env.VITE_SUPABASE_URL as string;
+const SUPABASE_ANON = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
+
+async function fetchBusyDays(calendarId: string, timeMin: string, timeMax: string): Promise<BusyDays> {
+  const params = new URLSearchParams({ action: "busy-days", calendarId, timeMin, timeMax });
+  const res = await fetch(`${SUPABASE_URL}/functions/v1/google-calendar?${params}`, {
+    headers: {
+      "Authorization": `Bearer ${SUPABASE_ANON}`,
+      "Content-Type": "application/json",
+    },
+  });
+  if (!res.ok) throw new Error(`busy-days error ${res.status}`);
+  const data = await res.json() as { blockedDays: string[]; partialDays: string[] };
+  return {
+    blockedDays: new Set(data.blockedDays ?? []),
+    partialDays:  new Set(data.partialDays  ?? []),
+  };
 }
 
-function generateSlots(date: Date): TimeSlot[] {
-  const slots: TimeSlot[] = [];
-  for (let hour = 11; hour <= 17; hour++) {
-    const start = setMinutes(setHours(startOfDay(date), hour), 0);
-    const end = addHours(start, 1);
-    slots.push({
-      time: format(start, "HH:mm"),
-      label: `${format(start, "HH:mm")} h`,
-      startISO: start.toISOString(),
-      endISO: end.toISOString(),
-      available: true,
-    });
-  }
-  return slots;
+/**
+ * Fetches busy/partial days for an artist's calendar for the current and next month.
+ * Returns empty sets if the artist has no calendarId (graceful degradation).
+ */
+export function useArtistBusyDays(calendarId: string | null | undefined): BusyDays & { isLoading: boolean } {
+  const now = new Date();
+  const timeMin = format(startOfMonth(now), "yyyy-MM-dd") + "T00:00:00Z";
+  const timeMax = format(endOfMonth(addMonths(now, 2)), "yyyy-MM-dd") + "T23:59:59Z";
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["busy-days", calendarId, timeMin, timeMax],
+    queryFn: () => fetchBusyDays(calendarId!, timeMin, timeMax),
+    enabled: !!calendarId,
+    staleTime: 5 * 60 * 1000,
+    retry: false,
+  });
+
+  return {
+    blockedDays: data?.blockedDays ?? new Set(),
+    partialDays:  data?.partialDays  ?? new Set(),
+    isLoading: !!calendarId && isLoading,
+  };
 }
 
-export function useCalendarAvailability(calendarId: string, date: Date | null) {
-  const [slots, setSlots] = useState<TimeSlot[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
-  const [isError, setIsError] = useState(false);
-  const [calendarUnavailable, setCalendarUnavailable] = useState(false);
-
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const dateKey = date ? date.toDateString() : null;
-
-  useEffect(() => {
-    if (!date) {
-      setSlots([]);
-      return;
-    }
-
-    const apiKey = import.meta.env.VITE_GOOGLE_CALENDAR_API_KEY;
-    const allSlots = generateSlots(date);
-
-    if (!apiKey || !calendarId) {
-      setSlots(allSlots);
-      setCalendarUnavailable(true);
-      return;
-    }
-
-    const controller = new AbortController();
-
-    const fetchBusy = async () => {
-      setIsLoading(true);
-      setIsError(false);
-      try {
-        const timeMin = startOfDay(date).toISOString();
-        const timeMax = setHours(startOfDay(date), 23).toISOString();
-
-        const response = await fetch(
-          `https://www.googleapis.com/calendar/v3/freeBusy?key=${apiKey}`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              timeMin,
-              timeMax,
-              items: [{ id: calendarId }],
-            }),
-            signal: controller.signal,
-          }
-        );
-
-        if (!response.ok) throw new Error("Calendar API error");
-
-        const data = await response.json();
-        const busy: BusyPeriod[] = data.calendars?.[calendarId]?.busy ?? [];
-
-        const filteredSlots = allSlots.map((slot) => {
-          const slotStart = parseISO(slot.startISO);
-          const slotEnd = parseISO(slot.endISO);
-          const isBusy = busy.some((period) => {
-            const busyStart = parseISO(period.start);
-            const busyEnd = parseISO(period.end);
-            return slotStart < busyEnd && slotEnd > busyStart;
-          });
-          return { ...slot, available: !isBusy };
-        });
-
-        setSlots(filteredSlots);
-        setCalendarUnavailable(false);
-      } catch (err) {
-        if ((err as Error).name === "AbortError") return;
-        setIsError(true);
-        setSlots(allSlots);
-        setCalendarUnavailable(true);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchBusy();
-    return () => controller.abort();
-  // dateKey is derived from date — using it avoids stale closure
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [calendarId, dateKey]);
-
-  return { slots, isLoading, isError, calendarUnavailable };
+export function useDayStatus(
+  calendarId: string | null | undefined,
+  date: Date | null,
+): "blocked" | "partial" | "free" | "unknown" {
+  const { blockedDays, partialDays, isLoading } = useArtistBusyDays(calendarId);
+  if (!date) return "unknown";
+  if (isLoading) return "unknown";
+  const key = format(date, "yyyy-MM-dd");
+  if (blockedDays.has(key)) return "blocked";
+  if (partialDays.has(key)) return "partial";
+  return "free";
 }
