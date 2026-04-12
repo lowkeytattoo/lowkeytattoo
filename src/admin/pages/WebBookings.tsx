@@ -18,6 +18,16 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -26,7 +36,7 @@ import {
 } from "@/components/ui/select";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { Phone, Reply, AlertTriangle } from "lucide-react";
+import { Phone, Reply, AlertTriangle, Trash2 } from "lucide-react";
 import { DatePickerInput } from "@admin/components/DatePickerInput";
 import type { WebBooking, WebBookingStatus } from "@shared/types/index";
 import { useCreateCalendarEvent, buildBookingEvent } from "@admin/hooks/useGoogleCalendar";
@@ -193,6 +203,19 @@ export default function WebBookings() {
     },
   });
 
+  const deleteBooking = useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("web_bookings").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["web-bookings"] });
+      qc.invalidateQueries({ queryKey: ["bookings-pending-count"] });
+    },
+  });
+
+  const [deleteTarget, setDeleteTarget] = useState<WebBooking | null>(null);
+
   const createSession = useCreateSession();
   const createClient = useCreateClient();
   const createCalendarEvent = useCreateCalendarEvent();
@@ -284,16 +307,109 @@ export default function WebBookings() {
         </p>
       </div>
 
-      <div className="rounded-lg border border-border overflow-hidden bg-card">
+      {/* Mobile: card list */}
+      <div className="sm:hidden rounded-lg border border-border overflow-hidden bg-card divide-y divide-border">
+        {isLoading ? (
+          <div className="text-center py-12 text-muted-foreground text-sm">Cargando...</div>
+        ) : filteredBookings.length === 0 ? (
+          <div className="text-center py-12 text-muted-foreground text-sm">Sin citas</div>
+        ) : (
+          filteredBookings.map((b) => (
+            <div key={b.id} className="px-4 py-3 space-y-2">
+              {/* Row 1: name + service + artist + date + conflict */}
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="text-sm font-medium truncate">{b.client_name ?? "—"}</span>
+                  {isOwner && <ArtistAvatar name={getArtistName(b.artist_config_id)} size="xs" />}
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  <Badge variant="outline" className="text-[10px] font-['IBM_Plex_Mono']">
+                    {SERVICE_LABELS[b.service_type] ?? b.service_type}
+                  </Badge>
+                  <span className="text-xs font-['IBM_Plex_Mono'] text-muted-foreground">
+                    {b.preferred_date
+                      ? format(new Date(b.preferred_date + "T00:00:00"), "d MMM", { locale: es })
+                      : "—"}
+                  </span>
+                  {b.status === "pending" && <ConflictBadge booking={b} />}
+                </div>
+              </div>
+              {/* Row 2: status + actions */}
+              <div className="flex items-center gap-1 flex-wrap">
+                <Badge variant={STATUS_VARIANTS[b.status]} className="text-xs font-['IBM_Plex_Mono'] mr-1">
+                  {STATUS_LABELS[b.status]}
+                </Badge>
+                {b.client_phone && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs gap-1 text-green-500 hover:text-green-400 hover:bg-green-500/10 h-7 px-2"
+                    asChild
+                  >
+                    <a href={buildWhatsAppUrl(b)} target="_blank" rel="noopener noreferrer">
+                      <Phone className="w-3 h-3" />
+                      WA
+                    </a>
+                  </Button>
+                )}
+                {b.client_email && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs gap-1 h-7 px-2"
+                    asChild
+                  >
+                    <a href={buildGmailUrl(b)} target="_blank" rel="noopener noreferrer">
+                      <Reply className="w-3 h-3" />
+                      Gmail
+                    </a>
+                  </Button>
+                )}
+                {b.status === "pending" && (
+                  <>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-xs h-7 px-2"
+                      onClick={() => openConvert(b)}
+                    >
+                      Convertir
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="text-xs h-7 px-2 text-destructive hover:text-destructive"
+                      onClick={() => updateBooking.mutate({ id: b.id, status: "cancelled" })}
+                    >
+                      Cancelar
+                    </Button>
+                  </>
+                )}
+                {isOwner && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="text-xs h-7 px-2 text-destructive hover:text-destructive ml-auto"
+                    onClick={() => setDeleteTarget(b)}
+                  >
+                    <Trash2 className="w-3 h-3" />
+                  </Button>
+                )}
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Desktop: table */}
+      <div className="hidden sm:block rounded-lg border border-border overflow-hidden bg-card">
         <Table>
           <TableHeader>
             <TableRow className="border-border">
-              <TableHead className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider hidden sm:table-cell">Recibida</TableHead>
+              <TableHead className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Recibida</TableHead>
               <TableHead className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Cliente</TableHead>
               {isOwner && (
-                <TableHead className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">
-                  <span className="hidden sm:inline">Artista</span>
-                </TableHead>
+                <TableHead className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Artista</TableHead>
               )}
               <TableHead className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Servicio</TableHead>
               <TableHead className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Fecha</TableHead>
@@ -313,19 +429,18 @@ export default function WebBookings() {
             ) : (
               filteredBookings.map((b) => (
                 <TableRow key={b.id} className="border-border">
-                  <TableCell className="text-xs font-['IBM_Plex_Mono'] text-muted-foreground hidden sm:table-cell whitespace-nowrap">
+                  <TableCell className="text-xs font-['IBM_Plex_Mono'] text-muted-foreground whitespace-nowrap">
                     {format(new Date(b.created_at), "d MMM yyyy", { locale: es })}
                   </TableCell>
                   <TableCell>
                     <div className="text-sm font-medium leading-tight">{b.client_name ?? "—"}</div>
                     {b.client_phone && (
-                      <div className="text-xs text-muted-foreground font-['IBM_Plex_Mono'] hidden sm:block">{b.client_phone}</div>
+                      <div className="text-xs text-muted-foreground font-['IBM_Plex_Mono']">{b.client_phone}</div>
                     )}
                   </TableCell>
                   {isOwner && (
                     <TableCell>
-                      <span className="sm:hidden"><ArtistAvatar name={getArtistName(b.artist_config_id)} /></span>
-                      <span className="hidden sm:inline text-sm text-muted-foreground">{getArtistName(b.artist_config_id) ?? "—"}</span>
+                      <span className="text-sm text-muted-foreground">{getArtistName(b.artist_config_id) ?? "—"}</span>
                     </TableCell>
                   )}
                   <TableCell>
@@ -335,18 +450,9 @@ export default function WebBookings() {
                   </TableCell>
                   <TableCell className="text-xs font-['IBM_Plex_Mono'] whitespace-nowrap">
                     <div className="flex items-center gap-1">
-                      <span>
-                        <span className="hidden sm:inline">
-                          {b.preferred_date
-                            ? format(new Date(b.preferred_date + "T00:00:00"), "d MMM yyyy", { locale: es })
-                            : "—"}
-                        </span>
-                        <span className="sm:hidden">
-                          {b.preferred_date
-                            ? format(new Date(b.preferred_date + "T00:00:00"), "d MMM", { locale: es })
-                            : "—"}
-                        </span>
-                      </span>
+                      {b.preferred_date
+                        ? format(new Date(b.preferred_date + "T00:00:00"), "d MMM yyyy", { locale: es })
+                        : "—"}
                       {b.status === "pending" && <ConflictBadge booking={b} />}
                     </div>
                   </TableCell>
@@ -357,7 +463,6 @@ export default function WebBookings() {
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1">
-                      {/* Botones de respuesta — visibles siempre que haya datos de contacto */}
                       {b.client_phone && (
                         <Button
                           variant="ghost"
@@ -384,7 +489,6 @@ export default function WebBookings() {
                           </a>
                         </Button>
                       )}
-                      {/* Acciones de estado — solo para pendientes */}
                       {b.status === "pending" && (
                         <>
                           <Button
@@ -404,6 +508,16 @@ export default function WebBookings() {
                             Cancelar
                           </Button>
                         </>
+                      )}
+                      {isOwner && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-xs text-destructive hover:text-destructive px-2"
+                          onClick={() => setDeleteTarget(b)}
+                        >
+                          <Trash2 className="w-3 h-3" />
+                        </Button>
                       )}
                     </div>
                   </TableCell>
@@ -474,6 +588,30 @@ export default function WebBookings() {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Delete confirmation dialog */}
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent className="bg-card border-border">
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar cita web?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Vas a eliminar la solicitud de <strong>{deleteTarget?.client_name}</strong>. Esta acción no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                if (deleteTarget) deleteBooking.mutate(deleteTarget.id);
+                setDeleteTarget(null);
+              }}
+            >
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

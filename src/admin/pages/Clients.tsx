@@ -108,19 +108,19 @@ export default function Clients() {
       </div>
 
       {/* Filters */}
-      <div className="flex gap-3 flex-wrap">
-        <div className="relative flex-1 min-w-48">
+      <div className="flex gap-3 flex-wrap items-center">
+        <div className="relative flex-1 min-w-0">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
           <Input
             placeholder="Buscar por nombre, email, teléfono..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="pl-9 bg-background border-border"
+            className="pl-9 bg-background border-border w-full"
           />
         </div>
         {isOwner && (
           <Select value={filterArtist} onValueChange={setFilterArtist}>
-            <SelectTrigger className="w-40 bg-background border-border">
+            <SelectTrigger className="w-36 sm:w-40 bg-background border-border shrink-0">
               <SelectValue placeholder="Todos los artistas" />
             </SelectTrigger>
             <SelectContent>

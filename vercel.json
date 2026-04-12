@@ -1,4 +1,12 @@
 {
+  "headers": [
+    {
+      "source": "/((?!admin).*)",
+      "headers": [
+        { "key": "Content-Language", "value": "es" }
+      ]
+    }
+  ],
   "rewrites": [
     { "source": "/(.*)", "destination": "/index.html" }
   ]

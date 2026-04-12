@@ -42,6 +42,7 @@ import {
 } from "@/components/ui/select";
 import { Plus, History, Trash2 } from "lucide-react";
 import { format } from "date-fns";
+import { es } from "date-fns/locale";
 import type { Product, ProductCategory } from "@shared/types/index";
 
 const CATEGORIES: { value: ProductCategory; label: string }[] = [
@@ -147,8 +148,21 @@ export default function Stock() {
         )}
       </div>
 
-      {/* Category filter */}
-      <div className="flex flex-wrap gap-2">
+      {/* Category filter — Select on mobile, buttons on sm+ */}
+      <div className="sm:hidden">
+        <Select value={filterCategory} onValueChange={setFilterCategory}>
+          <SelectTrigger className="w-full bg-background border-border text-xs font-['IBM_Plex_Mono']">
+            <SelectValue />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Todos</SelectItem>
+            {CATEGORIES.map(({ value, label }) => (
+              <SelectItem key={value} value={value}>{label}</SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+      </div>
+      <div className="hidden sm:flex flex-wrap gap-2">
         <Button
           variant={filterCategory === "all" ? "default" : "outline"}
           size="sm"

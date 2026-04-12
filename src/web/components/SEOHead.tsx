@@ -26,9 +26,8 @@ export function SEOHead({ title, description, canonical, ogType = "website", ogI
       <meta name="description" content={description} />
       <link rel="canonical" href={url} />
 
-      {/* hreflang — same URL serves both languages */}
+      {/* hreflang — Spanish-only site, no separate EN URL exists */}
       <link rel="alternate" hrefLang="es" href={url} />
-      <link rel="alternate" hrefLang="en" href={url} />
       <link rel="alternate" hrefLang="x-default" href={url} />
 
       {/* Open Graph */}
@@ -39,7 +38,7 @@ export function SEOHead({ title, description, canonical, ogType = "website", ogI
       <meta property="og:image:width" content="1200" />
       <meta property="og:image:height" content="800" />
       <meta property="og:type" content={ogType} />
-      <meta property="og:locale" content={locale === "es" ? "es_ES" : "en_GB"} />
+      <meta property="og:locale" content="es_ES" />
 
       {/* Twitter / X */}
       <meta name="twitter:card" content="summary_large_image" />
