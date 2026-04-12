@@ -32,15 +32,17 @@ import type { WebBooking, WebBookingStatus } from "@shared/types/index";
 function buildWhatsAppUrl(booking: WebBooking): string {
   const phone = (booking.client_phone ?? "").replace(/\D/g, "");
   const name = booking.client_name ?? "cliente";
+  const serviceLabel = SERVICE_LABELS[booking.service_type] ?? booking.service_type;
   const date = booking.preferred_date
     ? format(new Date(booking.preferred_date + "T00:00:00"), "d 'de' MMMM", { locale: es })
     : "la fecha solicitada";
-  const text = `Hola ${name}, te contactamos desde Lowkey Tattoo sobre tu solicitud de cita para el ${date}. `;
+  const text = `Hola ${name}, te contactamos desde Lowkey Tattoo sobre tu solicitud de ${serviceLabel.toLowerCase()} para el ${date}. `;
   return `https://wa.me/${phone}?text=${encodeURIComponent(text)}`;
 }
 
 function buildGmailUrl(booking: WebBooking): string {
   const name = booking.client_name ?? "cliente";
+  const serviceLabel = SERVICE_LABELS[booking.service_type] ?? booking.service_type;
   const date = booking.preferred_date
     ? format(new Date(booking.preferred_date + "T00:00:00"), "d 'de' MMMM", { locale: es })
     : "la fecha solicitada";
@@ -49,7 +51,7 @@ function buildGmailUrl(booking: WebBooking): string {
   const lines: string[] = [
     `Hola ${name},`,
     "",
-    `Gracias por solicitar cita en Lowkey Tattoo para el ${date}${time}.`,
+    `Gracias por solicitar cita de ${serviceLabel.toLowerCase()} en Lowkey Tattoo para el ${date}${time}.`,
     "",
     "[Escribe tu respuesta aquí]",
     "",
@@ -71,7 +73,7 @@ function buildGmailUrl(booking: WebBooking): string {
   return [
     "https://mail.google.com/mail/?view=cm",
     `to=${encodeURIComponent(booking.client_email ?? "")}`,
-    `su=${encodeURIComponent(`Re: tu solicitud de cita — Lowkey Tattoo`)}`,
+    `su=${encodeURIComponent(`Re: tu solicitud de ${serviceLabel.toLowerCase()} — Lowkey Tattoo`)}`,
     `body=${encodeURIComponent(lines.join("\n"))}`,
   ].join("&");
 }
@@ -86,6 +88,12 @@ const STATUS_VARIANTS: Record<WebBookingStatus, "default" | "outline" | "destruc
   pending: "outline",
   confirmed: "default",
   cancelled: "destructive",
+};
+
+const SERVICE_LABELS: Record<string, string> = {
+  tattoo: "Tatuaje",
+  piercing: "Piercing",
+  laser: "Láser",
 };
 
 export default function WebBookings() {
@@ -162,7 +170,7 @@ export default function WebBookings() {
       client_id: clientId,
       artist_id: profile?.id ?? null,
       date: convertDate,
-      type: "tattoo",
+      type: (convertBooking.service_type as "tattoo" | "piercing" | "laser") ?? "tattoo",
       price: convertPrice ? parseFloat(convertPrice) : null,
       deposit: 0,
       paid: false,
@@ -196,6 +204,7 @@ export default function WebBookings() {
               <TableHead className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Recibida</TableHead>
               <TableHead className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Cliente</TableHead>
               {isOwner && <TableHead className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Artista</TableHead>}
+              <TableHead className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Servicio</TableHead>
               <TableHead className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Fecha preferida</TableHead>
               <TableHead className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Estado</TableHead>
               <TableHead className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Acciones</TableHead>
@@ -204,11 +213,11 @@ export default function WebBookings() {
           <TableBody>
             {isLoading ? (
               <TableRow>
-                <TableCell colSpan={isOwner ? 6 : 5} className="text-center py-12 text-muted-foreground">Cargando...</TableCell>
+                <TableCell colSpan={isOwner ? 7 : 6} className="text-center py-12 text-muted-foreground">Cargando...</TableCell>
               </TableRow>
             ) : filteredBookings.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={isOwner ? 6 : 5} className="text-center py-12 text-muted-foreground">Sin citas</TableCell>
+                <TableCell colSpan={isOwner ? 7 : 6} className="text-center py-12 text-muted-foreground">Sin citas</TableCell>
               </TableRow>
             ) : (
               filteredBookings.map((b) => (
@@ -227,6 +236,11 @@ export default function WebBookings() {
                       {b.artist_config_id ?? "—"}
                     </TableCell>
                   )}
+                  <TableCell>
+                    <Badge variant="outline" className="text-xs font-['IBM_Plex_Mono'] capitalize">
+                      {SERVICE_LABELS[b.service_type] ?? b.service_type}
+                    </Badge>
+                  </TableCell>
                   <TableCell className="text-sm font-['IBM_Plex_Mono']">
                     {b.preferred_date
                       ? format(new Date(b.preferred_date + "T00:00:00"), "d MMM yyyy", { locale: es })

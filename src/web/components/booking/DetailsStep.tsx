@@ -3,12 +3,13 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useI18n } from "@web/i18n/I18nProvider";
 import { cn } from "@shared/lib/utils";
+import type { ServiceType } from "@shared/types/index";
 
 const detailsSchema = z.object({
   clientName: z.string().min(2, "Mínimo 2 caracteres"),
   clientPhone: z.string().min(6, "Teléfono inválido"),
   clientEmail: z.string().email("Email inválido"),
-  description: z.string().min(10, "Describe tu tatuaje (mínimo 10 caracteres)"),
+  description: z.string().min(10, "Mínimo 10 caracteres"),
   bodyZone: z.string().min(1, "Selecciona una zona"),
   isFirstTime: z.boolean(),
 });
@@ -16,6 +17,7 @@ const detailsSchema = z.object({
 export type DetailsFormValues = z.infer<typeof detailsSchema>;
 
 interface DetailsStepProps {
+  serviceType: ServiceType;
   defaultValues?: Partial<DetailsFormValues>;
   onSubmit: (data: DetailsFormValues) => void;
   onBack: () => void;
@@ -24,8 +26,10 @@ interface DetailsStepProps {
 
 const BODY_ZONES = ["arm", "leg", "back", "chest", "neck", "other"] as const;
 
-export const DetailsStep = ({ defaultValues, onSubmit, onBack, isSubmitting }: DetailsStepProps) => {
+export const DetailsStep = ({ serviceType, defaultValues, onSubmit, onBack, isSubmitting }: DetailsStepProps) => {
   const { t } = useI18n();
+  const descriptionLabel = t(`booking.fields.description.${serviceType}`);
+  const descriptionPlaceholder = t(`booking.fields.description.placeholder.${serviceType}`);
 
   const {
     register,
@@ -109,13 +113,13 @@ export const DetailsStep = ({ defaultValues, onSubmit, onBack, isSubmitting }: D
         {/* Description */}
         <div>
           <label className="block text-xs font-mono text-muted-foreground uppercase tracking-wider mb-1">
-            {t("booking.fields.description")} *
+            {descriptionLabel} *
           </label>
           <textarea
             {...register("description")}
             rows={3}
             className={cn(inputClass(!!errors.description), "resize-none")}
-            placeholder="Describe el tatuaje que quieres, referencias, tamaño aproximado..."
+            placeholder={descriptionPlaceholder}
           />
           {errors.description && (
             <p className="mt-1 text-xs text-destructive">{errors.description.message}</p>

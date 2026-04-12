@@ -77,9 +77,24 @@ export default function TatuajesPage() {
           <h1 className="text-3xl md:text-4xl lg:text-5xl font-medium text-foreground mb-6 leading-tight text-balance text-center">
             {t("tattoos.h1")}
           </h1>
-          <p className="text-lg text-muted-foreground mb-12 leading-relaxed">
+          <p className="text-lg text-muted-foreground mb-8 leading-relaxed">
             {t("tattoos.intro")}
           </p>
+
+          <div className="flex flex-col sm:flex-row gap-3 justify-center mb-12">
+            <button onClick={openModal} className="cta-button rounded-sm text-xs tracking-[0.1em] uppercase px-6 py-3">
+              {t("service.book.online")}
+            </button>
+            <a
+              href={`${CONTACT.whatsapp}?text=${encodeURIComponent(t("gallery.tattoo.wa"))}`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center justify-center gap-2 border border-border rounded-sm text-xs tracking-[0.1em] uppercase px-6 py-3 text-muted-foreground hover:text-foreground hover:border-muted-foreground transition-colors"
+            >
+              <WhatsAppIcon size={14} />
+              {t("service.whatsapp")}
+            </a>
+          </div>
 
           {/* Artists */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-16">

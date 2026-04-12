@@ -1,3 +1,5 @@
+import type { ServiceType } from "@shared/types/index";
+
 export interface Artist {
   id: string;
   name: string;
@@ -5,7 +7,7 @@ export interface Artist {
   email: string;
   calendarId: string;
   styles: string[];
-  laser?: boolean;
+  services: ServiceType[];
 }
 
 export const ARTISTS: Artist[] = [
@@ -16,7 +18,7 @@ export const ARTISTS: Artist[] = [
     email: "pablo@lowkeytattoo.com",
     calendarId: "", // ← fill with real Google Calendar ID
     styles: ["Fine Line", "Geometric", "Polynesian", "Dotwork", "Piercing", "Laser"],
-    laser: true,
+    services: ["tattoo", "piercing", "laser"],
   },
   {
     id: "sergio",
@@ -25,6 +27,7 @@ export const ARTISTS: Artist[] = [
     email: "sergio@lowkeytattoo.com",
     calendarId: "",
     styles: ["Realism", "Blackwork"],
+    services: ["tattoo"],
   },
   {
     id: "fifo",
@@ -33,5 +36,6 @@ export const ARTISTS: Artist[] = [
     email: "fifo@lowkeytattoo.com",
     calendarId: "",
     styles: ["Tradicional", "American Traditional"],
+    services: ["tattoo"],
   },
 ];

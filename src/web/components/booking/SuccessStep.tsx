@@ -6,15 +6,17 @@ import { TimeSlot } from "@web/hooks/useCalendarAvailability";
 import { CONTACT } from "@web/config/contact";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
+import type { ServiceType } from "@shared/types/index";
 
 interface SuccessStepProps {
   artist: Artist;
+  serviceType: ServiceType;
   date: Date;
   slot: TimeSlot;
   onClose: () => void;
 }
 
-export const SuccessStep = ({ artist, date, slot, onClose }: SuccessStepProps) => {
+export const SuccessStep = ({ artist, serviceType, date, slot, onClose }: SuccessStepProps) => {
   const { t, locale } = useI18n();
 
   const formattedDate = format(date, "d 'de' MMMM yyyy", {
@@ -63,6 +65,7 @@ export const SuccessStep = ({ artist, date, slot, onClose }: SuccessStepProps) =
       >
         <div className="flex flex-col gap-1.5">
           <Row label={t("booking.summary.artist")} value={artist.name} />
+          <Row label={t("booking.summary.service")} value={t(`booking.service.${serviceType}`)} />
           <Row label={t("booking.summary.date")} value={formattedDate} />
           <Row label={t("booking.summary.time")} value={slot.label} />
         </div>

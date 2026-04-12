@@ -1,5 +1,7 @@
 export type Json = string | number | boolean | null | { [key: string]: Json } | Json[];
 
+export type ServiceType = "tattoo" | "piercing" | "laser";
+
 export interface Database {
   public: {
     Tables: {
@@ -53,6 +55,7 @@ export interface Profile {
   role: "owner" | "artist";
   artist_config_id: string | null;
   avatar_url: string | null;
+  available_services: ServiceType[] | null;
   created_at: string;
 }
 
@@ -136,6 +139,7 @@ export type WebBookingStatus = "pending" | "confirmed" | "cancelled";
 export interface WebBooking {
   id: string;
   artist_config_id: string | null;
+  service_type: string;
   client_name: string | null;
   client_phone: string | null;
   client_email: string | null;

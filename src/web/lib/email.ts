@@ -1,10 +1,12 @@
 import emailjs from "@emailjs/browser";
 import { supabase } from "@shared/lib/supabase";
 import { ARTISTS } from "@shared/config/artists";
+import type { ServiceType } from "@shared/types/index";
 
 export interface BookingData {
   artistName: string;
   artistEmail: string;
+  serviceType: ServiceType;
   clientName: string;
   clientPhone: string;
   clientEmail: string;
@@ -37,6 +39,7 @@ export async function sendBookingRequest(booking: BookingData): Promise<void> {
       .from("web_bookings")
       .insert({
         artist_config_id: artist?.id ?? null,
+        service_type: booking.serviceType,
         client_name: booking.clientName || null,
         client_phone: booking.clientPhone || null,
         client_email: booking.clientEmail || null,
@@ -60,6 +63,7 @@ export async function sendBookingRequest(booking: BookingData): Promise<void> {
   const params = {
       artist_name: booking.artistName,
       artist_email: booking.artistEmail,
+      service_type: booking.serviceType,
       client_name: booking.clientName,
       client_phone: booking.clientPhone,
       client_email: booking.clientEmail,

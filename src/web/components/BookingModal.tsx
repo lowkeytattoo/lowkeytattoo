@@ -3,7 +3,8 @@ import { AnimatePresence, motion } from "framer-motion";
 import { format } from "date-fns";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { useBooking } from "@web/contexts/BookingContext";
-import { ARTISTS, Artist } from "@shared/config/artists";
+import { Artist } from "@shared/config/artists";
+import { useArtistsWithServices } from "@web/hooks/useArtistServices";
 import { TimeSlot } from "@web/hooks/useCalendarAvailability";
 import { sendBookingRequest } from "@web/lib/email";
 import { trackBookingStep, trackBookingSubmit } from "@web/lib/analytics";
@@ -12,11 +13,13 @@ import { DateTimeStep } from "@web/components/booking/DateTimeStep";
 import { DetailsStep, DetailsFormValues } from "@web/components/booking/DetailsStep";
 import { SuccessStep } from "@web/components/booking/SuccessStep";
 import { cn } from "@shared/lib/utils";
+import type { ServiceType } from "@shared/types/index";
 
 type Step = 1 | 2 | 3 | 4;
 
 interface PartialBooking {
   artist: Artist | null;
+  serviceType: ServiceType;
   date: Date | null;
   slot: TimeSlot | null;
   details: DetailsFormValues | null;
@@ -41,11 +44,13 @@ const slideVariants = {
 
 export const BookingModal = () => {
   const { isOpen, closeModal } = useBooking();
+  const artistsWithServices = useArtistsWithServices();
   const [step, setStep] = useState<Step>(1);
   const [direction, setDirection] = useState(1);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [booking, setBooking] = useState<PartialBooking>({
     artist: null,
+    serviceType: "tattoo",
     date: null,
     slot: null,
     details: null,
@@ -62,8 +67,19 @@ export const BookingModal = () => {
     // Reset after close animation
     setTimeout(() => {
       setStep(1);
-      setBooking({ artist: null, date: null, slot: null, details: null });
+      setBooking({ artist: null, serviceType: "tattoo", date: null, slot: null, details: null });
     }, 300);
+  };
+
+  const handleArtistSelect = (artist: Artist) => {
+    // Auto-set service when artist only offers one
+    const serviceType: ServiceType =
+      artist.services.length === 1 ? artist.services[0] : booking.serviceType;
+    setBooking((prev) => ({ ...prev, artist, serviceType, date: null, slot: null }));
+  };
+
+  const handleServiceSelect = (serviceType: ServiceType) => {
+    setBooking((prev) => ({ ...prev, serviceType }));
   };
 
   const handleSubmit = async (details: DetailsFormValues) => {
@@ -73,6 +89,7 @@ export const BookingModal = () => {
       await sendBookingRequest({
         artistName: booking.artist.name,
         artistEmail: booking.artist.email,
+        serviceType: booking.serviceType,
         clientName: details.clientName,
         clientPhone: details.clientPhone,
         clientEmail: details.clientEmail,
@@ -126,9 +143,15 @@ export const BookingModal = () => {
             >
               {step === 1 && (
                 <ArtistStep
-                  artists={ARTISTS}
+                  artists={artistsWithServices}
                   selected={booking.artist}
-                  onSelect={(artist) => setBooking((prev) => ({ ...prev, artist }))}
+                  selectedService={
+                    booking.artist && (booking.artist.services.length > 1)
+                      ? booking.serviceType
+                      : null
+                  }
+                  onSelect={handleArtistSelect}
+                  onServiceSelect={handleServiceSelect}
                   onContinue={() => goTo(2)}
                 />
               )}
@@ -149,6 +172,7 @@ export const BookingModal = () => {
 
               {step === 3 && (
                 <DetailsStep
+                  serviceType={booking.serviceType}
                   defaultValues={booking.details ?? undefined}
                   onSubmit={handleSubmit}
                   onBack={() => goTo(2)}
@@ -159,6 +183,7 @@ export const BookingModal = () => {
               {step === 4 && booking.artist && booking.date && booking.slot && (
                 <SuccessStep
                   artist={booking.artist}
+                  serviceType={booking.serviceType}
                   date={booking.date}
                   slot={booking.slot}
                   onClose={handleClose}

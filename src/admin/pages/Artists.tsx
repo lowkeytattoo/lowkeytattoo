@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { toast } from "sonner";
 import { useArtistProfiles, useUpdateProfile } from "@admin/hooks/useArtistProfiles";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,6 +9,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogFooter,
@@ -21,7 +23,13 @@ import {
 } from "@/components/ui/select";
 import { UserCircle, Pencil } from "lucide-react";
 import { ARTISTS } from "@shared/config/artists";
-import type { Profile } from "@shared/types/index";
+import type { Profile, ServiceType } from "@shared/types/index";
+
+const ALL_SERVICES: { value: ServiceType; label: string }[] = [
+  { value: "tattoo", label: "Tatuaje" },
+  { value: "piercing", label: "Piercing" },
+  { value: "laser", label: "Láser" },
+];
 
 export default function Artists() {
   const { data: profiles, isLoading } = useArtistProfiles();
@@ -31,23 +39,42 @@ export default function Artists() {
   const [editName, setEditName] = useState("");
   const [editRole, setEditRole] = useState<"owner" | "artist">("artist");
   const [editConfigId, setEditConfigId] = useState("");
+  const [editServices, setEditServices] = useState<ServiceType[]>(["tattoo"]);
 
   const startEdit = (p: Profile) => {
     setEditing(p);
     setEditName(p.display_name);
     setEditRole(p.role);
     setEditConfigId(p.artist_config_id ?? "");
+    // Use DB override if set, else fall back to static config
+    const staticServices = ARTISTS.find((a) => a.id === p.artist_config_id)?.services ?? ["tattoo"];
+    setEditServices(p.available_services ?? staticServices);
+  };
+
+  const toggleService = (service: ServiceType) => {
+    setEditServices((prev) =>
+      prev.includes(service)
+        ? prev.filter((s) => s !== service)
+        : [...prev, service]
+    );
   };
 
   const saveEdit = async () => {
     if (!editing) return;
-    await updateProfile.mutateAsync({
-      id: editing.id,
-      display_name: editName,
-      role: editRole,
-      artist_config_id: editConfigId || null,
-    });
-    setEditing(null);
+    try {
+      await updateProfile.mutateAsync({
+        id: editing.id,
+        display_name: editName,
+        role: editRole,
+        artist_config_id: editConfigId || null,
+        available_services: editConfigId ? editServices : null,
+      });
+      toast.success("Cambios guardados");
+      setEditing(null);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : JSON.stringify(err);
+      toast.error(`Error al guardar: ${msg}`);
+    }
   };
 
   return (
@@ -111,6 +138,9 @@ export default function Artists() {
         <DialogContent className="bg-card border-border">
           <DialogHeader>
             <DialogTitle>Editar artista</DialogTitle>
+            <DialogDescription>
+              Actualiza el nombre, rol, perfil web y servicios disponibles.
+            </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 mt-2">
             <div className="space-y-1.5">
@@ -151,6 +181,33 @@ export default function Artists() {
                 </SelectContent>
               </Select>
             </div>
+
+            {editConfigId && (
+              <div className="space-y-2">
+                <Label className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">
+                  Servicios disponibles (web)
+                </Label>
+                <div className="flex flex-col gap-2">
+                  {ALL_SERVICES.map(({ value, label }) => (
+                    <label
+                      key={value}
+                      className="flex items-center gap-3 cursor-pointer rounded-md border border-border bg-background px-3 py-2.5 hover:border-muted-foreground transition-colors"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={editServices.includes(value)}
+                        onChange={() => toggleService(value)}
+                        className="h-4 w-4 accent-foreground"
+                      />
+                      <span className="text-sm text-foreground">{label}</span>
+                    </label>
+                  ))}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Servicios que aparecerán en el modal de reserva para este artista.
+                </p>
+              </div>
+            )}
           </div>
           <DialogFooter className="mt-4">
             <Button variant="ghost" onClick={() => setEditing(null)}>Cancelar</Button>
