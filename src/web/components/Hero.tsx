@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
-import heroImage from "@/assets/hero-sacred.webp";
+// Served from /public for stable URL — preloaded in index.html
+const heroImage = "/hero-sacred.webp";
 import { useI18n } from "@web/i18n/I18nProvider";
 import { useBooking } from "@web/contexts/BookingContext";
 import { trackCtaClick } from "@web/lib/analytics";
