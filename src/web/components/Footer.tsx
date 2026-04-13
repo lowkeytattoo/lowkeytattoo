@@ -1,10 +1,12 @@
 import { Instagram } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useI18n } from "@web/i18n/I18nProvider";
+import { ROUTES } from "@web/config/routes";
 import { CONTACT } from "@web/config/contact";
 
 const Footer = () => {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
+  const r = ROUTES[locale];
 
   return (
     <footer id="contact" className="border-t border-border pt-10 pb-8">
@@ -12,7 +14,7 @@ const Footer = () => {
         <div className="flex flex-col md:flex-row justify-between gap-10 mb-8">
           {/* Brand */}
           <div className="flex flex-col gap-3">
-            <Link to="/" className="font-gothic text-foreground text-2xl tracking-normal leading-none">
+            <Link to={r.home} className="font-gothic text-foreground text-2xl tracking-normal leading-none">
               Lowkey Tattoo
             </Link>
             <span className="font-mono text-xs text-muted-foreground tabular-nums">
@@ -32,10 +34,10 @@ const Footer = () => {
           {/* Servicios */}
           <div className="flex flex-col gap-2">
             <p className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest mb-1">Servicios</p>
-            <Link to="/tatuajes-santa-cruz-tenerife" className="font-mono text-xs text-muted-foreground hover:text-foreground transition-colors">Tatuajes en Santa Cruz</Link>
-            <Link to="/piercing-tenerife" className="font-mono text-xs text-muted-foreground hover:text-foreground transition-colors">Piercing en Tenerife</Link>
-            <Link to="/laser-eliminacion-tatuajes-tenerife" className="font-mono text-xs text-muted-foreground hover:text-foreground transition-colors">Eliminación Láser</Link>
-            <Link to="/blog" className="font-mono text-xs text-muted-foreground hover:text-foreground transition-colors">Blog</Link>
+            <Link to={r.tattoos} className="font-mono text-xs text-muted-foreground hover:text-foreground transition-colors">{t("nav.services.tattoo")}</Link>
+            <Link to={r.piercing} className="font-mono text-xs text-muted-foreground hover:text-foreground transition-colors">{t("nav.services.piercing")}</Link>
+            <Link to={r.laser} className="font-mono text-xs text-muted-foreground hover:text-foreground transition-colors">{t("nav.services.laser")}</Link>
+            <Link to={r.blog} className="font-mono text-xs text-muted-foreground hover:text-foreground transition-colors">Blog</Link>
           </div>
 
           {/* Contacto */}

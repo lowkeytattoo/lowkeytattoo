@@ -4,6 +4,7 @@ import Navbar from "@web/components/Navbar";
 import Footer from "@web/components/Footer";
 import { SEOHead } from "@web/components/SEOHead";
 import { useI18n } from "@web/i18n/I18nProvider";
+import { ROUTES } from "@web/config/routes";
 import { useBlogPost, usePublishedBlogPosts } from "@admin/hooks/useBlogPosts";
 import { format } from "date-fns";
 import { es, enGB } from "date-fns/locale";
@@ -11,6 +12,8 @@ import { es, enGB } from "date-fns/locale";
 export default function BlogPostPage() {
   const { slug } = useParams<{ slug: string }>();
   const { t, locale } = useI18n();
+  const r = ROUTES[locale];
+  const alt = ROUTES[locale === "es" ? "en" : "es"];
   const dateFnsLocale = locale === "es" ? es : enGB;
 
   const { data: post, isLoading, isError } = useBlogPost(slug ?? "");
@@ -33,7 +36,7 @@ export default function BlogPostPage() {
     );
   }
 
-  if (isError || !post) return <Navigate to="/blog" replace />;
+  if (isError || !post) return <Navigate to={r.blog} replace />;
 
   const otherPosts = (allPosts ?? []).filter((p) => p.slug !== post.slug).slice(0, 3);
 
@@ -42,6 +45,7 @@ export default function BlogPostPage() {
     post.content.match(/<img[^>]+src="([^"]+)"/)?.[1] ??
     "https://tattoolowkey.com/Banner_lowkeytattoo.jpg";
 
+  const SITE = "https://tattoolowkey.com";
   const schemas = [
     {
       "@context": "https://schema.org",
@@ -51,22 +55,22 @@ export default function BlogPostPage() {
       datePublished: post.date,
       dateModified: post.updated_at.split("T")[0],
       image: firstImage,
-      author: { "@type": "Organization", name: "Lowkey Tattoo", url: "https://tattoolowkey.com" },
+      author: { "@type": "Organization", name: "Lowkey Tattoo", url: SITE },
       publisher: {
         "@type": "Organization",
         name: "Lowkey Tattoo",
-        url: "https://tattoolowkey.com",
-        logo: { "@type": "ImageObject", url: "https://tattoolowkey.com/Banner_lowkeytattoo.jpg" },
+        url: SITE,
+        logo: { "@type": "ImageObject", url: `${SITE}/Banner_lowkeytattoo.jpg` },
       },
-      mainEntityOfPage: `https://tattoolowkey.com/blog/${post.slug}`,
+      mainEntityOfPage: `${SITE}${r.blogPost(post.slug)}`,
     },
     {
       "@context": "https://schema.org",
       "@type": "BreadcrumbList",
       itemListElement: [
-        { "@type": "ListItem", position: 1, name: "Inicio", item: "https://tattoolowkey.com/" },
-        { "@type": "ListItem", position: 2, name: t("blog.h1"), item: "https://tattoolowkey.com/blog" },
-        { "@type": "ListItem", position: 3, name: post.title, item: `https://tattoolowkey.com/blog/${post.slug}` },
+        { "@type": "ListItem", position: 1, name: t("service.breadcrumb.home"), item: `${SITE}${r.home}` },
+        { "@type": "ListItem", position: 2, name: t("blog.h1"), item: `${SITE}${r.blog}` },
+        { "@type": "ListItem", position: 3, name: post.title, item: `${SITE}${r.blogPost(post.slug)}` },
       ],
     },
   ];
@@ -76,7 +80,8 @@ export default function BlogPostPage() {
       <SEOHead
         title={`${post.title} | Lowkey Tattoo`}
         description={post.meta_description ?? post.excerpt ?? ""}
-        canonical={`/blog/${post.slug}`}
+        canonical={r.blogPost(post.slug)}
+        alternateCanonical={alt.blogPost(post.slug)}
         ogType="article"
         ogImage={firstImage}
         schema={schemas}
@@ -87,9 +92,9 @@ export default function BlogPostPage() {
         <div className="max-w-3xl mx-auto px-6">
 
           <nav className="mb-8 font-mono text-xs text-muted-foreground" aria-label="Breadcrumb">
-            <Link to="/" className="hover:text-foreground transition-colors">{t("service.breadcrumb.home")}</Link>
+            <Link to={r.home} className="hover:text-foreground transition-colors">{t("service.breadcrumb.home")}</Link>
             <span className="mx-2">/</span>
-            <Link to="/blog" className="hover:text-foreground transition-colors">{t("blog.h1")}</Link>
+            <Link to={r.blog} className="hover:text-foreground transition-colors">{t("blog.h1")}</Link>
             <span className="mx-2">/</span>
             <span className="truncate max-w-[200px] inline-block align-bottom">{post.title}</span>
           </nav>
@@ -141,7 +146,7 @@ export default function BlogPostPage() {
               <p className="font-mono text-xs text-muted-foreground uppercase tracking-widest mb-6">{t("blog.more")}</p>
               <div className="space-y-4">
                 {otherPosts.map((p) => (
-                  <Link key={p.slug} to={`/blog/${p.slug}`} className="block group">
+                  <Link key={p.slug} to={r.blogPost(p.slug)} className="block group">
                     <p className="font-medium text-muted-foreground group-hover:text-foreground transition-colors">{p.title}</p>
                     <p className="font-mono text-xs text-muted-foreground/60 mt-0.5">
                       {format(new Date(p.date), "d MMM yyyy", { locale: dateFnsLocale })}
@@ -153,7 +158,7 @@ export default function BlogPostPage() {
           )}
 
           <div className="mt-10">
-            <Link to="/blog" className="font-mono text-xs text-muted-foreground hover:text-foreground transition-colors uppercase tracking-widest">
+            <Link to={r.blog} className="font-mono text-xs text-muted-foreground hover:text-foreground transition-colors uppercase tracking-widest">
               {t("blog.back")}
             </Link>
           </div>

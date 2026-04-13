@@ -5,7 +5,7 @@ import { HelmetProvider } from "react-helmet-async";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { I18nProvider } from "@web/i18n/I18nProvider";
+import { I18nProvider, LocaleSync } from "@web/i18n/I18nProvider";
 import { CookieConsentProvider } from "@web/contexts/CookieConsentContext";
 import { BookingProvider } from "@web/contexts/BookingContext";
 import { BookingModal } from "@web/components/BookingModal";
@@ -58,18 +58,25 @@ const AdminFallback = () => (
 const App = () => (
   <HelmetProvider>
   <QueryClientProvider client={queryClient}>
-    <I18nProvider>
-      <CookieConsentProvider>
-        <BookingProvider>
-          <AdminAuthProvider>
-            <TooltipProvider>
-              <Toaster />
-              <BookingModal />
-              <CookieBanner />
-              <BrowserRouter>
+    {/*
+      BrowserRouter wraps I18nProvider so that LocaleSync (inside I18nProvider's
+      children) can use useLocation() from React Router. Locale is now derived
+      purely from the URL path — /en/* = English, everything else = Spanish.
+    */}
+    <BrowserRouter>
+      <I18nProvider>
+        <CookieConsentProvider>
+          <BookingProvider>
+            <AdminAuthProvider>
+              <TooltipProvider>
+                <Toaster />
+                <BookingModal />
+                <CookieBanner />
                 <ScrollToTop />
+                {/* Syncs locale context with URL on every navigation */}
+                <LocaleSync />
                 <Routes>
-                  {/* Public web */}
+                  {/* ── Spanish routes ─────────────────────────────── */}
                   <Route path="/" element={<Index />} />
                   <Route path="/tatuajes-santa-cruz-tenerife" element={<Suspense fallback={null}><TatuajesPage /></Suspense>} />
                   <Route path="/piercing-tenerife" element={<Suspense fallback={null}><PiercingPage /></Suspense>} />
@@ -79,7 +86,15 @@ const App = () => (
                   <Route path="/politica-de-privacidad" element={<Suspense fallback={null}><PrivacyPage /></Suspense>} />
                   <Route path="/aviso-legal" element={<Suspense fallback={null}><LegalPage /></Suspense>} />
 
-                  {/* Admin login */}
+                  {/* ── English routes — same components, URL-derived locale ── */}
+                  <Route path="/en" element={<Index />} />
+                  <Route path="/en/tattoos-tenerife" element={<Suspense fallback={null}><TatuajesPage /></Suspense>} />
+                  <Route path="/en/piercing-tenerife" element={<Suspense fallback={null}><PiercingPage /></Suspense>} />
+                  <Route path="/en/laser-tattoo-removal-tenerife" element={<Suspense fallback={null}><LaserPage /></Suspense>} />
+                  <Route path="/en/blog" element={<Suspense fallback={null}><BlogPage /></Suspense>} />
+                  <Route path="/en/blog/:slug" element={<Suspense fallback={null}><BlogPostPage /></Suspense>} />
+
+                  {/* ── Admin login ─────────────────────────────────── */}
                   <Route
                     path="/admin/login"
                     element={
@@ -89,7 +104,7 @@ const App = () => (
                     }
                   />
 
-                  {/* Admin panel — all children lazy, single Suspense boundary */}
+                  {/* ── Admin panel — all children lazy ─────────────── */}
                   <Route
                     path="/admin"
                     element={
@@ -129,14 +144,14 @@ const App = () => (
                     <Route path="blog/preview/:id" element={<BlogPreview />} />
                   </Route>
 
-                  <Route path="*" element={<NotFound />} />
+                  <Route path="*" element={<Suspense fallback={null}><NotFound /></Suspense>} />
                 </Routes>
-              </BrowserRouter>
-            </TooltipProvider>
-          </AdminAuthProvider>
-        </BookingProvider>
-      </CookieConsentProvider>
-    </I18nProvider>
+              </TooltipProvider>
+            </AdminAuthProvider>
+          </BookingProvider>
+        </CookieConsentProvider>
+      </I18nProvider>
+    </BrowserRouter>
   </QueryClientProvider>
   </HelmetProvider>
 );

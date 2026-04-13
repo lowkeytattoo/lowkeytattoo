@@ -4,6 +4,7 @@ import Navbar from "@web/components/Navbar";
 import Footer from "@web/components/Footer";
 import { SEOHead } from "@web/components/SEOHead";
 import { useI18n } from "@web/i18n/I18nProvider";
+import { ROUTES } from "@web/config/routes";
 import { usePublishedBlogPosts } from "@admin/hooks/useBlogPosts";
 import { format } from "date-fns";
 import { es, enGB } from "date-fns/locale";
@@ -12,6 +13,8 @@ const PAGE_SIZE = 9;
 
 export default function BlogPage() {
   const { t, locale } = useI18n();
+  const r = ROUTES[locale];
+  const alt = ROUTES[locale === "es" ? "en" : "es"];
   const dateFnsLocale = locale === "es" ? es : enGB;
   const { data: posts, isLoading } = usePublishedBlogPosts();
   const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
@@ -21,7 +24,8 @@ export default function BlogPage() {
       <SEOHead
         title={t("blog.meta.title")}
         description={t("blog.meta.desc")}
-        canonical="/blog"
+        canonical={r.blog}
+        alternateCanonical={alt.blog}
       />
       <Navbar />
 
@@ -29,7 +33,7 @@ export default function BlogPage() {
         <div className="max-w-3xl mx-auto px-6">
 
           <nav className="mb-8 font-mono text-xs text-muted-foreground" aria-label="Breadcrumb">
-            <Link to="/" className="hover:text-foreground transition-colors">{t("service.breadcrumb.home")}</Link>
+            <Link to={r.home} className="hover:text-foreground transition-colors">{t("service.breadcrumb.home")}</Link>
             <span className="mx-2">/</span>
             <span>{t("blog.h1")}</span>
           </nav>
@@ -65,14 +69,14 @@ export default function BlogPage() {
                       </div>
                     </div>
                     <h2 className="text-xl font-medium text-foreground mb-2">
-                      <Link to={`/blog/${post.slug}`} className="hover:text-muted-foreground transition-colors">
+                      <Link to={r.blogPost(post.slug)} className="hover:text-muted-foreground transition-colors">
                         {post.title}
                       </Link>
                     </h2>
                     {post.excerpt && (
                       <p className="text-muted-foreground text-sm leading-relaxed mb-4">{post.excerpt}</p>
                     )}
-                    <Link to={`/blog/${post.slug}`} className="font-mono text-xs text-muted-foreground hover:text-foreground transition-colors uppercase tracking-widest">
+                    <Link to={r.blogPost(post.slug)} className="font-mono text-xs text-muted-foreground hover:text-foreground transition-colors uppercase tracking-widest">
                       {t("blog.read")}
                     </Link>
                   </article>

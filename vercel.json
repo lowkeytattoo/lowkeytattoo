@@ -1,7 +1,13 @@
 {
   "headers": [
     {
-      "source": "/((?!admin).*)",
+      "source": "/en/:path*",
+      "headers": [
+        { "key": "Content-Language", "value": "en" }
+      ]
+    },
+    {
+      "source": "/((?!en/|en$|admin).*)",
       "headers": [
         { "key": "Content-Language", "value": "es" }
       ]

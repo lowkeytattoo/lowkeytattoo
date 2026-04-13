@@ -1,35 +1,44 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, useNavigate, useLocation } from "react-router-dom";
 import { Menu, X, Globe, ChevronDown } from "lucide-react";
 import { useI18n } from "@web/i18n/I18nProvider";
 import { useBooking } from "@web/contexts/BookingContext";
 import { trackCtaClick } from "@web/lib/analytics";
 import { cn } from "@shared/lib/utils";
+import { ROUTES, switchLocaleUrl } from "@web/config/routes";
 
 const Navbar = () => {
   const [open, setOpen] = useState(false);
   const [servicesOpen, setServicesOpen] = useState(false);
-  const { locale, setLocale, t } = useI18n();
+  const { locale, t } = useI18n();
   const { openModal } = useBooking();
+  const navigate = useNavigate();
+  const { pathname } = useLocation();
 
-  const toggleLang = () => setLocale(locale === "en" ? "es" : "en");
+  // Navigate to the equivalent page in the other language
+  const toggleLang = () => {
+    const target = locale === "en" ? "es" : "en";
+    navigate(switchLocaleUrl(pathname, target));
+  };
+
+  const r = ROUTES[locale];
 
   const serviceLinks = [
-    { to: "/tatuajes-santa-cruz-tenerife", label: t("nav.services.tattoo") },
-    { to: "/piercing-tenerife",            label: t("nav.services.piercing") },
-    { to: "/laser-eliminacion-tatuajes-tenerife", label: t("nav.services.laser") },
+    { to: r.tattoos,  label: t("nav.services.tattoo") },
+    { to: r.piercing, label: t("nav.services.piercing") },
+    { to: r.laser,    label: t("nav.services.laser") },
   ];
 
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 nav-blur bg-background/80 border-b border-border">
       <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-        <Link to="/" className="font-gothic text-foreground text-2xl md:text-3xl tracking-normal leading-none">
+        <Link to={r.home} className="font-gothic text-foreground text-2xl md:text-3xl tracking-normal leading-none">
           Lowkey Tattoo
         </Link>
 
         {/* Desktop nav */}
         <div className="hidden md:flex items-center gap-8">
-          <a href="/#gallery" className="text-muted-foreground text-sm hover:text-foreground transition-colors duration-250">
+          <a href={`${r.home}#gallery`} className="text-muted-foreground text-sm hover:text-foreground transition-colors duration-250">
             {t("nav.gallery")}
           </a>
 
@@ -72,13 +81,14 @@ const Navbar = () => {
             </div>
           </div>
 
-          <a href="/#studio" className="text-muted-foreground text-sm hover:text-foreground transition-colors duration-250">
+          <a href={`${r.home}#studio`} className="text-muted-foreground text-sm hover:text-foreground transition-colors duration-250">
             {t("nav.studio")}
           </a>
-          <Link to="/blog" className="text-muted-foreground text-sm hover:text-foreground transition-colors duration-250">
+          <Link to={r.blog} className="text-muted-foreground text-sm hover:text-foreground transition-colors duration-250">
             Blog
           </Link>
 
+          {/* Language switcher — navigates to equivalent URL in other locale */}
           <button
             onClick={toggleLang}
             className="flex items-center gap-1.5 text-muted-foreground text-xs font-mono hover:text-foreground transition-colors duration-250"
@@ -118,9 +128,8 @@ const Navbar = () => {
       {/* Mobile menu */}
       {open && (
         <div className="md:hidden border-t border-border bg-background/95 nav-blur px-6 py-6 flex flex-col gap-1">
-          <a href="/#gallery" onClick={() => setOpen(false)} className="text-muted-foreground text-sm hover:text-foreground py-2">{t("nav.gallery")}</a>
+          <a href={`${r.home}#gallery`} onClick={() => setOpen(false)} className="text-muted-foreground text-sm hover:text-foreground py-2">{t("nav.gallery")}</a>
 
-          {/* Services section in mobile */}
           <div>
             <button
               onClick={() => setServicesOpen(!servicesOpen)}
@@ -145,8 +154,8 @@ const Navbar = () => {
             )}
           </div>
 
-          <a href="/#studio" onClick={() => setOpen(false)} className="text-muted-foreground text-sm hover:text-foreground py-2">{t("nav.studio")}</a>
-          <Link to="/blog" onClick={() => setOpen(false)} className="text-muted-foreground text-sm hover:text-foreground py-2">Blog</Link>
+          <a href={`${r.home}#studio`} onClick={() => setOpen(false)} className="text-muted-foreground text-sm hover:text-foreground py-2">{t("nav.studio")}</a>
+          <Link to={r.blog} onClick={() => setOpen(false)} className="text-muted-foreground text-sm hover:text-foreground py-2">Blog</Link>
           <button
             onClick={() => { setOpen(false); trackCtaClick("mobile_menu"); openModal(); }}
             className="cta-button rounded-sm text-xs tracking-[0.1em] uppercase text-center mt-3 py-3"

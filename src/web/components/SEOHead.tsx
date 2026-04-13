@@ -7,15 +7,32 @@ const BANNER = `${SITE}/Banner_lowkeytattoo.jpg`;
 interface SEOHeadProps {
   title: string;
   description: string;
+  /** Relative path for this page in the CURRENT locale (e.g. "/en/tattoos-tenerife") */
   canonical: string;
+  /** Relative path for the SAME page in the OTHER locale (e.g. "/tatuajes-santa-cruz-tenerife") */
+  alternateCanonical?: string;
   ogType?: string;
   ogImage?: string;
   schema?: object | object[];
 }
 
-export function SEOHead({ title, description, canonical, ogType = "website", ogImage, schema }: SEOHeadProps) {
+export function SEOHead({
+  title,
+  description,
+  canonical,
+  alternateCanonical,
+  ogType = "website",
+  ogImage,
+  schema,
+}: SEOHeadProps) {
   const { locale } = useI18n();
   const url = `${SITE}${canonical}`;
+  const altUrl = alternateCanonical ? `${SITE}${alternateCanonical}` : null;
+
+  // Spanish URL is always the x-default (primary audience for this Tenerife studio)
+  const esUrl = locale === "es" ? url : (altUrl ?? url);
+  const enUrl = locale === "en" ? url : (altUrl ?? null);
+
   const schemas = schema ? (Array.isArray(schema) ? schema : [schema]) : [];
   const socialImage = ogImage ?? BANNER;
 
@@ -26,9 +43,11 @@ export function SEOHead({ title, description, canonical, ogType = "website", ogI
       <meta name="description" content={description} />
       <link rel="canonical" href={url} />
 
-      {/* hreflang — Spanish-only site, no separate EN URL exists */}
-      <link rel="alternate" hrefLang="es" href={url} />
-      <link rel="alternate" hrefLang="x-default" href={url} />
+      {/* hreflang — proper alternate URLs for each language */}
+      <link rel="alternate" hrefLang="es" href={esUrl} />
+      {enUrl && <link rel="alternate" hrefLang="en" href={enUrl} />}
+      {/* x-default always points to the Spanish version */}
+      <link rel="alternate" hrefLang="x-default" href={esUrl} />
 
       {/* Open Graph */}
       <meta property="og:title" content={title} />
@@ -38,7 +57,13 @@ export function SEOHead({ title, description, canonical, ogType = "website", ogI
       <meta property="og:image:width" content="1200" />
       <meta property="og:image:height" content="800" />
       <meta property="og:type" content={ogType} />
-      <meta property="og:locale" content="es_ES" />
+      <meta property="og:locale" content={locale === "es" ? "es_ES" : "en_GB"} />
+      {altUrl && (
+        <meta
+          property="og:locale:alternate"
+          content={locale === "es" ? "en_GB" : "es_ES"}
+        />
+      )}
 
       {/* Twitter / X */}
       <meta name="twitter:card" content="summary_large_image" />

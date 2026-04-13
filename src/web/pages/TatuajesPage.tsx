@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { CONTACT } from "@web/config/contact";
+import { ROUTES } from "@web/config/routes";
 
 const WhatsAppIcon = ({ size = 16 }: { size?: number }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -15,26 +16,29 @@ import { ARTISTS } from "@shared/config/artists";
 import { ArtistWorkRow } from "@web/components/Gallery";
 
 export default function TatuajesPage() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const { openModal } = useBooking();
+  const r = ROUTES[locale];
+  const alt = ROUTES[locale === "es" ? "en" : "es"];
 
+  const SITE = "https://tattoolowkey.com";
   const schemas = [
     {
       "@context": "https://schema.org",
       "@type": "Service",
-      "@id": "https://tattoolowkey.com/tatuajes-santa-cruz-tenerife#service",
+      "@id": `${SITE}${r.tattoos}#service`,
       name: t("tattoos.h1"),
-      provider: { "@id": "https://tattoolowkey.com/#business" },
+      provider: { "@id": `${SITE}/#business` },
       areaServed: "Santa Cruz de Tenerife",
-      url: "https://tattoolowkey.com/tatuajes-santa-cruz-tenerife",
+      url: `${SITE}${r.tattoos}`,
       description: t("tattoos.meta.desc"),
     },
     {
       "@context": "https://schema.org",
       "@type": "BreadcrumbList",
       itemListElement: [
-        { "@type": "ListItem", position: 1, name: "Inicio", item: "https://tattoolowkey.com/" },
-        { "@type": "ListItem", position: 2, name: t("tattoos.h1"), item: "https://tattoolowkey.com/tatuajes-santa-cruz-tenerife" },
+        { "@type": "ListItem", position: 1, name: t("service.breadcrumb.home"), item: `${SITE}${r.home}` },
+        { "@type": "ListItem", position: 2, name: t("tattoos.h1"), item: `${SITE}${r.tattoos}` },
       ],
     },
   ];
@@ -59,7 +63,8 @@ export default function TatuajesPage() {
       <SEOHead
         title={t("tattoos.meta.title")}
         description={t("tattoos.meta.desc")}
-        canonical="/tatuajes-santa-cruz-tenerife"
+        canonical={r.tattoos}
+        alternateCanonical={alt.tattoos}
         schema={schemas}
       />
       <Navbar />
@@ -69,7 +74,7 @@ export default function TatuajesPage() {
 
           {/* Breadcrumb */}
           <nav className="mb-8 font-mono text-xs text-muted-foreground" aria-label="Breadcrumb">
-            <Link to="/" className="hover:text-foreground transition-colors">{t("service.breadcrumb.home")}</Link>
+            <Link to={r.home} className="hover:text-foreground transition-colors">{t("service.breadcrumb.home")}</Link>
             <span className="mx-2">/</span>
             <span>{t("tattoos.h1")}</span>
           </nav>
@@ -159,9 +164,9 @@ export default function TatuajesPage() {
           <div className="mt-12 pt-8 border-t border-border">
             <p className="font-mono text-xs text-muted-foreground uppercase tracking-widest mb-4">{t("service.also")}</p>
             <div className="flex flex-wrap gap-3">
-              <Link to="/piercing-tenerife" className="font-mono text-sm text-muted-foreground hover:text-foreground transition-colors border border-border rounded-sm px-4 py-2">{t("gallery.cat.piercing")} →</Link>
-              <Link to="/laser-eliminacion-tatuajes-tenerife" className="font-mono text-sm text-muted-foreground hover:text-foreground transition-colors border border-border rounded-sm px-4 py-2">{t("gallery.cat.laser")} →</Link>
-              <Link to="/blog" className="font-mono text-sm text-muted-foreground hover:text-foreground transition-colors border border-border rounded-sm px-4 py-2">Blog →</Link>
+              <Link to={r.piercing} className="font-mono text-sm text-muted-foreground hover:text-foreground transition-colors border border-border rounded-sm px-4 py-2">{t("gallery.cat.piercing")} →</Link>
+              <Link to={r.laser} className="font-mono text-sm text-muted-foreground hover:text-foreground transition-colors border border-border rounded-sm px-4 py-2">{t("gallery.cat.laser")} →</Link>
+              <Link to={r.blog} className="font-mono text-sm text-muted-foreground hover:text-foreground transition-colors border border-border rounded-sm px-4 py-2">Blog →</Link>
             </div>
           </div>
 

@@ -7,9 +7,12 @@ import StudioInfo from "@web/components/StudioInfo";
 import Footer from "@web/components/Footer";
 import { SEOHead } from "@web/components/SEOHead";
 import { useI18n } from "@web/i18n/I18nProvider";
+import { ROUTES } from "@web/config/routes";
 
 const Index = () => {
   const { locale } = useI18n();
+  const r = ROUTES[locale];
+  const alt = ROUTES[locale === "es" ? "en" : "es"];
 
   const title = locale === "es"
     ? "Tatuajes Santa Cruz de Tenerife | Lowkey Tattoo Estudio"
@@ -21,7 +24,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <SEOHead title={title} description={description} canonical="/" />
+      <SEOHead title={title} description={description} canonical={r.home} alternateCanonical={alt.home} />
       <Navbar />
       <Hero />
       <Gallery />

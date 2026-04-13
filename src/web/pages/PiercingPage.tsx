@@ -5,6 +5,7 @@ import { SEOHead } from "@web/components/SEOHead";
 import { useI18n } from "@web/i18n/I18nProvider";
 import { useBooking } from "@web/contexts/BookingContext";
 import { CONTACT } from "@web/config/contact";
+import { ROUTES } from "@web/config/routes";
 import piercingPablo1 from "@/assets/lowkey_tattoo_tenerife_piercing_pablo.webp";
 
 const WhatsAppIcon = ({ size = 16 }: { size?: number }) => (
@@ -14,26 +15,29 @@ const WhatsAppIcon = ({ size = 16 }: { size?: number }) => (
 );
 
 export default function PiercingPage() {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const { openModal } = useBooking();
+  const r = ROUTES[locale];
+  const alt = ROUTES[locale === "es" ? "en" : "es"];
 
+  const SITE = "https://tattoolowkey.com";
   const schemas = [
     {
       "@context": "https://schema.org",
       "@type": "Service",
-      "@id": "https://tattoolowkey.com/piercing-tenerife#service",
+      "@id": `${SITE}${r.piercing}#service`,
       name: t("piercing.h1"),
-      provider: { "@id": "https://tattoolowkey.com/#business" },
+      provider: { "@id": `${SITE}/#business` },
       areaServed: "Santa Cruz de Tenerife",
-      url: "https://tattoolowkey.com/piercing-tenerife",
+      url: `${SITE}${r.piercing}`,
       description: t("piercing.meta.desc"),
     },
     {
       "@context": "https://schema.org",
       "@type": "BreadcrumbList",
       itemListElement: [
-        { "@type": "ListItem", position: 1, name: "Inicio", item: "https://tattoolowkey.com/" },
-        { "@type": "ListItem", position: 2, name: t("piercing.h1"), item: "https://tattoolowkey.com/piercing-tenerife" },
+        { "@type": "ListItem", position: 1, name: t("service.breadcrumb.home"), item: `${SITE}${r.home}` },
+        { "@type": "ListItem", position: 2, name: t("piercing.h1"), item: `${SITE}${r.piercing}` },
       ],
     },
   ];
@@ -47,7 +51,8 @@ export default function PiercingPage() {
       <SEOHead
         title={t("piercing.meta.title")}
         description={t("piercing.meta.desc")}
-        canonical="/piercing-tenerife"
+        canonical={r.piercing}
+        alternateCanonical={alt.piercing}
         schema={schemas}
       />
       <Navbar />
@@ -56,7 +61,7 @@ export default function PiercingPage() {
         <div className="max-w-4xl mx-auto px-6">
 
           <nav className="mb-8 font-mono text-xs text-muted-foreground" aria-label="Breadcrumb">
-            <Link to="/" className="hover:text-foreground transition-colors">{t("service.breadcrumb.home")}</Link>
+            <Link to={r.home} className="hover:text-foreground transition-colors">{t("service.breadcrumb.home")}</Link>
             <span className="mx-2">/</span>
             <span>{t("piercing.h1")}</span>
           </nav>
@@ -150,9 +155,9 @@ export default function PiercingPage() {
           <div className="mt-12 pt-8 border-t border-border">
             <p className="font-mono text-xs text-muted-foreground uppercase tracking-widest mb-4">{t("service.also")}</p>
             <div className="flex flex-wrap gap-3">
-              <Link to="/tatuajes-santa-cruz-tenerife" className="font-mono text-sm text-muted-foreground hover:text-foreground transition-colors border border-border rounded-sm px-4 py-2">{t("gallery.cat.tattoo")} →</Link>
-              <Link to="/laser-eliminacion-tatuajes-tenerife" className="font-mono text-sm text-muted-foreground hover:text-foreground transition-colors border border-border rounded-sm px-4 py-2">{t("gallery.cat.laser")} →</Link>
-              <Link to="/blog" className="font-mono text-sm text-muted-foreground hover:text-foreground transition-colors border border-border rounded-sm px-4 py-2">Blog →</Link>
+              <Link to={r.tattoos} className="font-mono text-sm text-muted-foreground hover:text-foreground transition-colors border border-border rounded-sm px-4 py-2">{t("gallery.cat.tattoo")} →</Link>
+              <Link to={r.laser} className="font-mono text-sm text-muted-foreground hover:text-foreground transition-colors border border-border rounded-sm px-4 py-2">{t("gallery.cat.laser")} →</Link>
+              <Link to={r.blog} className="font-mono text-sm text-muted-foreground hover:text-foreground transition-colors border border-border rounded-sm px-4 py-2">Blog →</Link>
             </div>
           </div>
 
