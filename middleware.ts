@@ -32,6 +32,10 @@ export default function middleware(request: Request): Response | undefined {
     pathname.includes(".")
   ) return;
 
+  // Skip bots, crawlers and synthetic monitoring tools
+  const ua = request.headers.get("user-agent") ?? "";
+  if (/bot|crawler|spider|lighthouse|pingdom|gtmetrix|pagespeed/i.test(ua)) return;
+
   // Respect existing language preference cookie
   const cookieHeader = request.headers.get("cookie") ?? "";
   const langCookie = cookieHeader

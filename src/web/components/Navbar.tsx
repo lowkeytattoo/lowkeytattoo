@@ -92,7 +92,7 @@ const Navbar = () => {
           <button
             onClick={toggleLang}
             className="flex items-center gap-1.5 text-muted-foreground text-xs font-mono hover:text-foreground transition-colors duration-250"
-            aria-label="Switch language"
+            aria-label={locale === "en" ? "Cambiar a español" : "Switch to English"}
           >
             <Globe size={14} />
             {locale.toUpperCase()}
@@ -110,7 +110,7 @@ const Navbar = () => {
           <button
             onClick={toggleLang}
             className="flex items-center gap-1.5 text-muted-foreground text-xs font-mono hover:text-foreground"
-            aria-label="Switch language"
+            aria-label={locale === "en" ? "Cambiar a español" : "Switch to English"}
           >
             <Globe size={14} />
             {locale.toUpperCase()}

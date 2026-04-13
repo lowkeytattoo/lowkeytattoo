@@ -87,6 +87,9 @@ export const ArtistWorkRow = ({ artist, index }: { artist: Artist; index: number
           alt={artist.name}
           className="absolute inset-0 h-full w-full object-cover object-top transition-transform duration-500 group-hover:scale-105"
           loading="lazy"
+          width={224}
+          height={224}
+          sizes="(max-width: 768px) 100vw, 224px"
         />
         {/* Bottom gradient info overlay */}
         <div className="absolute inset-0 bg-gradient-to-t from-background/85 via-background/10 to-transparent" />
@@ -108,6 +111,9 @@ export const ArtistWorkRow = ({ artist, index }: { artist: Artist; index: number
               alt={`${artist.name} — trabajo ${i + 1}`}
               className="h-full w-full object-cover gallery-image"
               loading="lazy"
+              width={400}
+              height={400}
+              sizes="(max-width: 640px) 45vw, (max-width: 1024px) 30vw, 200px"
             />
           </div>
         ))}

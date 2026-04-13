@@ -32,7 +32,7 @@
     <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@300;400;500;600&family=IBM+Plex+Mono:wght@400;500&family=Pirata+One&display=swap" /></noscript>
 
     <!-- ══ CANONICAL + HREFLANG ══════════════════════════════════════════════ -->
-    <link rel="canonical" href="https://tattoolowkey.com/" />
+    <!-- canonical is set per-page by React Helmet — no static fallback here -->
     <link rel="sitemap" type="application/xml" href="/sitemap.xml" />
     <link rel="alternate" type="text/plain" title="Plain text for LLMs" href="/llms.txt" />
     <link rel="alternate" hreflang="es" href="https://tattoolowkey.com/" />
@@ -503,7 +503,6 @@
     </noscript>
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
-    <!-- Elfsight Instagram Feed -->
-    <script src="https://elfsightcdn.com/platform.js" async></script>
+    <!-- Elfsight platform.js is injected lazily by InstagramFeed.tsx via IntersectionObserver -->
   </body>
 </html>
