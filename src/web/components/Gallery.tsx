@@ -20,13 +20,16 @@ import fifoImg from "@/assets/fifo_lowkey_tattoo_tenerife.webp";
 import pablo1 from "@/assets/lowkey_tattoo_tenerife_pablo_matos_1.webp";
 import pablo2 from "@/assets/lowkey_tattoo_tenerife_pablo_matos_2.webp";
 import pablo3 from "@/assets/lowkey_tattoo_tenerife_pablo_matos_3.webp";
+import pablo4 from "@/assets/lowkey_tattoo_tenerife_pablo_matos_4.webp";
+import pablo5 from "@/assets/lowkey_tattoo_tenerife_pablo_matos_5.webp";
 import piercingPablo1 from "@/assets/lowkey_tattoo_tenerife_piercing_pablo.webp";
 import piercingPablo2 from "@/assets/lowkey_tattoo_tenerife_piercing_pablo_2.webp";
+import piercingPablo3 from "@/assets/lowkey_tattoo_tenerife_piercing_pablo_3.webp";
 
 type Category = "tattoo" | "piercing" | "laser";
 
 const ARTIST_WORKS: Record<string, string[]> = {
-  pablo:  [pablo1, pablo2, pablo3],
+  pablo:  [pablo1, pablo2, pablo3, pablo4, pablo5],
   sergio: [gallery2, gallery5, gallery6],
   fifo:   [gallery4, gallery3],
 };
@@ -96,9 +99,9 @@ export const ArtistWorkRow = ({ artist, index }: { artist: Artist; index: number
         </div>
       </a>
 
-      {/* Work images — 3-col grid, fills remaining space */}
-      <div className="grid grid-cols-3 gap-2 md:gap-3 flex-1">
-        {works.slice(0, 3).map((src, i) => (
+      {/* Work images — responsive grid, fills remaining space */}
+      <div className={`grid gap-2 md:gap-3 flex-1 ${works.length > 3 ? "grid-cols-3" : "grid-cols-3"}`}>
+        {works.map((src, i) => (
           <div key={i} className="aspect-square overflow-hidden rounded-lg">
             <img
               src={src}
@@ -230,7 +233,7 @@ const PiercingView = () => {
         <CategoryCTAs waMessage={t("gallery.piercing.wa")} />
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 md:gap-4">
-        {[piercingPablo1, piercingPablo2].map((src, i) => (
+        {[piercingPablo1, piercingPablo2, piercingPablo3].map((src, i) => (
           <motion.div
             key={i}
             initial={{ opacity: 0, y: 10 }}
