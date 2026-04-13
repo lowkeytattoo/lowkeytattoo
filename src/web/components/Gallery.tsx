@@ -16,40 +16,54 @@ import gallery6 from "@/assets/gallery-6.webp";
 import laserImg from "@/assets/laser_lowkey.webp";
 import pabloImg from "@/assets/pablo_lowkey_tattoo_tenerife.webp";
 import pabloImgS from "@/assets/pablo_lowkey_tattoo_tenerife_800.webp";
+import pabloImgXS from "@/assets/pablo_lowkey_tattoo_tenerife_400.webp";
 import sergioImg from "@/assets/sergio_lowkey_tattoo_tenerife.webp";
 import sergioImgS from "@/assets/sergio_lowkey_tattoo_tenerife_800.webp";
+import sergioImgXS from "@/assets/sergio_lowkey_tattoo_tenerife_400.webp";
 import fifoImg from "@/assets/fifo_lowkey_tattoo_tenerife.webp";
 import fifoImgS from "@/assets/fifo_lowkey_tattoo_tenerife_800.webp";
+import fifoImgXS from "@/assets/fifo_lowkey_tattoo_tenerife_400.webp";
 import pablo1 from "@/assets/lowkey_tattoo_tenerife_pablo_matos_1.webp";
 import pablo1s from "@/assets/lowkey_tattoo_tenerife_pablo_matos_1_800.webp";
+import pablo1xs from "@/assets/lowkey_tattoo_tenerife_pablo_matos_1_400.webp";
 import pablo2 from "@/assets/lowkey_tattoo_tenerife_pablo_matos_2.webp";
 import pablo2s from "@/assets/lowkey_tattoo_tenerife_pablo_matos_2_800.webp";
+import pablo2xs from "@/assets/lowkey_tattoo_tenerife_pablo_matos_2_400.webp";
 import pablo3 from "@/assets/lowkey_tattoo_tenerife_pablo_matos_3.webp";
 import pablo3s from "@/assets/lowkey_tattoo_tenerife_pablo_matos_3_800.webp";
+import pablo3xs from "@/assets/lowkey_tattoo_tenerife_pablo_matos_3_400.webp";
 import pablo4 from "@/assets/lowkey_tattoo_tenerife_pablo_matos_4.webp";
 import pablo4s from "@/assets/lowkey_tattoo_tenerife_pablo_matos_4_800.webp";
+import pablo4xs from "@/assets/lowkey_tattoo_tenerife_pablo_matos_4_400.webp";
 import pablo5 from "@/assets/lowkey_tattoo_tenerife_pablo_matos_5.webp";
 import pablo5s from "@/assets/lowkey_tattoo_tenerife_pablo_matos_5_800.webp";
+import pablo5xs from "@/assets/lowkey_tattoo_tenerife_pablo_matos_5_400.webp";
 import piercingPablo1 from "@/assets/lowkey_tattoo_tenerife_piercing_pablo.webp";
 import piercingPablo1s from "@/assets/lowkey_tattoo_tenerife_piercing_pablo_800.webp";
+import piercingPablo1xs from "@/assets/lowkey_tattoo_tenerife_piercing_pablo_400.webp";
 import piercingPablo2 from "@/assets/lowkey_tattoo_tenerife_piercing_pablo_2.webp";
 import piercingPablo2s from "@/assets/lowkey_tattoo_tenerife_piercing_pablo_2_800.webp";
+import piercingPablo2xs from "@/assets/lowkey_tattoo_tenerife_piercing_pablo_2_400.webp";
 import piercingPablo3 from "@/assets/lowkey_tattoo_tenerife_piercing_pablo_3.webp";
 import piercingPablo3s from "@/assets/lowkey_tattoo_tenerife_piercing_pablo_3_800.webp";
+import piercingPablo3xs from "@/assets/lowkey_tattoo_tenerife_piercing_pablo_3_400.webp";
 
 type Category = "tattoo" | "piercing" | "laser";
 
-// [full, small@800px] pairs for srcset
-const ARTIST_WORKS: Record<string, [string, string][]> = {
-  pablo:  [[pablo1, pablo1s], [pablo2, pablo2s], [pablo3, pablo3s], [pablo4, pablo4s], [pablo5, pablo5s]],
-  sergio: [[gallery2, gallery2], [gallery5, gallery5], [gallery6, gallery6]],
-  fifo:   [[gallery4, gallery4], [gallery3, gallery3]],
+// [full, 800px, 400px] tuples for srcset
+const ARTIST_WORKS: Record<string, [string, string, string][]> = {
+  pablo:  [
+    [pablo1, pablo1s, pablo1xs], [pablo2, pablo2s, pablo2xs], [pablo3, pablo3s, pablo3xs],
+    [pablo4, pablo4s, pablo4xs], [pablo5, pablo5s, pablo5xs],
+  ],
+  sergio: [[gallery2, gallery2, gallery2], [gallery5, gallery5, gallery5], [gallery6, gallery6, gallery6]],
+  fifo:   [[gallery4, gallery4, gallery4], [gallery3, gallery3, gallery3]],
 };
 
-const ARTIST_PHOTO: Record<string, [string, string]> = {
-  pablo:  [pabloImg, pabloImgS],
-  sergio: [sergioImg, sergioImgS],
-  fifo:   [fifoImg, fifoImgS],
+const ARTIST_PHOTO: Record<string, [string, string, string]> = {
+  pablo:  [pabloImg, pabloImgS, pabloImgXS],
+  sergio: [sergioImg, sergioImgS, sergioImgXS],
+  fifo:   [fifoImg, fifoImgS, fifoImgXS],
 };
 
 const CATEGORIES: { id: Category; labelKey: string; bg: string | null }[] = [
@@ -73,7 +87,7 @@ const fadeSlide = {
 // Desktop: [square artist card] | [work img × 3]
 // Mobile:  artist card on top, work images below
 export const ArtistWorkRow = ({ artist, index }: { artist: Artist; index: number }) => {
-  const [photo, photoS] = ARTIST_PHOTO[artist.id] ?? [];
+  const [photo, photoS, photoXS] = ARTIST_PHOTO[artist.id] ?? [];
   const works = ARTIST_WORKS[artist.id] ?? [];
   const igHref = igUrl(artist.handle);
 
@@ -96,13 +110,13 @@ export const ArtistWorkRow = ({ artist, index }: { artist: Artist; index: number
       >
         <img
           src={photo ?? works[0]?.[0]}
-          srcSet={photoS ? `${photoS} 800w, ${photo} 1200w` : undefined}
+          srcSet={photoS ? `${photoXS} 400w, ${photoS} 800w, ${photo} 1200w` : undefined}
           alt={artist.name}
           className="absolute inset-0 h-full w-full object-cover object-top transition-transform duration-500 group-hover:scale-105"
           loading="lazy"
           width={224}
           height={224}
-          sizes="(max-width: 768px) 100vw, 224px"
+          sizes="(max-width: 480px) 100vw, (max-width: 768px) 50vw, 224px"
         />
         {/* Bottom gradient info overlay */}
         <div className="absolute inset-0 bg-gradient-to-t from-background/85 via-background/10 to-transparent" />
@@ -117,17 +131,17 @@ export const ArtistWorkRow = ({ artist, index }: { artist: Artist; index: number
 
       {/* Work images — responsive grid, fills remaining space */}
       <div className="grid grid-cols-3 gap-2 md:gap-3 flex-1">
-        {works.map(([src, srcS], i) => (
+        {works.map(([src, srcS, srcXS], i) => (
           <div key={i} className="aspect-square overflow-hidden rounded-lg">
             <img
               src={src}
-              srcSet={srcS !== src ? `${srcS} 800w, ${src} 1600w` : undefined}
+              srcSet={srcS !== src ? `${srcXS} 400w, ${srcS} 800w, ${src} 1600w` : undefined}
               alt={`${artist.name} — trabajo ${i + 1}`}
               className="h-full w-full object-cover gallery-image"
               loading="lazy"
               width={400}
               height={400}
-              sizes="(max-width: 640px) 45vw, (max-width: 1024px) 30vw, 200px"
+              sizes="(max-width: 480px) 30vw, (max-width: 1024px) 20vw, 180px"
             />
           </div>
         ))}
@@ -138,7 +152,7 @@ export const ArtistWorkRow = ({ artist, index }: { artist: Artist; index: number
 
 // ── Legacy card (used by LaserView artist section) ───────────────────────────
 export const ArtistCard = ({ artist, index }: { artist: Artist; index: number }) => {
-  const [photo, photoS] = ARTIST_PHOTO[artist.id] ?? [];
+  const [photo, photoS, photoXS] = ARTIST_PHOTO[artist.id] ?? [];
   const works = ARTIST_WORKS[artist.id] ?? [];
   const igHref = igUrl(artist.handle);
 
@@ -158,11 +172,11 @@ export const ArtistCard = ({ artist, index }: { artist: Artist; index: number })
       <div className="aspect-[4/3] w-full relative overflow-hidden">
         <img
           src={photo ?? works[0]?.[0]}
-          srcSet={photoS ? `${photoS} 800w, ${photo} 1200w` : undefined}
+          srcSet={photoS ? `${photoXS} 400w, ${photoS} 800w, ${photo} 1200w` : undefined}
           alt={artist.name}
           className="absolute inset-0 h-full w-full object-cover object-top transition-transform duration-500 group-hover:scale-105"
           loading="lazy"
-          sizes="(max-width: 768px) 100vw, 400px"
+          sizes="(max-width: 480px) 100vw, (max-width: 768px) 50vw, 400px"
         />
       </div>
       <div className="flex flex-col justify-between gap-3 p-5 flex-1 min-w-0">
@@ -256,10 +270,10 @@ const PiercingView = () => {
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 md:gap-4">
         {([
-          [piercingPablo1, piercingPablo1s],
-          [piercingPablo2, piercingPablo2s],
-          [piercingPablo3, piercingPablo3s],
-        ] as [string, string][]).map(([src, srcS], i) => (
+          [piercingPablo1, piercingPablo1s, piercingPablo1xs],
+          [piercingPablo2, piercingPablo2s, piercingPablo2xs],
+          [piercingPablo3, piercingPablo3s, piercingPablo3xs],
+        ] as [string, string, string][]).map(([src, srcS, srcXS], i) => (
           <motion.div
             key={i}
             initial={{ opacity: 0, y: 10 }}
@@ -269,13 +283,13 @@ const PiercingView = () => {
           >
             <img
               src={src}
-              srcSet={`${srcS} 800w, ${src} 1600w`}
+              srcSet={`${srcXS} 400w, ${srcS} 800w, ${src} 1600w`}
               alt={`Piercing en Tenerife — Lowkey Tattoo ${i + 1}`}
               className="h-full w-full object-cover gallery-image rounded-lg"
               loading="lazy"
               width={400}
               height={400}
-              sizes="(max-width: 640px) 45vw, (max-width: 1024px) 30vw, 300px"
+              sizes="(max-width: 480px) 45vw, (max-width: 1024px) 30vw, 300px"
             />
           </motion.div>
         ))}
@@ -285,7 +299,7 @@ const PiercingView = () => {
 };
 
 const LaserArtistCard = ({ artist }: { artist: Artist }) => {
-  const [photo, photoS] = ARTIST_PHOTO[artist.id] ?? [];
+  const [photo, photoS, photoXS] = ARTIST_PHOTO[artist.id] ?? [];
   const igHref = igUrl(artist.handle);
 
   useEffect(() => { trackArtistView(artist.id, artist.name); }, [artist.id, artist.name]);
@@ -306,11 +320,11 @@ const LaserArtistCard = ({ artist }: { artist: Artist }) => {
         <div className="aspect-[4/3] w-full relative overflow-hidden">
           <img
             src={photo}
-            srcSet={photoS ? `${photoS} 800w, ${photo} 1200w` : undefined}
+            srcSet={photoS ? `${photoXS} 400w, ${photoS} 800w, ${photo} 1200w` : undefined}
             alt={artist.name}
             className="absolute inset-0 h-full w-full object-cover object-top transition-transform duration-500 group-hover:scale-105"
             loading="lazy"
-            sizes="(max-width: 768px) 100vw, 400px"
+            sizes="(max-width: 480px) 100vw, (max-width: 768px) 50vw, 400px"
           />
         </div>
       )}

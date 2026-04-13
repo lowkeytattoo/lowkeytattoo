@@ -34,7 +34,9 @@ export default function middleware(request: Request): Response | undefined {
 
   // Skip bots, crawlers and synthetic monitoring tools
   const ua = request.headers.get("user-agent") ?? "";
-  if (/bot|crawler|spider|lighthouse|pingdom|gtmetrix|pagespeed/i.test(ua)) return;
+  if (/bot|crawl|spider|lighthouse|chrome-lighthouse|pagespeed|gtmetrix|pingdom|googlebot|bingbot|yandex/i.test(ua)) return;
+  // Also skip if no user-agent at all (synthetic requests)
+  if (!ua) return;
 
   // Respect existing language preference cookie
   const cookieHeader = request.headers.get("cookie") ?? "";
