@@ -21,20 +21,17 @@ import { MessagesUnreadBadge } from "@admin/components/MessagesUnreadBadge";
 import { BookingsPendingBadge } from "@admin/components/BookingsPendingBadge";
 import { cn } from "@shared/lib/utils";
 
-const navItems = [
+const allNavItems = [
   { to: "/admin/dashboard", label: "Dashboard",  icon: LayoutDashboard },
   { to: "/admin/clients",   label: "Clientes",   icon: Users },
   { to: "/admin/sessions",  label: "Sesiones",   icon: Calendar },
-  { to: "/admin/finances",  label: "Finanzas",   icon: TrendingUp },
-  { to: "/admin/stock",     label: "Stock",      icon: Package, badge: true },
+  { to: "/admin/calendar",  label: "Calendario", icon: CalendarDays, requiresCalendar: true },
   { to: "/admin/bookings",  label: "Citas Web",  icon: BookOpen, bookingsBadge: true },
   { to: "/admin/messages",  label: "Mensajes",   icon: MessageSquare, messagesBadge: true },
+  { to: "/admin/finances",  label: "Finanzas",   icon: TrendingUp },
+  { to: "/admin/stock",     label: "Stock",      icon: Package, badge: true },
   { to: "/admin/blog",      label: "Blog",       icon: FileText },
-];
-
-const ownerNavItems = [
-  { to: "/admin/artists",  label: "Artistas",    icon: UserCog },
-  { to: "/admin/calendar", label: "Calendario",  icon: CalendarDays },
+  { to: "/admin/artists",   label: "Artistas",   icon: UserCog, ownerOnly: true },
 ];
 
 // Items shown in the mobile bottom bar — dashboard is center (index 2)
@@ -50,7 +47,11 @@ export const AdminSidebar = () => {
     navigate("/admin/login");
   };
 
-  const allItems = profile?.role === "owner" ? [...navItems, ...ownerNavItems] : navItems;
+  const allItems = allNavItems.filter((i) => {
+    if (i.ownerOnly) return profile?.role === "owner";
+    if (i.requiresCalendar) return !!profile?.calendar_id;
+    return true;
+  });
 
   // Sort mobileItems according to MOBILE_ITEMS order
   const mobileItems = MOBILE_ITEMS

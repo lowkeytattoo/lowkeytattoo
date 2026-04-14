@@ -130,14 +130,7 @@ const App = () => (
                         </RoleGuard>
                       }
                     />
-                    <Route
-                      path="calendar"
-                      element={
-                        <RoleGuard requiredRole="owner">
-                          <AdminCalendar />
-                        </RoleGuard>
-                      }
-                    />
+                    <Route path="calendar" element={<AdminCalendar />} />
                     <Route path="bookings" element={<AdminWebBookings />} />
                     <Route path="messages" element={<AdminMessages />} />
                     <Route path="blog" element={<AdminBlog />} />

@@ -26,12 +26,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Pencil, CalendarIcon, Trash2, Search, SlidersHorizontal } from "lucide-react";
+import { Plus, Pencil, CalendarIcon, Trash2, Search, SlidersHorizontal, CalendarPlus } from "lucide-react";
 import { ArtistAvatar } from "@admin/components/ArtistAvatar";
 import { format, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
 import { cn } from "@shared/lib/utils";
 import type { Session } from "@shared/types/index";
+import { useCreateCalendarEvent } from "@admin/hooks/useGoogleCalendar";
+import { ARTISTS } from "@shared/config/artists";
+import { toast } from "sonner";
 
 const SESSION_TYPES = ["tattoo", "piercing", "laser", "retoque"] as const;
 const SESSION_TYPE_LABELS: Record<string, string> = {
@@ -94,6 +97,9 @@ export default function Sessions() {
   const [showModal, setShowModal] = useState(false);
   const [editingSession, setEditingSession] = useState<SessionRow | null>(null);
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const [sendInvite, setSendInvite] = useState(false);
+  const [inviteTime, setInviteTime] = useState("11:00");
+  const createCalendarEvent = useCreateCalendarEvent();
 
   const { data: sessions, isLoading } = useSessions({
     artistId: isOwner ? (filterArtist !== "all" ? filterArtist : undefined) : profile?.id,
@@ -124,18 +130,23 @@ export default function Sessions() {
     form.reset();
     if (!isOwner) form.setArtistId(profile?.id ?? "");
     setEditingSession(null);
+    setSendInvite(false);
+    setInviteTime("11:00");
     setShowModal(true);
   };
 
   const openEdit = (s: SessionRow) => {
     form.fill(s);
     setEditingSession(s);
+    setSendInvite(false);
+    setInviteTime("11:00");
     setShowModal(true);
   };
 
   const closeModal = () => {
     setShowModal(false);
     setEditingSession(null);
+    setSendInvite(false);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -159,6 +170,37 @@ export default function Sessions() {
     } else {
       await createSession.mutateAsync(payload);
     }
+
+    // Send Google Calendar invite if requested
+    if (sendInvite && form.artistId) {
+      const artistProfile = (artists ?? []).find((a) => a.id === form.artistId);
+      const artistConfig = ARTISTS.find((a) => a.id === artistProfile?.artist_config_id);
+      const clientName = (clients ?? []).find((c) => c.id === form.clientId)?.name ?? "Cliente";
+      const serviceLabel = SESSION_TYPE_LABELS[form.type] ?? form.type;
+
+      if (artistProfile?.calendar_id && artistConfig?.email) {
+        const durationMins = form.duration ? parseInt(form.duration) : 60;
+        const [h, m] = inviteTime.split(":").map(Number);
+        const endDate = new Date(0, 0, 0, h, m + durationMins);
+        const endTime = `${String(endDate.getHours()).padStart(2, "0")}:${String(endDate.getMinutes()).padStart(2, "0")}`;
+
+        try {
+          await createCalendarEvent.mutateAsync({
+            calendarId: artistProfile.calendar_id,
+            summary: `${serviceLabel} — ${clientName}`,
+            description: [form.zone && `Zona: ${form.zone}`, form.notes].filter(Boolean).join("\n") || undefined,
+            location: "Calle Dr. Allart, 50, Santa Cruz de Tenerife",
+            start: { dateTime: `${form.date}T${inviteTime}:00`, timeZone: "Atlantic/Canary" },
+            end:   { dateTime: `${form.date}T${endTime}:00`,   timeZone: "Atlantic/Canary" },
+            attendees: [{ email: artistConfig.email, displayName: artistProfile.display_name }],
+          });
+          toast.success(`Invitación enviada a ${artistProfile.display_name}`);
+        } catch {
+          toast.error("Sesión guardada, pero no se pudo enviar la invitación de calendario");
+        }
+      }
+    }
+
     closeModal();
   };
 
@@ -545,6 +587,47 @@ export default function Sessions() {
               />
               <Label htmlFor="paid" className="text-sm cursor-pointer">Sesión pagada</Label>
             </div>
+
+            {/* Calendar invite */}
+            {(() => {
+              const artistProfile = (artists ?? []).find((a) => a.id === form.artistId);
+              const artistConfig = ARTISTS.find((a) => a.id === artistProfile?.artist_config_id);
+              const canInvite = !!(artistProfile?.calendar_id && artistConfig?.email);
+              if (!canInvite) return null;
+              return (
+                <div className="rounded-md border border-border bg-muted/20 p-3 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2 text-sm">
+                      <CalendarPlus className="w-4 h-4 text-muted-foreground" />
+                      <span>Enviar invitación de Google Calendar</span>
+                    </div>
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={sendInvite}
+                      onClick={() => setSendInvite((v) => !v)}
+                      className={`relative inline-flex h-5 w-9 shrink-0 rounded-full border-2 border-transparent transition-colors ${sendInvite ? "bg-primary" : "bg-muted"}`}
+                    >
+                      <span className={`inline-block h-4 w-4 rounded-full bg-background shadow transition-transform ${sendInvite ? "translate-x-4" : "translate-x-0"}`} />
+                    </button>
+                  </div>
+                  {sendInvite && (
+                    <div className="space-y-1.5">
+                      <Label className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Hora de inicio</Label>
+                      <Input
+                        type="time"
+                        value={inviteTime}
+                        onChange={(e) => setInviteTime(e.target.value)}
+                        className="bg-background border-border w-32"
+                      />
+                      <p className="text-[10px] text-muted-foreground">
+                        Google Calendar enviará una invitación por email a {artistProfile?.display_name}.
+                      </p>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
 
             <DialogFooter>
               <Button type="button" variant="ghost" onClick={closeModal}>Cancelar</Button>

@@ -7,6 +7,7 @@ export interface CalendarEvent {
   location?: string;
   start: { dateTime?: string; date?: string; timeZone?: string };
   end:   { dateTime?: string; date?: string; timeZone?: string };
+  attendees?: { email: string; displayName?: string }[];
   colorId?: string;
   htmlLink?: string;
 }
@@ -38,25 +39,30 @@ async function callCalendarFunction(
 
 // ── List events for a date range ─────────────────────────────────────────────
 
-export function useCalendarEvents(timeMin: string, timeMax: string) {
+export function useCalendarEvents(timeMin: string, timeMax: string, calendarId?: string | null) {
   return useQuery({
-    queryKey: ["calendar-events", timeMin, timeMax],
+    queryKey: ["calendar-events", timeMin, timeMax, calendarId],
     queryFn: async () => {
-      const data = await callCalendarFunction("GET", { timeMin, timeMax }) as { items?: CalendarEvent[] };
+      const params: Record<string, string> = { timeMin, timeMax };
+      if (calendarId) params.calendarId = calendarId;
+      const data = await callCalendarFunction("GET", params) as { items?: CalendarEvent[] };
       return (data?.items ?? []) as CalendarEvent[];
     },
-    enabled: !!timeMin && !!timeMax,
+    enabled: !!timeMin && !!timeMax && !!calendarId,
     staleTime: 2 * 60 * 1000,
   });
 }
 
 // ── Create event ─────────────────────────────────────────────────────────────
 
-export function useCreateCalendarEvent() {
+export function useCreateCalendarEvent(calendarId?: string | null) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (event: Omit<CalendarEvent, "id" | "htmlLink">) => {
-      const data = await callCalendarFunction("POST", undefined, event) as CalendarEvent;
+    mutationFn: async (event: Omit<CalendarEvent, "id" | "htmlLink"> & { calendarId?: string }) => {
+      const targetCalendar = event.calendarId ?? calendarId;
+      const { calendarId: _stripped, ...eventBody } = event;
+      const body = targetCalendar ? { ...eventBody, calendarId: targetCalendar } : eventBody;
+      const data = await callCalendarFunction("POST", undefined, body) as CalendarEvent;
       return data;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["calendar-events"] }),
@@ -65,11 +71,13 @@ export function useCreateCalendarEvent() {
 
 // ── Delete event ─────────────────────────────────────────────────────────────
 
-export function useDeleteCalendarEvent() {
+export function useDeleteCalendarEvent(calendarId?: string | null) {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (eventId: string) => {
-      await callCalendarFunction("DELETE", { eventId });
+      const params: Record<string, string> = { eventId };
+      if (calendarId) params.calendarId = calendarId;
+      await callCalendarFunction("DELETE", params);
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["calendar-events"] }),
   });

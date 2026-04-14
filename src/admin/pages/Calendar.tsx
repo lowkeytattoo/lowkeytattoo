@@ -1,8 +1,11 @@
 import { useState } from "react";
 import { format, startOfMonth, endOfMonth, addMonths, subMonths, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, isSameMonth, isToday, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
-import { ChevronLeft, ChevronRight, Clock, MapPin, Plus, Trash2, X } from "lucide-react";
+import { ChevronLeft, ChevronRight, Clock, MapPin, Plus, Trash2, X, UserPlus } from "lucide-react";
 import { useCalendarEvents, useCreateCalendarEvent, useDeleteCalendarEvent, type CalendarEvent } from "@admin/hooks/useGoogleCalendar";
+import { useAdminAuth } from "@admin/contexts/AdminAuthContext";
+import { useArtistProfiles } from "@admin/hooks/useArtistProfiles";
+import { ARTISTS } from "@shared/config/artists";
 import { DatePickerInput } from "@admin/components/DatePickerInput";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
@@ -96,13 +99,16 @@ interface NewEventForm {
 function NewEventDialog({
   open,
   defaultDate,
+  calendarId,
   onClose,
 }: {
   open: boolean;
   defaultDate: Date | null;
+  calendarId: string | null;
   onClose: () => void;
 }) {
-  const createEvent = useCreateCalendarEvent();
+  const createEvent = useCreateCalendarEvent(calendarId);
+  const { data: artistProfiles = [] } = useArtistProfiles();
   const [form, setForm] = useState<NewEventForm>({
     summary: "",
     date: defaultDate ? format(defaultDate, "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"),
@@ -111,6 +117,7 @@ function NewEventDialog({
     description: "",
     allDay: false,
   });
+  const [invitedIds, setInvitedIds] = useState<string[]>([]);
 
   // Keep date in sync when defaultDate changes
   const dateStr = defaultDate ? format(defaultDate, "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd");
@@ -118,29 +125,40 @@ function NewEventDialog({
   const set = (k: keyof NewEventForm, v: string | boolean) =>
     setForm((f) => ({ ...f, [k]: v }));
 
+  const attendees = invitedIds
+    .map((profileId) => {
+      const profile = artistProfiles.find((p) => p.id === profileId);
+      if (!profile?.artist_config_id) return null;
+      const email = ARTISTS.find((a) => a.id === profile.artist_config_id)?.email ?? null;
+      return email ? { email, displayName: profile.display_name } : null;
+    })
+    .filter((a): a is { email: string; displayName: string } => a !== null);
+
+  const toggleInvite = (id: string) =>
+    setInvitedIds((prev) => prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.summary.trim()) return;
 
     try {
+      const base = {
+        summary: form.summary,
+        description: form.description || undefined,
+        location: "Calle Dr. Allart, 50, Santa Cruz de Tenerife",
+        attendees: attendees.length > 0 ? attendees : undefined,
+      };
       if (form.allDay) {
-        await createEvent.mutateAsync({
-          summary: form.summary,
-          description: form.description || undefined,
-          location: "Calle Dr. Allart, 50, Santa Cruz de Tenerife",
-          start: { date: form.date },
-          end:   { date: form.date },
-        });
+        await createEvent.mutateAsync({ ...base, start: { date: form.date }, end: { date: form.date } });
       } else {
         await createEvent.mutateAsync({
-          summary: form.summary,
-          description: form.description || undefined,
-          location: "Calle Dr. Allart, 50, Santa Cruz de Tenerife",
+          ...base,
           start: { dateTime: `${form.date}T${form.startTime}:00`, timeZone: "Atlantic/Canary" },
           end:   { dateTime: `${form.date}T${form.endTime}:00`,   timeZone: "Atlantic/Canary" },
         });
       }
-      toast.success("Evento creado");
+      toast.success(attendees.length > 0 ? `Evento creado e invitación enviada a ${attendees.map(a => a.displayName).join(", ")}` : "Evento creado");
+      setInvitedIds([]);
       onClose();
     } catch {
       toast.error("Error al crear el evento");
@@ -222,6 +240,39 @@ function NewEventDialog({
             />
           </div>
 
+          {/* Invite artists */}
+          {artistProfiles.filter((p) => p.artist_config_id && ARTISTS.find((a) => a.id === p.artist_config_id)?.email).length > 0 && (
+            <div className="space-y-2 rounded-md border border-border bg-muted/20 p-3">
+              <div className="flex items-center gap-2 text-xs font-['IBM_Plex_Mono'] uppercase tracking-wider text-muted-foreground">
+                <UserPlus className="w-3.5 h-3.5" />
+                Invitar artista
+              </div>
+              <div className="flex flex-wrap gap-2">
+                {artistProfiles
+                  .filter((p) => p.artist_config_id && ARTISTS.find((a) => a.id === p.artist_config_id)?.email)
+                  .map((p) => (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => toggleInvite(p.id)}
+                      className={`px-2.5 py-1 rounded-full text-xs font-mono border transition-colors ${
+                        invitedIds.includes(p.id)
+                          ? "bg-primary text-primary-foreground border-primary"
+                          : "bg-background text-muted-foreground border-border hover:text-foreground"
+                      }`}
+                    >
+                      {p.display_name}
+                    </button>
+                  ))}
+              </div>
+              {attendees.length > 0 && (
+                <p className="text-[10px] text-muted-foreground">
+                  Google Calendar enviará una invitación por email a {attendees.map(a => a.displayName).join(" y ")}.
+                </p>
+              )}
+            </div>
+          )}
+
           <DialogFooter>
             <Button type="button" variant="ghost" onClick={onClose}>Cancelar</Button>
             <Button type="submit" className="cta-button" disabled={createEvent.isPending}>
@@ -237,6 +288,9 @@ function NewEventDialog({
 // ── Main page ────────────────────────────────────────────────────────────────
 
 export default function CalendarPage() {
+  const { profile } = useAdminAuth();
+  const calendarId = profile?.calendar_id ?? null;
+
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState<Date | null>(new Date());
   const [newEventOpen, setNewEventOpen] = useState(false);
@@ -244,8 +298,8 @@ export default function CalendarPage() {
   const timeMin = startOfWeek(startOfMonth(currentMonth), { weekStartsOn: 1 }).toISOString();
   const timeMax = endOfWeek(endOfMonth(currentMonth), { weekStartsOn: 1 }).toISOString();
 
-  const { data: events = [], isLoading, error } = useCalendarEvents(timeMin, timeMax);
-  const deleteEvent = useDeleteCalendarEvent();
+  const { data: events = [], isLoading, error } = useCalendarEvents(timeMin, timeMax, calendarId);
+  const deleteEvent = useDeleteCalendarEvent(calendarId);
 
   const gridStart = startOfWeek(startOfMonth(currentMonth), { weekStartsOn: 1 });
   const gridEnd   = endOfWeek(endOfMonth(currentMonth), { weekStartsOn: 1 });
@@ -413,6 +467,7 @@ export default function CalendarPage() {
       <NewEventDialog
         open={newEventOpen}
         defaultDate={selectedDay}
+        calendarId={calendarId}
         onClose={() => setNewEventOpen(false)}
       />
     </div>
