@@ -1,6 +1,5 @@
 import { Link } from "react-router-dom";
 import { useAdminAuth } from "@admin/contexts/AdminAuthContext";
-import { useArtistProfiles } from "@admin/hooks/useArtistProfiles";
 import { useFinancesOverview, useRevenueByMonth } from "@admin/hooks/useFinances";
 import { useSessions } from "@admin/hooks/useSessions";
 import { useLowStockCount } from "@admin/hooks/useStock";
@@ -40,18 +39,18 @@ export default function Dashboard() {
   const { data: revenueResult } = useRevenueByMonth(6, artistId);
   const { data: recentSessions } = useSessions({ artistId });
   const { data: lowStockCount } = useLowStockCount();
-  const { data: profiles } = useArtistProfiles();
 
-  const firstCalendarProfile = (profiles ?? []).find((p) => !!p.calendar_id) ?? null;
+  const calendarId = profile?.calendar_id ?? null;
 
   const calTimeMin = startOfDay(new Date(new Date().getFullYear(), new Date().getMonth(), 1)).toISOString();
   const calTimeMax = endOfDay(new Date(new Date().getFullYear(), new Date().getMonth() + 2, 0)).toISOString();
   const { data: upcomingEvents = [] } = useCalendarEvents(
-    isOwner && firstCalendarProfile ? calTimeMin : "",
-    isOwner && firstCalendarProfile ? calTimeMax : "",
+    calendarId ? calTimeMin : "",
+    calendarId ? calTimeMax : "",
+    calendarId,
   );
 
-  const calDays = isOwner && firstCalendarProfile
+  const calDays = calendarId
     ? (() => {
         const dayMap = new Map<string, typeof upcomingEvents>();
         for (const ev of upcomingEvents) {
@@ -232,8 +231,8 @@ export default function Dashboard() {
         </Card>
       )}
 
-      {/* Calendar widget (owner only) */}
-      {isOwner && firstCalendarProfile && (
+      {/* Calendar widget */}
+      {calendarId && (
         <Card className="bg-card border-border">
           <CardHeader className="pb-2">
             <div className="flex items-center justify-between gap-2">

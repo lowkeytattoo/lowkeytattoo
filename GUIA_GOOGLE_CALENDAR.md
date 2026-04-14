@@ -17,12 +17,13 @@ App → Supabase Edge Function → Google Calendar API (via cuenta de servicio)
 | Cuenta de servicio | ✅ `lowkey-calendar-wr@lowkey-calendar.iam.gserviceaccount.com` |
 | Credenciales en Supabase | ✅ `GOOGLE_SERVICE_ACCOUNT_EMAIL`, `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY`, `GOOGLE_CALENDAR_ID` |
 | Edge function `google-calendar` | ✅ Desplegada en Supabase |
-| Calendario de Pablo | ✅ `lowkeytattootenerife@gmail.com` |
+| Calendario de prueba (dev) | ✅ `lowkeytattootenerife@gmail.com` — usado para verificar la integración |
+| Calendario de Pablo | ⏳ Pendiente |
 | Calendario de Sergio | ⏳ Pendiente |
 | Calendario de Fifo | ⏳ Pendiente |
 | Calendario master (info@) | ⏳ Pendiente |
 
-> La configuración inicial (cuenta de servicio + Supabase) ya está hecha. Solo hay que seguir los pasos de abajo para cada artista pendiente.
+> La configuración inicial (cuenta de servicio + Supabase) ya está hecha. El calendario `lowkeytattootenerife@gmail.com` se usó para probar que la integración funciona correctamente. Ahora hay que repetir los pasos de abajo para cada artista real.
 
 ---
 
@@ -113,7 +114,29 @@ Para que el owner vea todas las citas desde **Admin → Calendario**:
 
 ---
 
-## Parte 3 — Festivos locales
+## Parte 3 — Enviar invitaciones desde el panel
+
+Una vez configurado el calendario de cada artista, el panel permite enviar invitaciones de Google Calendar directamente desde dos sitios:
+
+### Desde Calendario (Admin → Calendario)
+
+Al crear una cita manual aparece la sección **"Invitar artista"**. Los artistas con email configurado aparecen como píldoras clicables. Al seleccionar uno o varios y crear el evento:
+- El evento se crea en el calendario del usuario logueado
+- Google Calendar envía automáticamente una invitación por email a cada artista seleccionado
+- El artista puede **Aceptar**, **Rechazar** o **Proponer nuevo horario** desde su email, sin necesidad de usar la app
+
+### Desde Sesiones (Admin → Sesiones)
+
+Al crear o editar una sesión con un artista asignado que tenga calendario y email configurados, aparece el toggle **"Enviar invitación de Google Calendar"**. Al activarlo:
+- Se muestra un campo de hora de inicio
+- Al guardar la sesión, se crea el evento en el calendario del artista con los detalles de la sesión
+- Google Calendar envía la invitación al artista por email
+
+> Si el artista no tiene `calendar_id` ni email configurado en su perfil, el toggle no aparece.
+
+---
+
+## Parte 4 — Festivos locales
 
 Los festivos nacionales y de Canarias ya están hardcodeados en `src/shared/config/holidays.ts`.
 

@@ -186,6 +186,9 @@ export default function WebBookings() {
         .select("*")
         .not("preferred_date", "is", null)
         .order("created_at", { ascending: false });
+      if (!isOwner && profile?.artist_config_id) {
+        query = query.eq("artist_config_id", profile.artist_config_id);
+      }
       const { data, error } = await query;
       if (error) throw error;
       return (data ?? []) as WebBooking[];
@@ -275,6 +278,9 @@ export default function WebBookings() {
 
     // Create Google Calendar event (non-blocking — don't fail the whole flow if calendar errors)
     try {
+      const artistProfile = (profiles ?? []).find(
+        (p) => p.artist_config_id === convertBooking.artist_config_id
+      );
       const event = buildBookingEvent({
         clientName: convertBooking.client_name ?? "Cliente",
         serviceLabel: SERVICE_LABELS[convertBooking.service_type] ?? convertBooking.service_type,
@@ -284,7 +290,10 @@ export default function WebBookings() {
         bodyZone: convertBooking.body_zone ?? null,
         phone: convertBooking.client_phone ?? null,
       });
-      await createCalendarEvent.mutateAsync(event);
+      await createCalendarEvent.mutateAsync({
+        ...event,
+        ...(artistProfile?.calendar_id ? { calendarId: artistProfile.calendar_id } : {}),
+      });
       toast.success("Cita confirmada y añadida al calendario");
     } catch {
       toast.success("Cita confirmada");

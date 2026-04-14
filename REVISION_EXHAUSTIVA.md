@@ -1,5 +1,196 @@
 # REVISIÓN EXHAUSTIVA — LOWKEY TATTOO
-> Generado: 2026-04-07 · Última actualización: 2026-04-11
+> Generado: 2026-04-07 · Última actualización: 2026-04-14 (rev. 2)
+
+---
+
+## REVISIÓN CÓDIGO — 2026-04-14 (revisión 2, post-implementación)
+
+Segunda revisión exhaustiva tras implementar los 5 bugs del plan anterior. Alcance: todos los hooks, contextos, páginas admin, componentes web y configuración.
+
+---
+
+### 🟠 ALTOS
+
+#### A. Booking form: `calendarId` de artistas arquitectónicamente desconectado de Supabase
+**Archivo:** `src/web/components/booking/DateTimeStep.tsx` · Línea 26 / `src/shared/config/artists.ts` · Líneas 19, 28, 36
+
+`DateTimeStep` recibe un objeto `Artist` del config estático `ARTISTS`. Los tres artistas tienen `calendarId: ""`. El hook `useArtistBusyDays(artist.calendarId || null)` recibe `null` → `enabled: false` → no se fetcha disponibilidad → todos los días aparecen disponibles en el formulario de reservas.
+
+El problema de fondo es arquitectónico: los `calendar_id` reales se guardan en la tabla `profiles` de Supabase (gestionables desde Admin → Artistas), pero el flujo de reservas web usa el config estático que nunca se actualiza. Aunque los artistas configuren sus calendarios en el panel, el formulario web no los leerá.
+
+**Fix:** El componente padre del flujo de reserva (`BookingModal` o equivalente) debe pasar el `calendarId` real desde un fetch de Supabase en lugar de usar `artist.calendarId` del config estático. Alternativa más sencilla: añadir un campo `calendarId` al config estático y mantenerlo sincronizado con `profiles.calendar_id` cuando se configuren.
+
+> **Nota:** Este bug ya estaba parcialmente documentado como "histórico #3" (calendarId vacío), pero la causa raíz —que Supabase y el config estático son fuentes de verdad distintas— no estaba identificada.
+
+---
+
+### 🟡 MEDIOS
+
+#### B. `RoleGuard` retorna `null` durante la carga de auth — flash de pantalla en blanco
+**Archivo:** `src/admin/components/RoleGuard.tsx` · Línea 13
+
+`if (loading) return null` hace que la ruta `/admin/artists` renderice en blanco mientras el contexto de auth está cargando. `ProtectedRoute` ya tiene un spinner de carga, pero `RoleGuard` no.
+
+**Fix:**
+```tsx
+if (loading) return (
+  <div className="min-h-screen bg-background flex items-center justify-center">
+    <div className="w-6 h-6 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+  </div>
+);
+```
+
+#### C. `AdminSidebar`: `MOBILE_ITEMS` hardcodea `/admin/calendar` aunque puede estar filtrado
+**Archivo:** `src/admin/components/AdminSidebar.tsx` · Líneas 38, 56–59
+
+`MOBILE_ITEMS` contiene `/admin/calendar` fijo, pero `allItems` filtra ese enlace si el perfil no tiene `calendar_id`. El resultado es que `mobileItems` intenta mapear una ruta que no está en `allItems`, devuelve `undefined` y la barra móvil queda con 4 items en lugar de 5.
+
+**Fix:** Derivar los items móviles de `allItems` en lugar de hardcodear rutas.
+
+---
+
+### 🟢 BAJOS
+
+#### D. `allNavItems` en `AdminSidebar` sin interfaz de tipo explícita
+**Archivo:** `src/admin/components/AdminSidebar.tsx` · Línea 24
+
+El array se infiere con propiedades opcionales heterogéneas. Sin una interfaz `NavItem` declarada, TypeScript no alerta si se añade un item con una propiedad desconocida.
+
+#### E. `Calendar.tsx`: `dateStr` puede desincronizarse de `form.date` entre renders
+**Archivo:** `src/admin/pages/Calendar.tsx` · Líneas dentro de `NewEventDialog`
+
+`dateStr` se recalcula en cada render a partir de `defaultDate`. Si el usuario selecciona otro día sin cerrar el modal, `dateStr` cambia pero `form.date` mantiene el valor anterior. El `DatePickerInput` usa `form.date || dateStr` como fallback, lo que puede mostrar una fecha inconsistente.
+
+#### F. `Sessions.tsx`: `as any` en relaciones de Supabase — deuda técnica pendiente
+**Archivo:** `src/admin/pages/Sessions.tsx` · Líneas 121, 365, 368, 369, 412, 441
+
+`(s.client as any)?.name` y `(s.artist as any)?.display_name`. Ya resuelto en `Clients.tsx` y `Dashboard.tsx`, pendiente en `Sessions.tsx`. No provoca crashes pero oculta errores de tipado.
+
+---
+
+### ✅ VALIDACIONES — SIN BUG (revisión 2)
+
+- **Sessions endTime calculation:** `new Date(0, 0, 0, h, m + durationMins)` — JavaScript maneja el desbordamiento de minutos correctamente. `getHours()` y `getMinutes()` devuelven los valores envueltos. No es un bug.
+- **`useFinancesOverview` totalClients sin filtro de artista:** el campo `totalClients` solo se muestra en la tarjeta `{isOwner && ...}`. El owner debe ver todos los clientes, por lo que no filtrar por artista es el comportamiento correcto.
+- **WebBookings Bug 1 verificado:** `profiles` ya estaba cargado en `WebBookings.tsx`; la derivación de `artistProfile?.calendar_id` y su paso al evento es correcta.
+- **Dashboard Bug 2 verificado:** `useArtistProfiles` eliminado, `profile?.calendar_id` usado directamente. El widget ahora aparece para cualquier usuario con `calendar_id` (no solo owner), que es el comportamiento deseado.
+- **Calendar Bug 3 verificado:** early return con mensaje se coloca *después* de todos los hooks (cumple Rules of Hooks).
+- **Calendar Bug 4 verificado:** `useEffect` resetea `invitedIds` y `form` cuando `open` cambia a `false`.
+- **WebBookings Bug 5 verificado:** filtro server-side `.eq("artist_config_id", ...)` añadido correctamente.
+
+---
+
+### TABLA RESUMEN — REVISIÓN 2 (2026-04-14)
+
+| Severidad | ID | Descripción | Estado |
+|-----------|-----|-------------|--------|
+| 🟠 Alto | A | Booking form: calendarId desconectado de perfiles Supabase | ⚠️ Pendiente |
+| 🟡 Medio | B | RoleGuard: flash en blanco durante carga en `/admin/artists` | ⚠️ Pendiente |
+| 🟡 Medio | C | AdminSidebar: items móviles hardcodeados pueden quedar incompletos | ⚠️ Pendiente |
+| 🟢 Bajo | D | AdminSidebar: `NavItem` sin interfaz de tipo | ⚠️ Pendiente |
+| 🟢 Bajo | E | Calendar dialog: `dateStr` puede desincronizarse | ⚠️ Pendiente |
+| 🟢 Bajo | F | Sessions.tsx: `as any` en relaciones — deuda técnica | ⚠️ Pendiente |
+
+---
+
+## REVISIÓN CÓDIGO — 2026-04-14 (revisión 1)
+
+Revisión exhaustiva tras los cambios de la sesión: reorganización del sidebar, calendario individual por artista, invitaciones de Google Calendar desde Calendario y Sesiones, y actualización de documentación.
+
+---
+
+### 🔴 CRÍTICOS
+
+#### 1. `WebBookings`: `useCreateCalendarEvent` sin `calendarId` — eventos van al calendario por defecto
+**Archivo:** `src/admin/pages/WebBookings.tsx` · Líneas 221, 287
+
+`const createCalendarEvent = useCreateCalendarEvent()` se inicializa sin `calendarId`. Cuando se confirma una cita y se llama a `createCalendarEvent.mutateAsync(event)`, el objeto `event` viene de `buildBookingEvent()` que no incluye `calendarId`. El hook cae al `GOOGLE_CALENDAR_ID` de entorno (calendario de dev/pruebas) en lugar del calendario real del artista asignado. Las citas web confirmadas nunca llegan al calendario del artista correcto.
+
+**Fix:** Obtener el `calendar_id` del perfil del artista asignado y pasarlo al hook o al evento antes de llamar a `mutateAsync`. ✅ **RESUELTO**
+
+---
+
+### 🟠 ALTOS
+
+#### 2. `Dashboard`: widget de calendario usa `firstCalendarProfile` en lugar del usuario logueado
+**Archivo:** `src/admin/pages/Dashboard.tsx` · Líneas 45, 49–52
+
+El widget de calendario del dashboard busca el primer perfil con `calendar_id` (`profiles.find(p => !!p.calendar_id)`) en lugar de usar `profile?.calendar_id` del usuario logueado. El owner ve los eventos del primer artista (por orden de query), no los suyos ni un resumen global.
+
+**Fix:** Usar `profile?.calendar_id` directamente para `useCalendarEvents`. ✅ **RESUELTO**
+
+---
+
+### 🟡 MEDIOS
+
+#### 3. `AdminSidebar`: `MOBILE_ITEMS` hardcodea `/admin/calendar` aunque puede estar filtrado
+**Archivo:** `src/admin/components/AdminSidebar.tsx` · Líneas 38, 56–59
+
+`MOBILE_ITEMS` contiene `/admin/calendar` fijo, pero `allItems` filtra ese enlace si `profile?.calendar_id` es nulo (`requiresCalendar: true`). En ese caso, `mobileItems` intenta mapear una ruta que no existe en `allItems` y devuelve `undefined`, que se filtra — dejando la barra móvil con 4 items en lugar de 5 y un gap visual.
+
+**Fix:** Recalcular `MOBILE_ITEMS` dinámicamente a partir de `allItems` o garantizar que el fallback en mobile siempre tenga 5 items independientemente del calendario.
+
+#### 4. `WebBookings`: filtrado de artista solo client-side, no en la query de Supabase
+**Archivo:** `src/admin/pages/WebBookings.tsx` · Líneas 181–193
+
+La query trae todas las `web_bookings` sin filtrar por `artist_config_id`. El filtrado se aplica solo al renderizar. Aunque RLS lo protege a nivel de base de datos, un artista con la anon key podría interceptar la respuesta de red y ver citas de otros artistas.
+
+**Fix:** Añadir `.eq("artist_config_id", profile.artist_config_id)` en la query cuando `!isOwner`. ✅ **RESUELTO**
+
+#### 5. `Calendar.tsx`: `invitedIds` no se resetea al cancelar el diálogo
+**Archivo:** `src/admin/pages/Calendar.tsx` · Líneas 120–169
+
+`invitedIds` se resetea en `handleSubmit` exitoso pero no en `onClose`. Si el usuario selecciona artistas y cancela sin guardar, la próxima vez que abra el diálogo verá los mismos artistas ya seleccionados.
+
+**Fix:** Llamar a `setInvitedIds([])` dentro de `onClose`. ✅ **RESUELTO**
+
+#### 6. `Calendar.tsx`: el formulario `form` no se resetea al cancelar el diálogo
+**Archivo:** `src/admin/pages/Calendar.tsx` · Líneas 106–114
+
+El estado `form` (summary, date, startTime, endTime, description, allDay) no se reinicia al cerrar el diálogo sin guardar. Al reabrirlo, el usuario ve los datos de la sesión anterior.
+
+**Fix:** Resetear `form` en `onClose` o en `onOpenChange` cuando `open` cambia a `false`. ✅ **RESUELTO**
+
+#### 7. `/admin/calendar` accesible directamente sin `calendar_id` — renderiza en estado vacío
+**Archivo:** `src/App.tsx` · Línea 133
+
+La ruta `/admin/calendar` no tiene `RoleGuard` ni ninguna otra protección. Si un artista sin `calendar_id` navega directamente a esa URL (no aparece en el sidebar, pero la URL es pública dentro del panel), el componente se renderiza con `calendarId = null`, `useCalendarEvents` no ejecuta la query y la página queda en blanco sin mensaje explicativo.
+
+**Fix:** Añadir un guard en `CalendarPage` que muestre un mensaje "No tienes un calendario configurado" cuando `calendarId` es nulo, en lugar de pantalla vacía. ✅ **RESUELTO**
+
+---
+
+### 🟢 BAJOS
+
+#### 8. `allNavItems` en `AdminSidebar` sin tipo explícito
+**Archivo:** `src/admin/components/AdminSidebar.tsx` · Línea 24
+
+El array `allNavItems` se infiere con propiedades opcionales heterogéneas (`ownerOnly?`, `requiresCalendar?`, `badge?`, `messagesBadge?`, `bookingsBadge?`). Sin una interfaz `NavItem` explícita, añadir un item nuevo con una propiedad desconocida no genera error de TypeScript.
+
+#### 9. `Calendar.tsx`: `dateStr` calculado en cada render pero puede desincronizarse con `form.date`
+**Archivo:** `src/admin/pages/Calendar.tsx` · Líneas 122–123, 190
+
+`dateStr` se recalcula cada render a partir de `defaultDate`. Si `defaultDate` cambia entre renders (usuario selecciona otro día sin cerrar el modal), `dateStr` se actualiza pero `form.date` puede estar desfasado. El fallback `form.date || dateStr` en el `DatePickerInput` podría mostrar una fecha inconsistente.
+
+#### 10. `Sessions.tsx`: `as any` persistente en relaciones de Supabase
+**Archivo:** `src/admin/pages/Sessions.tsx` · Líneas 121, 365, 368, 369, 412, 441
+
+`(s.client as any)?.name` y `(s.artist as any)?.display_name` siguen presentes. Ya resuelto en `Clients.tsx` y `Dashboard.tsx` en la revisión anterior, pero `Sessions.tsx` aún no usa `SessionWithRelations`.
+
+#### 11. `Sessions.tsx`: `toast` de `sonner` importado dos veces (nativo + nuevo import)
+**Archivo:** `src/admin/pages/Sessions.tsx` · Líneas 1–40
+
+En la sesión de hoy se añadió `import { toast } from "sonner"` al archivo. Verificar que no existía ya una importación previa del mismo paquete en otro lugar del archivo para evitar duplicado silencioso. ✅ **VERIFICADO — sin duplicado**
+
+---
+
+### ✅ VALIDACIONES — SIN BUG (revisión 1)
+
+- **Sessions invite `calendarId`:** aunque `useCreateCalendarEvent()` se llama sin parámetro de hook, el `calendarId` se pasa correctamente en el objeto de evento (`{ calendarId: artistProfile.calendar_id, ... }`). El hook actualizado extrae `event.calendarId` con prioridad, por lo que funciona correctamente.
+- **Traducciones ES/EN:** todas las claves están balanceadas en ambos idiomas. Sin claves huérfanas.
+- **Import de `sonner`:** `Toaster` está renderizado en `App.tsx`. Los `toast.success/error` funcionarán correctamente.
+- **Sessions invite guard:** si `artistProfile` es `undefined` o no tiene `calendar_id`/email, la opción de invitación no se muestra — el código es defensivo.
+- **`useSessionForm.reset()`:** cubre todos los campos del formulario sin omisiones.
 
 ---
 
@@ -90,8 +281,10 @@ El `DateTimeStep` ya muestra un aviso cuando `calendarUnavailable` es `true` (co
 ### 2. `PIXEL_ID_PLACEHOLDER` sin reemplazar ✅ RESUELTO
 Meta Pixel configurado con ID real `1221231726756946`. El pixel se inicializa en `analytics.ts` únicamente tras aceptar cookies (RGPD compliant). El noscript fallback en `index.html` y la variable `VITE_META_PIXEL_ID` en `.env.local` y Vercel están actualizados.
 
-### 3. `calendarId: ""` en los 3 artistas ⚠️ PENDIENTE
-`src/shared/config/artists.ts` — Los tres artistas tienen `calendarId: ""`. El modal de reserva paso 2 (`DateTimeStep`) usa este ID para fetchear disponibilidad de Google Calendar. Sin IDs reales el selector de fechas no puede mostrar slots disponibles. El sistema de reservas online está roto para los 3 artistas.
+### 3. `calendarId: ""` en los 3 artistas + desconexión arquitectónica ⚠️ PENDIENTE
+`src/shared/config/artists.ts` — Los tres artistas tienen `calendarId: ""`. El modal de reserva paso 2 (`DateTimeStep`) usa este campo para fetchear disponibilidad de Google Calendar. Sin IDs reales el selector de fechas no puede mostrar slots disponibles. El sistema de reservas online no comprueba disponibilidad para ningún artista.
+
+**Problema adicional identificado en Rev2:** incluso cuando los artistas configuren su `calendar_id` en Supabase (Admin → Artistas), el formulario de reservas web no lo leerá porque usa el config estático. Hay que mantener `calendarId` en `artists.ts` sincronizado con `profiles.calendar_id`, o bien rediseñar el flujo para que `DateTimeStep` reciba el ID desde Supabase.
 
 ### 4. Emails de artistas no verificados ⚠️ PENDIENTE
 `artists.ts` usa `pablo@lowkeytattoo.com`, `sergio@lowkeytattoo.com`, `fifo@lowkeytattoo.com`. La función `sendBookingRequest` envía confirmaciones a `artistEmail`. Si estos mailboxes no existen, los artistas nunca reciben notificaciones de reservas web. **Emails corporativos configurados** via ImprovMX — ver `EMAILS_CORPORATIVOS.md`. Pendiente actualizar las direcciones en `artists.ts`.
@@ -300,17 +493,25 @@ KPIs (revenue, sesiones, clientes, pendientes), gráfico de ingresos, últimas 1
 | Prioridad | Acción | Área | Estado |
 | 🔴 Crítico | **[A]** `useClients` ignora `artistId` — fuga de datos | Código / Seguridad | ✅ Resuelto |
 | 🔴 Crítico | **[B]** Update de stock no atómico — race condition | Código / BD | ✅ Resuelto |
-| 🔴 Crítico | Rellenar `calendarId` de los 3 artistas | Booking online | ⚠️ Pendiente |
-| 🔴 Crítico | Actualizar emails artistas en `artists.ts` | Notificaciones | ⚠️ Pendiente |
+| 🔴 Crítico | **[Rev1-1]** WebBookings: eventos al calendario de dev en vez del artista | Código | ✅ Resuelto |
 | 🔴 Crítico | FAQPage duplicado en LaserPage | SEO | ✅ Resuelto |
 | 🔴 Crítico | Meta Pixel configurado | Analytics | ✅ Resuelto |
+| 🟠 Alto | **[Rev2-A]** Booking form: calendarId desconectado de Supabase profiles | Booking / Arquitectura | ⚠️ Pendiente |
+| 🟠 Alto | **[Rev1-2]** Dashboard: widget calendario mostraba artista incorrecto | Código | ✅ Resuelto |
 | 🟠 Alto | **[C]** Signed URLs expiran en 1h sin staleTime | Admin / Fotos | ✅ Resuelto |
 | 🟠 Alto | **[D]** `ProtectedRoute` no verifica `profile` | Seguridad | ✅ Resuelto |
 | 🟠 Alto | **[E]** Race condition en `AdminAuthContext` | Código | ✅ Resuelto |
 | 🟠 Alto | **[F]** `fetchProfile` sin manejo de errores | Código | ✅ Resuelto |
 | 🟠 Alto | Google Business Profile | SEO local | ⚠️ Pendiente |
+| 🟠 Alto | Rellenar `calendarId` de los 3 artistas (Supabase + config) | Booking online | ⚠️ Pendiente |
+| 🟠 Alto | Actualizar emails artistas en `artists.ts` con emails corporativos | Notificaciones | ⚠️ Pendiente |
 | 🟠 Alto | Añadir "entrada" (restock) en Stock | Admin | ⚠️ Pendiente |
 | 🟠 Alto | Notificaciones email formulario contacto (EmailJS) | Admin UX | ⚠️ Pendiente |
+| 🟡 Medio | **[Rev2-B]** RoleGuard: flash en blanco durante carga en `/admin/artists` | UX | ⚠️ Pendiente |
+| 🟡 Medio | **[Rev2-C]** AdminSidebar: items móviles pueden quedar incompletos | UX | ⚠️ Pendiente |
+| 🟡 Medio | **[Rev1-4]** WebBookings: filtro server-side por artista | Seguridad / Código | ✅ Resuelto |
+| 🟡 Medio | **[Rev1-5/6]** Calendar dialog: estado no se reseteaba al cancelar | UX / Código | ✅ Resuelto |
+| 🟡 Medio | **[Rev1-7]** `/admin/calendar` sin mensaje de estado vacío | UX | ✅ Resuelto |
 | 🟡 Medio | **[G]** Sin feedback de error en mutaciones admin | UX / Código | ✅ Resuelto |
 | 🟡 Medio | **[H]** `useFinancesOverview` carga todo el historial | Performance | ✅ Resuelto |
 | 🟡 Medio | **[I]** `trackCtaClick` ignora consentimiento en fbq | RGPD | ✅ Resuelto |
@@ -325,6 +526,7 @@ KPIs (revenue, sesiones, clientes, pendientes), gráfico de ingresos, últimas 1
 | 🟡 Medio | Performance web (WebP, fonts, lazy routes, LCP) | Técnico | ✅ Resuelto |
 | 🟡 Medio | 2 nuevos posts de blog | SEO / contenido | ⚠️ Pendiente |
 | 🟡 Medio | Campo birthday en Clients / ClientProfile | Admin | ⚠️ Pendiente |
+| 🟢 Bajo | **[Rev2-D/E/F]** NavItem sin tipo · dateStr desync · `as any` Sessions | Código | ⚠️ Pendiente |
 | 🟢 Bajo | **[K]** `blog_posts` falta en tipo `Database` | Código | ✅ Resuelto |
 | 🟢 Bajo | **[L]** `confirm()` nativo → `AlertDialog` en Stock | UX | ✅ Resuelto |
 | 🟢 Bajo | **[M]** Sin paginación en lista de clientes | Performance | ✅ Resuelto |

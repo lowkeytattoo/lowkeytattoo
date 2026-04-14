@@ -84,90 +84,137 @@ El proceso de reserva es un formulario en 4 pasos guiados:
 Accesible en **tattoolowkey.com/admin**. Solo el equipo puede entrar con contraseña.
 
 Hay dos niveles de acceso:
-- **Propietario** — acceso completo a todo
-- **Artista** — accede solo a su información
+- **Propietario** — acceso completo a todo, ve datos de todos los artistas
+- **Artista** — accede solo a su propia información (clientes, sesiones, calendario)
+
+El panel tiene **10 secciones**: Dashboard, Clientes, Sesiones, Calendario, Citas Web, Mensajes, Finanzas, Stock, Blog y Artistas.
+
+---
+
+### Dashboard
+
+Pantalla de inicio del panel. Muestra de un vistazo todo lo importante:
+
+- **Ingresos del mes actual** y comparativa con el mes anterior
+- **Sesiones recientes** con estado de cobro
+- **Alertas de stock** — si algún producto está por debajo del mínimo, aparece aquí
+- **Próximos eventos del calendario** del mes en curso
+- **Gráfico de ingresos** de los últimos 6 meses por artista
+
+El propietario ve los datos globales del estudio. Cada artista ve solo los suyos.
+
+---
 
 ### Gestión de clientes
 
-Base de datos completa de todos los clientes del estudio. Para cada cliente se puede guardar:
+Base de datos completa de todos los clientes del estudio. Para cada cliente se puede registrar y consultar:
 
 - Nombre, teléfono, email
 - Artista habitual asignado
-- Historial de sesiones completo
-- Notas personales, alergias, fecha de cumpleaños
+- Fecha de cumpleaños y notas personales
+- Alergias o condiciones médicas relevantes
+- Historial completo de sesiones realizadas (fecha, servicio, precio, estado de pago)
+- Galería de fotos del trabajo realizado (subida directamente desde el panel)
 
-**¿Para qué sirve?** Saber quién es cada cliente antes de que llegue, recordar que tiene alergia a cierto producto, o felicitarle el cumpleaños.
+La búsqueda permite encontrar cualquier cliente por nombre al instante.
+
+**¿Para qué sirve?** Saber quién es cada cliente antes de que llegue, tener su historial a mano, recordar que tiene alergia a cierto producto, o enviarle un mensaje por su cumpleaños.
 
 ---
 
 ### Gestión de sesiones
 
-Registro de cada sesión realizada: fecha, artista, servicio, precio, estado (pagada / pendiente de cobro). Historial permanente para cada cliente.
+Registro detallado de cada sesión realizada. Se puede registrar:
+
+- Fecha, artista, tipo de servicio (tatuaje, piercing, láser, retoque)
+- Precio total y señal recibida
+- Estado de cobro (pagado / pendiente) — modificable con un solo clic
+- Zona del cuerpo, estilo y duración estimada
+- Notas internas de la sesión
+
+Filtros por artista, fecha, tipo de servicio y estado de pago. Resumen económico en tiempo real (total, cobrado, pendiente) visible en la misma pantalla.
+
+**Invitación de calendario integrada:** al crear o editar una sesión, el propietario puede enviar automáticamente una invitación de Google Calendar al artista asignado con los detalles de la cita. El artista la recibe por email y puede aceptarla o rechazarla.
 
 ---
 
 ### Finanzas
 
-Panel de ingresos con múltiples vistas:
+Panel de ingresos con múltiples vistas configurables:
 
-- Este mes
-- Mes anterior
-- Últimos 3 meses
-- Último año
-- Todo el historial
+- Este mes / Mes anterior / Últimos 3 meses / Último año / Todo el historial
 
-Se puede ver:
-- **Ingresos totales** por periodo
-- **Desglose por artista** (quién genera qué)
-- **Sesiones no cobradas** pendientes
-- **Gráfico de barras** con los últimos 6 meses por artista
+Se visualiza:
+- **Ingresos totales** del periodo seleccionado
+- **Desglose por artista** — quién genera qué y en qué proporción
+- **Sesiones pendientes de cobro** con importes exactos
+- **Gráfico de evolución mensual** por artista (últimos 6 meses)
+- **Export a CSV** de todas las sesiones del periodo para contabilidad
 
-**¿Para qué sirve?** Saber exactamente cuánto genera el estudio, qué artista trabaja más, y qué está pendiente de cobrar. Sin Excel, sin papel.
+**¿Para qué sirve?** Saber exactamente cuánto genera el estudio, qué artista trabaja más, y qué está pendiente de cobrar. Sin Excel, sin papel, con un solo clic.
 
 ---
 
 ### Inventario y stock
 
-Control del material del estudio: tintas, agujas, joyería para piercing, productos de cuidado, higiene y equipamiento.
+Control completo del material del estudio organizado por categorías: tintas, agujas, joyería para piercing, productos de cuidado, higiene y equipamiento.
 
-Para cada producto:
+Para cada producto se registra:
+- Nombre, categoría, unidad de medida
 - Cantidad actual en stock
-- Cantidad mínima recomendada
-- Alerta automática cuando un producto baja del mínimo
-- Historial de movimientos de stock
+- Cantidad mínima recomendada (umbral de alerta)
+- Historial de movimientos: entradas (reposiciones) y salidas (usos en sesiones)
 
-**¿Para qué sirve?** No quedarse sin tinta el día de una sesión importante. El dashboard principal avisa cuando algo está a punto de agotarse.
+El badge de alerta en el menú lateral se activa automáticamente cuando cualquier producto cae por debajo de su mínimo. El dashboard también lo muestra en portada.
+
+**¿Para qué sirve?** No quedarse sin material el día de una sesión importante. El sistema avisa antes de que ocurra.
 
 ---
 
-### Reservas web
+### Citas web
 
-Listado de todas las peticiones de cita que entran desde la web pública. Estado de cada una: pendiente / confirmada / completada / cancelada.
+Listado centralizado de todas las peticiones de cita que llegan desde el formulario de la web pública. Cada reserva muestra: cliente, artista solicitado, servicio, fecha preferida, estado y notas.
 
-Desde aquí el equipo puede:
-- Contactar al cliente directamente por WhatsApp o Gmail con un clic
-- Convertir una reserva en sesión registrada
-- Eliminar reservas spam (solo propietarios)
+Desde este panel el equipo puede:
+- Ver si la fecha solicitada está libre o bloqueada en Google Calendar (indicador en tiempo real)
+- Contactar al cliente directamente con un clic: botón de WhatsApp o Gmail prellenado
+- **Convertir la reserva en sesión registrada** con un clic — los datos se trasladan automáticamente
+- Marcar como confirmada, completada o cancelada
+- Eliminar reservas duplicadas o spam (solo propietario)
+
+---
+
+### Mensajes
+
+Bandeja de entrada de los mensajes de contacto recibidos desde la web (consultas sin fecha de cita). Permite responder directamente por email o teléfono con un clic y marcar mensajes como leídos. El badge en el menú lateral indica cuántos mensajes están sin leer.
 
 ---
 
 ### Blog
 
-El estudio puede publicar artículos desde el propio panel, sin necesidad de contratar a nadie ni saber programar. El editor incluye:
+El estudio puede crear y publicar artículos desde el panel sin necesidad de saber programar. El editor incluye:
 
-- Texto enriquecido con imágenes, negritas, listas, encabezados
-- Campos SEO (título para Google, descripción)
-- Etiquetas de categoría
-- Vista previa antes de publicar
+- Editor de texto enriquecido con imágenes, negritas, listas, encabezados y citas
+- Campos SEO independientes (título y descripción para Google)
+- Etiquetas de categoría (cuidados, estilos, estudio, láser...)
+- Vista previa del artículo publicado antes de hacerlo público
 - Programación de fecha de publicación
+- Slugs de URL limpios y optimizados para SEO
 
-**¿Para qué sirve?** Los artículos del blog generan visitas orgánicas de Google. Cada artículo bien escrito es una fuente de clientes que llegan solos.
+**¿Para qué sirve?** Cada artículo bien escrito es tráfico orgánico gratuito. Un artículo sobre *"cuánto cuesta un tatuaje en Tenerife"* genera visitas de personas que están buscando exactamente ese servicio.
 
 ---
 
 ### Calendario
 
-Integración con Google Calendar. El equipo puede ver la disponibilidad de cada artista y crear o eliminar eventos directamente desde el panel.
+Integración directa con Google Calendar de cada artista. Cada miembro del equipo ve únicamente su propio calendario desde el panel, con todos sus eventos del mes en vista de cuadrícula.
+
+Desde el calendario del panel se puede:
+- Ver todos los eventos del mes con código de color por tipo de servicio
+- Crear citas manuales con título, fecha, hora, duración y notas
+- **Invitar a otros artistas del equipo** directamente desde el panel al crear un evento — Google Calendar les envía la invitación por email y pueden aceptarla o rechazarla
+- Eliminar eventos existentes
+- Los días ocupados se reflejan automáticamente en el formulario de reserva web (los clientes no pueden elegir un día bloqueado)
 
 ---
 
@@ -209,22 +256,19 @@ El SEO (posicionamiento en buscadores) es el trabajo más importante que hace la
 
 ### Web bilingüe para turistas
 
-Esta es una de las mejoras más importantes recientes.
-
-**El problema que había:** Google mostraba los títulos en inglés para búsquedas en español, porque el robot de Google tiene el idioma configurado en inglés y detectaba mal el idioma de la web.
-
-**La solución:** La web ahora tiene **dos versiones de cada página**:
+La web tiene **dos versiones de cada página con URLs independientes**:
 
 - `tattoolowkey.com/` → siempre en español, para el público local
 - `tattoolowkey.com/en/` → siempre en inglés, para turistas
 
-Cuando alguien con el móvil en inglés visita la web por primera vez, la web le redirige automáticamente a la versión en inglés. Cuando alguien con el móvil en español llega, ve español.
+Cada versión está marcada con etiquetas `hreflang` para que Google entienda qué idioma sirve cada URL y las indexe de forma completamente independiente. El robot de Google indexa cada versión en su idioma correcto.
 
-Google indexa las dos versiones por separado:
-- La versión española aparece cuando alguien busca "tatuajes Santa Cruz de Tenerife"
-- La versión inglesa aparece cuando alguien busca "tattoo studio Tenerife" o "tattoo Canary Islands"
+Cuando alguien con el dispositivo en inglés visita la web por primera vez, se le redirige automáticamente a la versión en inglés. Quien llega con el dispositivo en español, ve español desde el primer momento.
 
-**¿Qué significa esto en clientes?** Capturar a los turistas que buscan estudio de tatuajes en inglés, que hasta ahora no llegaban o llegaban a una web en el idioma equivocado.
+- La versión española aparece cuando alguien busca *"tatuajes Santa Cruz de Tenerife"*
+- La versión inglesa aparece cuando alguien busca *"tattoo studio Tenerife"* o *"tattoo Canary Islands"*
+
+**¿Qué significa esto en clientes?** Acceder al mercado de turistas que buscan estudio de tatuajes en inglés — una audiencia completamente nueva que los datos ya confirman: la web ya aparece en posición 5 para búsquedas internacionales como *"tattoo removal"* con menos de dos semanas de vida.
 
 ---
 
@@ -386,15 +430,19 @@ La web lleva **10 días indexada**. Los resultados ya son sólidos para ese tiem
 |---|---|
 | Web profesional con identidad propia del estudio | ✓ Completado |
 | Reserva de cita online 24/7 sin llamadas | ✓ Completado |
-| Panel de gestión de clientes e historial | ✓ Completado |
+| Panel de gestión de clientes e historial con fotos | ✓ Completado |
 | Control de ingresos y finanzas por artista | ✓ Completado |
+| Export de datos a CSV para contabilidad | ✓ Completado |
 | Control de stock con alertas automáticas | ✓ Completado |
 | Blog gestionable por el propio estudio | ✓ Completado |
-| Integración con Google Calendar para disponibilidad real | ✓ Completado |
-| Seguimiento de conversiones (GA4 + Google Ads + Meta) | ✓ Completado |
-| GDPR y Política de Privacidad | ✓ Completado |
-| Web bilingüe español/inglés para turistas | ✓ Completado |
-| SEO técnico completo con datos estructurados | ✓ Completado |
+| Gestión de citas web con conversión a sesión en un clic | ✓ Completado |
+| Bandeja de mensajes de contacto con lectura/respuesta | ✓ Completado |
+| Calendario individual por artista integrado con Google Calendar | ✓ Completado |
+| Invitaciones de Google Calendar desde el panel (Calendario y Sesiones) | ✓ Completado |
+| Seguimiento de conversiones (GA4 + Google Ads + Meta Pixel) | ✓ Completado |
+| GDPR, Política de Privacidad y Aviso Legal | ✓ Completado |
+| Web bilingüe español/inglés con URLs independientes por idioma | ✓ Completado |
+| SEO técnico completo con datos estructurados JSON-LD y FAQ Schema | ✓ Completado |
 | Feed de Instagram integrado en la home | ✓ Completado |
 
 ---
@@ -432,13 +480,15 @@ Venta de productos de cuidado y merchandising del estudio directamente desde la 
 
 | | |
 |---|---|
-| Páginas públicas | 9 (5 en español + 4 en inglés duplicadas para SEO) |
-| Idiomas | 2 (español e inglés) |
-| Secciones del panel de administración | 10 |
-| Integraciones activas | 7 (Google Analytics, Google Ads, Meta Pixel, Google Calendar, Instagram, EmailJS, Supabase) |
-| Herramientas de seguimiento analítico | 3 plataformas independientes |
-| Pasos del proceso de reserva online | 4 |
-| Preguntas FAQ indexadas en Google | 18 pares (español + inglés) |
+| Páginas públicas | 10 (5 en español + 5 en inglés, URLs independientes para SEO) |
+| Idiomas | 2 (español e inglés con redirección automática por idioma del dispositivo) |
+| Secciones del panel de administración | 10 (Dashboard, Clientes, Sesiones, Calendario, Citas Web, Mensajes, Finanzas, Stock, Blog, Artistas) |
+| Niveles de acceso del panel | 2 (Propietario con acceso total / Artista con acceso a sus propios datos) |
+| Integraciones activas | 7 (Google Analytics 4, Google Ads, Meta Pixel, Google Calendar, Instagram, EmailJS, Supabase) |
+| Herramientas de seguimiento analítico | 3 plataformas independientes (GA4, Google Ads, Meta) |
+| Pasos del proceso de reserva online | 4 (artista → fecha → descripción → confirmación) |
+| Preguntas FAQ indexadas en Google | 18 pares pregunta-respuesta (español + inglés) |
+| Calendarios de artistas integrables | 4 pendientes de configurar (Pablo, Sergio, Fifo, master info@) |
 
 ---
 

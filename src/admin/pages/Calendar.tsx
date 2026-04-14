@@ -1,7 +1,7 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { format, startOfMonth, endOfMonth, addMonths, subMonths, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, isSameMonth, isToday, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
-import { ChevronLeft, ChevronRight, Clock, MapPin, Plus, Trash2, X, UserPlus } from "lucide-react";
+import { CalendarDays, ChevronLeft, ChevronRight, Clock, MapPin, Plus, Trash2, X, UserPlus } from "lucide-react";
 import { useCalendarEvents, useCreateCalendarEvent, useDeleteCalendarEvent, type CalendarEvent } from "@admin/hooks/useGoogleCalendar";
 import { useAdminAuth } from "@admin/contexts/AdminAuthContext";
 import { useArtistProfiles } from "@admin/hooks/useArtistProfiles";
@@ -118,6 +118,21 @@ function NewEventDialog({
     allDay: false,
   });
   const [invitedIds, setInvitedIds] = useState<string[]>([]);
+
+  // Reset form and invites when dialog closes without saving
+  useEffect(() => {
+    if (!open) {
+      setInvitedIds([]);
+      setForm({
+        summary: "",
+        date: defaultDate ? format(defaultDate, "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"),
+        startTime: "11:00",
+        endTime: "12:00",
+        description: "",
+        allDay: false,
+      });
+    }
+  }, [open]);
 
   // Keep date in sync when defaultDate changes
   const dateStr = defaultDate ? format(defaultDate, "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd");
@@ -300,6 +315,20 @@ export default function CalendarPage() {
 
   const { data: events = [], isLoading, error } = useCalendarEvents(timeMin, timeMax, calendarId);
   const deleteEvent = useDeleteCalendarEvent(calendarId);
+
+  if (!calendarId) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 gap-3 text-center">
+        <CalendarDays className="w-10 h-10 text-muted-foreground/40" />
+        <p className="text-muted-foreground text-sm">
+          No tienes un calendario de Google configurado.
+        </p>
+        <p className="text-xs text-muted-foreground/60">
+          Pide al propietario que asigne tu Calendar ID en Admin → Artistas.
+        </p>
+      </div>
+    );
+  }
 
   const gridStart = startOfWeek(startOfMonth(currentMonth), { weekStartsOn: 1 });
   const gridEnd   = endOfWeek(endOfMonth(currentMonth), { weekStartsOn: 1 });

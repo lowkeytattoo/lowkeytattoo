@@ -3,8 +3,9 @@
 ## Índice
 1. [Configuración inicial (ya hecho)](#1-configuración-inicial-ya-hecho)
 2. [Añadir calendario de un nuevo artista](#2-añadir-calendario-de-un-nuevo-artista)
-3. [Configurar info@ para ver todos los calendarios](#3-configurar-info-para-ver-todos-los-calendarios)
-4. [Festivos locales](#4-festivos-locales)
+3. [Invitaciones desde el panel](#3-invitaciones-desde-el-panel)
+4. [Configurar info@ para ver todos los calendarios](#4-configurar-info-para-ver-todos-los-calendarios)
+5. [Festivos locales](#5-festivos-locales)
 
 ---
 
@@ -13,7 +14,9 @@
 - ✅ Cuenta de servicio de Google creada: `lowkey-calendar-wr@lowkey-calendar.iam.gserviceaccount.com`
 - ✅ Credenciales guardadas en Supabase (secrets: `GOOGLE_SERVICE_ACCOUNT_EMAIL`, `GOOGLE_SERVICE_ACCOUNT_PRIVATE_KEY`, `GOOGLE_CALENDAR_ID`)
 - ✅ Edge function `google-calendar` desplegada en Supabase
-- ✅ Calendario de Pablo vinculado en el admin
+- ✅ Calendario de prueba (dev) vinculado: `lowkeytattootenerife@gmail.com` — para verificar que la integración funciona
+- ✅ Cada artista ve solo su propio calendario en el panel (basado en su `calendar_id`)
+- ✅ Invitaciones de Google Calendar enviables desde Admin → Calendario y Admin → Sesiones
 
 ---
 
@@ -48,7 +51,21 @@ Pasos que hace **el artista**:
 
 ---
 
-## 3. Configurar info@ para ver todos los calendarios
+## 3. Invitaciones desde el panel
+
+Una vez configurado el calendario del artista, el panel soporta dos flujos de invitación nativos de Google Calendar:
+
+### Desde Admin → Calendario
+Al crear una cita manual, aparece la sección **"Invitar artista"**. Seleccionar uno o varios artistas → al crear el evento, Google les manda la invitación por email. El artista acepta/rechaza desde su email sin tocar la app.
+
+### Desde Admin → Sesiones
+Al crear o editar una sesión, si el artista asignado tiene `calendar_id` y email en su perfil, aparece el toggle **"Enviar invitación de Google Calendar"**. Al activarlo y poner la hora de inicio, al guardar la sesión se crea el evento en su calendario y Google le manda la invitación.
+
+> Para que el flujo de invitaciones funcione, el artista necesita tener configurado tanto el `calendar_id` como el email en **Admin → Artistas**. El email se configura en `src/shared/config/artists.ts`.
+
+---
+
+## 4. Configurar info@ para ver todos los calendarios
 
 ### 3.1 Suscribirse a los calendarios de cada artista (vista en Google Calendar)
 
@@ -78,7 +95,7 @@ Para que la página de Calendario del admin muestre todos los calendarios a la v
 
 ---
 
-## 4. Festivos locales
+## 5. Festivos locales
 
 Los festivos nacionales y de Canarias ya están hardcodeados en la app (`src/shared/config/holidays.ts`).
 
@@ -93,9 +110,10 @@ Ejemplo: si el 3 de febrero es festivo local, crear en Google Calendar:
 
 ## Resumen de Calendar IDs actuales
 
-| Artista | Calendar ID | Estado |
-|---------|------------|--------|
-| Pablo Matos | `lowkeytattootenerife@gmail.com` | ✅ Activo |
+| | Calendar ID | Estado |
+|--|------------|--------|
+| Dev (pruebas) | `lowkeytattootenerife@gmail.com` | ✅ Activo — solo para testing |
+| Pablo | — | ⏳ Pendiente |
 | Sergio | — | ⏳ Pendiente |
 | Fifo | — | ⏳ Pendiente |
 | info@ (master) | — | ⏳ Pendiente |
