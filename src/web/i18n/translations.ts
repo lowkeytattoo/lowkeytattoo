@@ -70,6 +70,11 @@ export const translations: Record<Locale, Record<string, string>> = {
 
     // Footer
     "footer.copy": "Lowkey Tattoo. Santa Cruz de Tenerife.",
+    "footer.services": "Services",
+    "footer.contact": "Contact",
+    "footer.privacy": "Privacy",
+    "footer.legal": "Legal Notice",
+    "footer.madeby": "Made by",
 
     // Booking modal
     "booking.step1.label": "Step 1 / 3",
@@ -314,6 +319,11 @@ export const translations: Record<Locale, Record<string, string>> = {
 
     // Footer
     "footer.copy": "Lowkey Tattoo. Santa Cruz de Tenerife.",
+    "footer.services": "Servicios",
+    "footer.contact": "Contacto",
+    "footer.privacy": "Privacidad",
+    "footer.legal": "Aviso Legal",
+    "footer.madeby": "Creado por",
 
     // Booking modal
     "booking.step1.label": "Paso 1 / 3",

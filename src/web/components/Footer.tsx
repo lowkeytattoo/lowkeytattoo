@@ -33,7 +33,7 @@ const Footer = () => {
 
           {/* Servicios */}
           <div className="flex flex-col gap-2">
-            <p className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest mb-1">Servicios</p>
+            <p className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest mb-1">{t("footer.services")}</p>
             <Link to={r.tattoos} className="font-mono text-xs text-muted-foreground hover:text-foreground transition-colors">{t("nav.services.tattoo")}</Link>
             <Link to={r.piercing} className="font-mono text-xs text-muted-foreground hover:text-foreground transition-colors">{t("nav.services.piercing")}</Link>
             <Link to={r.laser} className="font-mono text-xs text-muted-foreground hover:text-foreground transition-colors">{t("nav.services.laser")}</Link>
@@ -42,7 +42,7 @@ const Footer = () => {
 
           {/* Contacto */}
           <div className="flex flex-col gap-2">
-            <p className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest mb-1">Contacto</p>
+            <p className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest mb-1">{t("footer.contact")}</p>
             <span className="font-mono text-xs text-muted-foreground">MON—FRI 11:00–19:00</span>
             <a href={`tel:${CONTACT.phone}`} className="font-mono text-xs text-muted-foreground hover:text-foreground transition-colors tabular-nums">
               {CONTACT.phonePretty}
@@ -58,14 +58,17 @@ const Footer = () => {
 
         <div className="border-t border-border pt-6 flex flex-col sm:flex-row items-center justify-between gap-3">
           <p className="font-mono text-xs text-muted-foreground">
-            © {new Date().getFullYear()} {t("footer.copy")}
+            © {new Date().getFullYear()} {t("footer.copy")} · {t("footer.madeby")}{" "}
+            <a href="https://arpweb.vercel.app" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">
+              ARP Web
+            </a>
           </p>
           <div className="flex items-center gap-4">
             <Link to="/politica-de-privacidad" className="font-mono text-[10px] text-muted-foreground hover:text-foreground transition-colors uppercase tracking-wider">
-              Privacidad
+              {t("footer.privacy")}
             </Link>
             <Link to="/aviso-legal" className="font-mono text-[10px] text-muted-foreground hover:text-foreground transition-colors uppercase tracking-wider">
-              Aviso Legal
+              {t("footer.legal")}
             </Link>
           </div>
         </div>
