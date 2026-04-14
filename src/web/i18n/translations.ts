@@ -75,6 +75,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "footer.privacy": "Privacy",
     "footer.legal": "Legal Notice",
     "footer.madeby": "Made by",
+    "footer.hours": "MON—FRI 11:00–19:00",
 
     // Booking modal
     "booking.step1.label": "Step 1 / 3",
@@ -324,6 +325,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "footer.privacy": "Privacidad",
     "footer.legal": "Aviso Legal",
     "footer.madeby": "Creado por",
+    "footer.hours": "LUN—VIE 11:00–19:00",
 
     // Booking modal
     "booking.step1.label": "Paso 1 / 3",

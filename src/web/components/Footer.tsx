@@ -43,7 +43,7 @@ const Footer = () => {
           {/* Contacto */}
           <div className="flex flex-col gap-2">
             <p className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest mb-1">{t("footer.contact")}</p>
-            <span className="font-mono text-xs text-muted-foreground">MON—FRI 11:00–19:00</span>
+            <span className="font-mono text-xs text-muted-foreground">{t("footer.hours")}</span>
             <a href={`tel:${CONTACT.phone}`} className="font-mono text-xs text-muted-foreground hover:text-foreground transition-colors tabular-nums">
               {CONTACT.phonePretty}
             </a>
