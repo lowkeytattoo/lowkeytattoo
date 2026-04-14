@@ -14,12 +14,36 @@ import {
   LogOut,
   MoreVertical,
   Home,
+  UserCircle,
 } from "lucide-react";
+import { toast } from "sonner";
 import { useAdminAuth } from "@admin/contexts/AdminAuthContext";
+import { useUpdateProfile } from "@admin/hooks/useArtistProfiles";
 import { StockAlertBadge } from "@admin/components/StockAlertBadge";
 import { MessagesUnreadBadge } from "@admin/components/MessagesUnreadBadge";
 import { BookingsPendingBadge } from "@admin/components/BookingsPendingBadge";
 import { cn } from "@shared/lib/utils";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { ARTISTS } from "@shared/config/artists";
+import type { ServiceType } from "@shared/types/index";
+
+const ALL_SERVICES: { value: ServiceType; label: string }[] = [
+  { value: "tattoo",    label: "Tatuaje"  },
+  { value: "piercing",  label: "Piercing" },
+  { value: "laser",     label: "Láser"    },
+];
 
 const allNavItems = [
   { to: "/admin/dashboard", label: "Dashboard",  icon: LayoutDashboard },
@@ -40,11 +64,49 @@ const MOBILE_ITEMS = ["/admin/bookings", "/admin/calendar", "/admin/dashboard", 
 export const AdminSidebar = () => {
   const { profile, signOut } = useAdminAuth();
   const navigate = useNavigate();
+  const updateProfile = useUpdateProfile();
+
   const [moreOpen, setMoreOpen] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [editServices, setEditServices] = useState<ServiceType[]>(["tattoo"]);
+  const [editCalendarId, setEditCalendarId] = useState("");
 
   const handleSignOut = async () => {
     await signOut();
     navigate("/admin/login");
+  };
+
+  const openEdit = () => {
+    if (!profile) return;
+    setEditName(profile.display_name);
+    const staticServices = ARTISTS.find((a) => a.id === profile.artist_config_id)?.services ?? ["tattoo"];
+    setEditServices(profile.available_services ?? staticServices);
+    setEditCalendarId(profile.calendar_id ?? "");
+    setEditOpen(true);
+  };
+
+  const toggleService = (service: ServiceType) => {
+    setEditServices((prev) =>
+      prev.includes(service) ? prev.filter((s) => s !== service) : [...prev, service]
+    );
+  };
+
+  const saveEdit = async () => {
+    if (!profile) return;
+    try {
+      await updateProfile.mutateAsync({
+        id: profile.id,
+        display_name: editName,
+        available_services: profile.artist_config_id ? editServices : null,
+        calendar_id: editCalendarId.trim() || null,
+      });
+      toast.success("Cambios guardados");
+      setEditOpen(false);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : JSON.stringify(err);
+      toast.error(`Error al guardar: ${msg}`);
+    }
   };
 
   const allItems = allNavItems.filter((i) => {
@@ -101,19 +163,42 @@ export const AdminSidebar = () => {
 
         {/* User footer */}
         <div className="p-4 border-t border-border">
-          <div className="text-sm text-foreground font-medium truncate mb-0.5">
-            {profile?.display_name}
-          </div>
-          <div className="font-['IBM_Plex_Mono'] text-xs text-muted-foreground uppercase tracking-wider mb-3">
-            {profile?.role}
-          </div>
-          <button
-            onClick={handleSignOut}
-            className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
+          <Card
+            className="bg-background border-border cursor-pointer hover:border-muted-foreground transition-colors"
+            onClick={openEdit}
           >
-            <LogOut className="w-3.5 h-3.5" />
-            Cerrar sesión
-          </button>
+            <CardContent className="p-3 flex items-center gap-3">
+              <div className="shrink-0">
+                {profile?.avatar_url ? (
+                  <img
+                    src={profile.avatar_url}
+                    alt={profile.display_name}
+                    className="w-9 h-9 rounded-full object-cover"
+                  />
+                ) : (
+                  <UserCircle className="w-9 h-9 text-muted-foreground" />
+                )}
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="text-sm font-medium text-foreground truncate leading-tight">
+                  {profile?.display_name}
+                </div>
+                <Badge
+                  variant={profile?.role === "owner" ? "default" : "outline"}
+                  className="text-[10px] font-['IBM_Plex_Mono'] uppercase mt-0.5 px-1.5 py-0"
+                >
+                  {profile?.role}
+                </Badge>
+              </div>
+              <button
+                onClick={handleSignOut}
+                title="Cerrar sesión"
+                className="shrink-0 text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <LogOut className="w-4 h-4" />
+              </button>
+            </CardContent>
+          </Card>
         </div>
       </aside>
 
@@ -128,55 +213,75 @@ export const AdminSidebar = () => {
 
       <nav className="md:hidden fixed bottom-0 left-0 right-0 z-50 bg-card border-t border-border">
         {/* Secondary row — slides up above the nav bar */}
-        {moreItems.length > 0 && (
-          <div
-            className={cn(
-              "absolute bottom-full left-0 right-0 bg-card border-t border-border transition-all duration-200",
-              moreOpen
-                ? "opacity-100 translate-y-0 pointer-events-auto"
-                : "opacity-0 translate-y-2 pointer-events-none"
-            )}
-          >
-            <ul className="flex">
-              {moreItems.map(({ to, label, icon: Icon, badge, messagesBadge, bookingsBadge }) => (
-                <li key={to} className="flex-1">
-                  <NavLink
-                    to={to}
-                    onClick={() => setMoreOpen(false)}
-                    className={({ isActive }) =>
-                      cn(
-                        "flex flex-col items-center justify-center gap-1 py-2 w-full transition-colors",
-                        isActive ? "text-primary" : "text-muted-foreground"
-                      )
-                    }
-                  >
-                    <div className="relative">
-                      <Icon className="w-5 h-5" />
-                      {badge && (
-                        <span className="absolute -top-1 -right-1">
-                          <StockAlertBadge />
-                        </span>
-                      )}
-                      {messagesBadge && (
-                        <span className="absolute -top-1 -right-1">
-                          <MessagesUnreadBadge />
-                        </span>
-                      )}
-                      {bookingsBadge && (
-                        <span className="absolute -top-1 -right-1">
-                          <BookingsPendingBadge />
-                        </span>
-                      )}
-                    </div>
-                    <span className="text-[10px] font-mono uppercase tracking-wider leading-none">
-                      {label}
-                    </span>
-                  </NavLink>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
+        <div
+          className={cn(
+            "absolute bottom-full left-0 right-0 bg-card border-t border-border transition-all duration-200",
+            moreOpen
+              ? "opacity-100 translate-y-0 pointer-events-auto"
+              : "opacity-0 translate-y-2 pointer-events-none"
+          )}
+        >
+          <ul className="flex">
+            {moreItems.map(({ to, label, icon: Icon, badge, messagesBadge, bookingsBadge }) => (
+              <li key={to} className="flex-1">
+                <NavLink
+                  to={to}
+                  onClick={() => setMoreOpen(false)}
+                  className={({ isActive }) =>
+                    cn(
+                      "flex flex-col items-center justify-center gap-1 py-2 w-full transition-colors",
+                      isActive ? "text-primary" : "text-muted-foreground"
+                    )
+                  }
+                >
+                  <div className="relative">
+                    <Icon className="w-5 h-5" />
+                    {badge && (
+                      <span className="absolute -top-1 -right-1">
+                        <StockAlertBadge />
+                      </span>
+                    )}
+                    {messagesBadge && (
+                      <span className="absolute -top-1 -right-1">
+                        <MessagesUnreadBadge />
+                      </span>
+                    )}
+                    {bookingsBadge && (
+                      <span className="absolute -top-1 -right-1">
+                        <BookingsPendingBadge />
+                      </span>
+                    )}
+                  </div>
+                  <span className="text-[10px] font-mono uppercase tracking-wider leading-none">
+                    {label}
+                  </span>
+                </NavLink>
+              </li>
+            ))}
+
+            {/* Perfil — opens self-edit dialog */}
+            <li className="flex-1">
+              <button
+                onClick={() => { openEdit(); setMoreOpen(false); }}
+                className="flex flex-col items-center justify-center gap-1 py-2 w-full transition-colors text-muted-foreground hover:text-foreground"
+              >
+                <UserCircle className="w-5 h-5" />
+                <span className="text-[10px] font-mono uppercase tracking-wider leading-none">Perfil</span>
+              </button>
+            </li>
+
+            {/* Salir */}
+            <li className="flex-1">
+              <button
+                onClick={handleSignOut}
+                className="flex flex-col items-center justify-center gap-1 py-2 w-full transition-colors text-muted-foreground hover:text-foreground"
+              >
+                <LogOut className="w-5 h-5" />
+                <span className="text-[10px] font-mono uppercase tracking-wider leading-none">Salir</span>
+              </button>
+            </li>
+          </ul>
+        </div>
 
         {/* Main bar */}
         <ul className="flex">
@@ -238,22 +343,90 @@ export const AdminSidebar = () => {
             );
           })}
 
-          {/* "Más" button — toggles secondary row */}
-          {moreItems.length > 0 && (
-            <li className="w-8 shrink-0">
-              <button
-                onClick={() => setMoreOpen((o) => !o)}
-                className={cn(
-                  "flex flex-col items-center justify-center py-2 w-full h-full transition-colors",
-                  moreOpen ? "text-primary" : "text-muted-foreground hover:text-foreground"
-                )}
-              >
-                <MoreVertical className="w-3.5 h-3.5" />
-              </button>
-            </li>
-          )}
+          {/* "Más" button — toggles secondary row, pinned to right edge */}
+          <li className="w-8 shrink-0">
+            <button
+              onClick={() => setMoreOpen((o) => !o)}
+              className={cn(
+                "flex flex-col items-center justify-center py-2 w-full h-full transition-colors",
+                moreOpen ? "text-primary" : "text-muted-foreground hover:text-foreground"
+              )}
+            >
+              <MoreVertical className="w-3.5 h-3.5" />
+            </button>
+          </li>
         </ul>
       </nav>
+
+      {/* ── Edit profile dialog ─────────────────────────── */}
+      <Dialog open={editOpen} onOpenChange={(open) => !open && setEditOpen(false)}>
+        <DialogContent className="bg-card border-border">
+          <DialogHeader>
+            <DialogTitle>Mi perfil</DialogTitle>
+            <DialogDescription>
+              Actualiza tu nombre, servicios disponibles y calendario.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 mt-2">
+            <div className="space-y-1.5">
+              <Label className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Nombre</Label>
+              <Input
+                value={editName}
+                onChange={(e) => setEditName(e.target.value)}
+                className="bg-background border-border"
+              />
+            </div>
+
+            {profile?.artist_config_id && (
+              <div className="space-y-2">
+                <Label className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">
+                  Servicios disponibles (web)
+                </Label>
+                <div className="flex flex-col gap-2">
+                  {ALL_SERVICES.map(({ value, label }) => (
+                    <label
+                      key={value}
+                      className="flex items-center gap-3 cursor-pointer rounded-md border border-border bg-background px-3 py-2.5 hover:border-muted-foreground transition-colors"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={editServices.includes(value)}
+                        onChange={() => toggleService(value)}
+                        className="h-4 w-4 accent-foreground"
+                      />
+                      <span className="text-sm text-foreground">{label}</span>
+                    </label>
+                  ))}
+                </div>
+                <p className="text-xs text-muted-foreground">
+                  Servicios que aparecerán en el modal de reserva para este artista.
+                </p>
+              </div>
+            )}
+
+            <div className="space-y-1.5">
+              <Label className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">
+                Google Calendar ID
+              </Label>
+              <Input
+                value={editCalendarId}
+                onChange={(e) => setEditCalendarId(e.target.value)}
+                placeholder="ejemplo@gmail.com"
+                className="bg-background border-border font-mono text-sm"
+              />
+              <p className="text-xs text-muted-foreground">
+                ID del calendario de Google para sincronizar disponibilidad.
+              </p>
+            </div>
+          </div>
+          <DialogFooter className="mt-4">
+            <Button variant="ghost" onClick={() => setEditOpen(false)}>Cancelar</Button>
+            <Button className="cta-button" onClick={saveEdit} disabled={updateProfile.isPending}>
+              {updateProfile.isPending ? "Guardando..." : "Guardar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   );
 };

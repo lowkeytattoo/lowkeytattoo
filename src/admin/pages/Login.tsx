@@ -19,7 +19,13 @@ export default function Login() {
     setLoading(true);
     const { error } = await supabase.auth.signInWithPassword({ email, password });
     if (error) {
-      setError(error.message);
+      const msg =
+        error.message === "Invalid login credentials"
+          ? "Email o contraseña incorrectos."
+          : error.message === "Email not confirmed"
+          ? "Confirma tu email antes de acceder."
+          : "Error al iniciar sesión. Inténtalo de nuevo.";
+      setError(msg);
       setLoading(false);
     } else {
       navigate("/admin/dashboard");
@@ -68,7 +74,9 @@ export default function Login() {
               />
             </div>
             {error && (
-              <p className="text-destructive text-sm font-['IBM_Plex_Mono']">{error}</p>
+              <div className="rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2.5">
+                <p className="text-destructive text-sm font-['IBM_Plex_Mono']">{error}</p>
+              </div>
             )}
             <Button type="submit" className="w-full cta-button" disabled={loading}>
               {loading ? "Accediendo..." : "Acceder"}

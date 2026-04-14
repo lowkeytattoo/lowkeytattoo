@@ -503,7 +503,8 @@ KPIs (revenue, sesiones, clientes, pendientes), gráfico de ingresos, últimas 1
 | 🟠 Alto | **[E]** Race condition en `AdminAuthContext` | Código | ✅ Resuelto |
 | 🟠 Alto | **[F]** `fetchProfile` sin manejo de errores | Código | ✅ Resuelto |
 | 🟠 Alto | Google Business Profile | SEO local | ⚠️ Pendiente |
-| 🟠 Alto | Rellenar `calendarId` de los 3 artistas (Supabase + config) | Booking online | ⚠️ Pendiente |
+| 🟠 Alto | Rellenar `calendarId` del owner en Supabase (`lowkeytattootenerife@gmail.com`) | Booking online | ⚠️ Pendiente |
+| 🟠 Alto | Rellenar `calendarId` de Pablo, Sergio y Fifo (Supabase + `artists.ts`) | Booking online | ⚠️ Pendiente |
 | 🟠 Alto | Actualizar emails artistas en `artists.ts` con emails corporativos | Notificaciones | ⚠️ Pendiente |
 | 🟠 Alto | Añadir "entrada" (restock) en Stock | Admin | ⚠️ Pendiente |
 | 🟠 Alto | Notificaciones email formulario contacto (EmailJS) | Admin UX | ⚠️ Pendiente |

@@ -112,8 +112,9 @@ Ejemplo: si el 3 de febrero es festivo local, crear en Google Calendar:
 
 | | Calendar ID | Estado |
 |--|------------|--------|
-| Dev (pruebas) | `lowkeytattootenerife@gmail.com` | ✅ Activo — solo para testing |
+| Owner / info@ (master) | `lowkeytattootenerife@gmail.com` | ✅ Activo |
 | Pablo | — | ⏳ Pendiente |
 | Sergio | — | ⏳ Pendiente |
 | Fifo | — | ⏳ Pendiente |
-| info@ (master) | — | ⏳ Pendiente |
+
+> `info@tattoolowkey.com` es un alias de reenvío vía ImprovMX → `lowkeytattootenerife@gmail.com`. No es una cuenta de Google independiente, por lo que su Calendar ID es el del Gmail. Ya está configurado y compartido con la cuenta de servicio.

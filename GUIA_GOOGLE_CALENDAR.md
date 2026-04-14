@@ -151,12 +151,14 @@ Para los **festivos locales de Santa Cruz de Tenerife**, añadirlos en Google Ca
 
 ## Resumen de Calendar IDs
 
-| Artista | Calendar ID | Estado |
-|---------|------------|--------|
-| Pablo | `lowkeytattootenerife@gmail.com` | ✅ Activo |
+| Artista / Cuenta | Calendar ID | Estado |
+|-----------------|------------|--------|
+| Dev / Owner (info@) | `lowkeytattootenerife@gmail.com` | ✅ Activo |
+| Pablo | — | ⏳ Pendiente |
 | Sergio | — | ⏳ Pendiente |
 | Fifo | — | ⏳ Pendiente |
-| Master (info@) | — | ⏳ Pendiente |
+
+> `info@tattoolowkey.com` es un alias de reenvío (ImprovMX) que apunta a `lowkeytattootenerife@gmail.com`. La cuenta de Google real es el Gmail, por lo que el Calendar ID del owner/master es `lowkeytattootenerife@gmail.com`. Ya está compartido con la cuenta de servicio y funcionando.
 
 ---
 
