@@ -4,6 +4,7 @@ import { useClient, useUpdateClient, useSetCoverPhoto, useClientPhotos, useDelet
 import { useSessions, useCreateSession, useUpdateSession } from "@admin/hooks/useSessions";
 import { useAdminAuth } from "@admin/contexts/AdminAuthContext";
 import { DatePickerInput } from "@admin/components/DatePickerInput";
+import { PhoneInput, formatPhone } from "@admin/components/PhoneInput";
 import { supabase } from "@shared/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -20,13 +21,23 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, Camera, Plus, Star, Upload, Trash2, Pencil } from "lucide-react";
+import { ArrowLeft, Camera, Plus, Star, Upload, Trash2, Pencil, MessageCircle, AlertCircle, Cake, Clock, Link2, UserCircle } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { useQueryClient } from "@tanstack/react-query";
@@ -88,6 +99,7 @@ export default function ClientProfile() {
   const [editEmail, setEditEmail] = useState("");
   const [editNotes, setEditNotes] = useState("");
   const [editAllergies, setEditAllergies] = useState("");
+  const [editBirthday, setEditBirthday] = useState("");
 
   const [showSessionModal, setShowSessionModal] = useState(false);
   const [sessionDate, setSessionDate] = useState(format(new Date(), "yyyy-MM-dd"));
@@ -96,24 +108,35 @@ export default function ClientProfile() {
   const [sessionDeposit, setSessionDeposit] = useState("");
   const [sessionNotes, setSessionNotes] = useState("");
   const [sessionZone, setSessionZone] = useState("");
+  const [sessionDuration, setSessionDuration] = useState("");
 
   const [lightboxPhoto, setLightboxPhoto] = useState<string | null>(null);
+  const [deletePhotoTarget, setDeletePhotoTarget] = useState<{ id: string; storage_path: string } | null>(null);
   const [uploading, setUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Photo-session linking
+  const [pendingFile, setPendingFile] = useState<File | null>(null);
+  const [linkSessionId, setLinkSessionId] = useState<string>("");
+  const [showLinkDialog, setShowLinkDialog] = useState(false);
 
   const { data: photos } = useClientPhotos(id!);
 
   // Session quick-edit state
-  const [editingSession, setEditingSession] = useState<{ id: string; paid: boolean; price: number | null; notes: string | null } | null>(null);
+  const [editingSession, setEditingSession] = useState<{
+    id: string; paid: boolean; price: number | null; notes: string | null; duration_minutes: number | null;
+  } | null>(null);
   const [editPaid, setEditPaid] = useState(false);
   const [editPrice, setEditPrice] = useState("");
   const [editSessionNotes, setEditSessionNotes] = useState("");
+  const [editDuration, setEditDuration] = useState("");
 
   const openEditSession = (s: any) => {
-    setEditingSession({ id: s.id, paid: s.paid, price: s.price, notes: s.notes });
+    setEditingSession({ id: s.id, paid: s.paid, price: s.price, notes: s.notes, duration_minutes: s.duration_minutes });
     setEditPaid(s.paid);
     setEditPrice(s.price != null ? String(s.price) : "");
     setEditSessionNotes(s.notes ?? "");
+    setEditDuration(s.duration_minutes != null ? String(s.duration_minutes) : "");
   };
 
   const handleEditSession = async () => {
@@ -123,6 +146,7 @@ export default function ClientProfile() {
       paid: editPaid,
       price: editPrice ? parseFloat(editPrice) : null,
       notes: editSessionNotes || null,
+      duration_minutes: editDuration ? parseInt(editDuration) : null,
     });
     setEditingSession(null);
   };
@@ -134,6 +158,7 @@ export default function ClientProfile() {
     setEditEmail(client.email ?? "");
     setEditNotes(client.notes ?? "");
     setEditAllergies(client.allergies ?? "");
+    setEditBirthday(client.birthday ?? "");
     setEditing(true);
   };
 
@@ -145,6 +170,7 @@ export default function ClientProfile() {
       email: editEmail || null,
       notes: editNotes || null,
       allergies: editAllergies || null,
+      birthday: editBirthday || null,
     });
     setEditing(false);
   };
@@ -159,7 +185,7 @@ export default function ClientProfile() {
       price: sessionPrice ? parseFloat(sessionPrice) : null,
       deposit: sessionDeposit ? parseFloat(sessionDeposit) : 0,
       paid: false,
-      duration_minutes: null,
+      duration_minutes: sessionDuration ? parseInt(sessionDuration) : null,
       body_zone: sessionZone || null,
       style: null,
       notes: sessionNotes || null,
@@ -169,14 +195,26 @@ export default function ClientProfile() {
     setSessionDeposit("");
     setSessionNotes("");
     setSessionZone("");
+    setSessionDuration("");
   };
 
-  const handleUploadPhoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
+  // Step 1 — file selected: store it, open link dialog
+  const onFileSelected = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (!file || !id) return;
+    if (!file) return;
+    setPendingFile(file);
+    setLinkSessionId("");
+    setShowLinkDialog(true);
+    e.target.value = ""; // reset so same file can be re-selected
+  };
+
+  // Step 2 — user confirms: upload with optional session_id
+  const handleConfirmUpload = async () => {
+    if (!pendingFile || !id) return;
+    setShowLinkDialog(false);
     setUploading(true);
     try {
-      const webpBlob = await convertToWebP(file);
+      const webpBlob = await convertToWebP(pendingFile);
       const photoId = crypto.randomUUID();
       const path = `clients/${id}/${photoId}.webp`;
       const { error: uploadError } = await supabase.storage
@@ -186,6 +224,7 @@ export default function ClientProfile() {
 
       await supabase.from("client_photos").insert({
         client_id: id,
+        session_id: linkSessionId || null,
         storage_path: path,
         is_cover: (photos ?? []).length === 0,
       });
@@ -193,8 +232,40 @@ export default function ClientProfile() {
       qc.invalidateQueries({ queryKey: ["client-cover-photos"] });
     } finally {
       setUploading(false);
+      setPendingFile(null);
     }
   };
+
+  // ── Helpers ──────────────────────────────────────────────
+  const formatDuration = (mins: number) => {
+    if (mins < 60) return `${mins}min`;
+    const h = Math.floor(mins / 60);
+    const m = mins % 60;
+    return m > 0 ? `${h}h ${m}min` : `${h}h`;
+  };
+
+  // ── Derived stats ────────────────────────────────────────
+  const sessionList = sessions ?? [];
+  const totalSpent   = sessionList.reduce((s, x) => s + (x.paid ? (x.price ?? 0) : 0), 0);
+  const pendingDebt  = sessionList.reduce((s, x) => s + (!x.paid && x.price ? x.price : 0), 0);
+  const sortedDates  = sessionList.map((x) => x.date).sort();
+  const firstVisit   = sortedDates[0];
+  const lastVisit    = sortedDates[sortedDates.length - 1];
+
+  // Photos grouped by session_id for timeline display
+  const photosBySession = (photos ?? []).reduce<Record<string, { id: string; signedUrl: string; storage_path: string }[]>>(
+    (acc, p) => {
+      if (p.session_id) {
+        (acc[p.session_id] ??= []).push(p);
+      }
+      return acc;
+    },
+    {}
+  );
+
+  const whatsappHref = client?.phone
+    ? `https://wa.me/${client.phone.replace(/\D/g, "")}`
+    : null;
 
   if (isLoading) {
     return (
@@ -232,23 +303,58 @@ export default function ClientProfile() {
                 onChange={(e) => setEditName(e.target.value)}
                 className="text-2xl font-bold bg-background border-border"
               />
-              <div className="grid grid-cols-2 gap-3">
-                <Input placeholder="Teléfono" value={editPhone} onChange={(e) => setEditPhone(e.target.value)} className="bg-background border-border" />
-                <Input placeholder="Email" type="email" value={editEmail} onChange={(e) => setEditEmail(e.target.value)} className="bg-background border-border" />
-              </div>
+              <PhoneInput value={editPhone} onChange={setEditPhone} />
+              <Input placeholder="Email" type="email" value={editEmail} onChange={(e) => setEditEmail(e.target.value)} className="bg-background border-border" />
               <Textarea placeholder="Notas" value={editNotes} onChange={(e) => setEditNotes(e.target.value)} className="bg-background border-border" rows={2} />
-              <Input placeholder="Alergias" value={editAllergies} onChange={(e) => setEditAllergies(e.target.value)} className="bg-background border-border" />
+              <div className="grid grid-cols-2 gap-3">
+                <Input placeholder="Alergias" value={editAllergies} onChange={(e) => setEditAllergies(e.target.value)} className="bg-background border-border" />
+                <DatePickerInput value={editBirthday} onChange={setEditBirthday} placeholder="Fecha de nacimiento" fromYear={1930} toYear={new Date().getFullYear()} />
+              </div>
               <div className="flex gap-2">
                 <Button onClick={saveEdit} className="cta-button" disabled={updateClient.isPending}>Guardar</Button>
                 <Button variant="ghost" onClick={() => setEditing(false)}>Cancelar</Button>
               </div>
             </div>
           ) : (
-            <div>
+            <div className="flex items-start gap-4">
+              {(() => {
+                const cover = (photos ?? []).find((p) => p.is_cover) ?? (photos ?? [])[0];
+                return cover ? (
+                  <img
+                    src={cover.signedUrl}
+                    alt={client.name}
+                    className="w-14 h-14 rounded-full object-cover shrink-0 ring-2 ring-border mt-0.5"
+                  />
+                ) : (
+                  <UserCircle className="w-14 h-14 text-muted-foreground shrink-0 mt-0.5" />
+                );
+              })()}
+              <div className="flex-1 min-w-0">
               <h1 className="text-2xl font-bold text-foreground">{client.name}</h1>
               <div className="flex flex-wrap gap-4 mt-2 text-sm text-muted-foreground">
-                {client.phone && <span className="font-['IBM_Plex_Mono']">{client.phone}</span>}
+                {client.phone && (
+                  <span className="flex items-center gap-1.5 font-['IBM_Plex_Mono']">
+                    {formatPhone(client.phone)}
+                    {whatsappHref && (
+                      <a
+                        href={whatsappHref}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        title="Abrir en WhatsApp"
+                        className="text-green-500 hover:text-green-400 transition-colors"
+                      >
+                        <MessageCircle className="w-4 h-4" />
+                      </a>
+                    )}
+                  </span>
+                )}
                 {client.email && <span>{client.email}</span>}
+                {client.birthday && (
+                  <span className="flex items-center gap-1.5">
+                    <Cake className="w-3.5 h-3.5" />
+                    {format(new Date(client.birthday + "T00:00:00"), "d MMM yyyy", { locale: es })}
+                  </span>
+                )}
                 {client.allergies && (
                   <Badge variant="destructive" className="text-xs">
                     Alergias: {client.allergies}
@@ -256,13 +362,140 @@ export default function ClientProfile() {
                 )}
               </div>
               {client.notes && <p className="text-sm text-muted-foreground mt-2">{client.notes}</p>}
-              <Button variant="ghost" size="sm" className="mt-3" onClick={startEdit}>
-                Editar
-              </Button>
+              </div>
             </div>
           )}
         </div>
       </div>
+
+      {/* Pending debt alert */}
+      {pendingDebt > 0 && (
+        <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg bg-destructive/10 border border-destructive/30">
+          <AlertCircle className="w-4 h-4 text-destructive shrink-0" />
+          <span className="text-sm font-medium text-destructive">
+            Deuda pendiente:{" "}
+            <span className="font-['IBM_Plex_Mono'] font-bold">€{pendingDebt.toFixed(0)}</span>
+          </span>
+        </div>
+      )}
+
+      {/* Stats */}
+      {sessionList.length > 0 && (
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          <Card className="bg-card border-border">
+            <CardContent className="p-3">
+              <div className="text-[10px] font-['IBM_Plex_Mono'] text-muted-foreground uppercase tracking-wider">Total gastado</div>
+              <div className="text-xl font-bold mt-1 font-['IBM_Plex_Mono']">€{totalSpent.toFixed(0)}</div>
+            </CardContent>
+          </Card>
+          <Card className="bg-card border-border">
+            <CardContent className="p-3">
+              <div className="text-[10px] font-['IBM_Plex_Mono'] text-muted-foreground uppercase tracking-wider">Sesiones</div>
+              <div className="text-xl font-bold mt-1 font-['IBM_Plex_Mono']">{sessionList.length}</div>
+            </CardContent>
+          </Card>
+          <Card className="bg-card border-border">
+            <CardContent className="p-3">
+              <div className="text-[10px] font-['IBM_Plex_Mono'] text-muted-foreground uppercase tracking-wider">Primera visita</div>
+              <div className="text-sm font-medium mt-1">
+                {firstVisit ? format(new Date(firstVisit + "T00:00:00"), "d MMM yyyy", { locale: es }) : "—"}
+              </div>
+            </CardContent>
+          </Card>
+          <Card className="bg-card border-border">
+            <CardContent className="p-3">
+              <div className="text-[10px] font-['IBM_Plex_Mono'] text-muted-foreground uppercase tracking-wider">Última visita</div>
+              <div className="text-sm font-medium mt-1">
+                {lastVisit ? format(new Date(lastVisit + "T00:00:00"), "d MMM yyyy", { locale: es }) : "—"}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+      )}
+
+      {/* Session timeline */}
+      <Card className="bg-card border-border">
+        <CardHeader className="pb-3 flex flex-row items-center justify-between">
+          <CardTitle className="text-base font-['IBM_Plex_Mono'] uppercase tracking-wider text-muted-foreground">
+            Historial de sesiones
+          </CardTitle>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowSessionModal(true)}
+            className="gap-2"
+          >
+            <Plus className="w-4 h-4" />
+            Registrar sesión
+          </Button>
+        </CardHeader>
+        <CardContent>
+          {(sessions ?? []).length === 0 ? (
+            <p className="text-muted-foreground text-sm text-center py-6">Sin sesiones registradas</p>
+          ) : (
+            <div className="space-y-3">
+              {(sessions ?? []).map((s) => (
+                <div
+                  key={s.id}
+                  className="p-3 rounded-lg bg-background border border-border group space-y-2"
+                >
+                  {/* Row 1: date · type · zone */}
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className="text-xs font-['IBM_Plex_Mono'] text-muted-foreground shrink-0">
+                      {format(new Date(s.date + "T00:00:00"), "d MMM yyyy", { locale: es })}
+                    </div>
+                    <Badge variant="outline" className="text-xs font-['IBM_Plex_Mono'] shrink-0">
+                      {SESSION_TYPE_LABELS[s.type]}
+                    </Badge>
+                    {s.body_zone && (
+                      <span className="text-sm text-muted-foreground truncate min-w-0">{s.body_zone}</span>
+                    )}
+                  </div>
+                  {/* Row 2: duration · price · paid badge · edit */}
+                  <div className="flex items-center gap-2">
+                    {s.duration_minutes != null && (
+                      <span className="flex items-center gap-1 text-xs text-muted-foreground font-['IBM_Plex_Mono'] shrink-0">
+                        <Clock className="w-3 h-3" />
+                        {formatDuration(s.duration_minutes)}
+                      </span>
+                    )}
+                    <div className="ml-auto flex items-center gap-2">
+                      {s.price != null && (
+                        <span className="font-['IBM_Plex_Mono'] text-sm shrink-0">€{s.price.toFixed(0)}</span>
+                      )}
+                      <Badge variant={s.paid ? "default" : "destructive"} className="text-xs shrink-0">
+                        {s.paid ? "Pagado" : "Pendiente"}
+                      </Badge>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground shrink-0"
+                        onClick={() => openEditSession(s)}
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+                  </div>
+                  {/* Linked photos */}
+                  {(photosBySession[s.id]?.length ?? 0) > 0 && (
+                    <div className="flex gap-1.5 flex-wrap pt-1">
+                      {photosBySession[s.id].map((p) => (
+                        <img
+                          key={p.id}
+                          src={p.signedUrl}
+                          alt=""
+                          className="w-12 h-12 rounded object-cover cursor-pointer opacity-90 hover:opacity-100 transition-opacity"
+                          onClick={() => setLightboxPhoto(p.signedUrl)}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       {/* Photos */}
       <Card className="bg-card border-border">
@@ -276,7 +509,7 @@ export default function ClientProfile() {
               type="file"
               accept="image/*"
               className="hidden"
-              onChange={handleUploadPhoto}
+              onChange={onFileSelected}
             />
             <Button
               variant="ghost"
@@ -333,75 +566,13 @@ export default function ClientProfile() {
                       </button>
                     )}
                     <button
-                      onClick={() => {
-                        if (confirm("¿Eliminar esta foto?")) {
-                          deletePhoto.mutate({ photoId: photo.id, storagePath: photo.storage_path, clientId: id! });
-                        }
-                      }}
+                      onClick={() => setDeletePhotoTarget({ id: photo.id, storage_path: photo.storage_path })}
                       title="Eliminar foto"
                       className="flex flex-col items-center gap-0.5"
                     >
                       <Trash2 className="w-4 h-4 text-red-400" />
                       <span className="text-red-400 text-[9px] font-['IBM_Plex_Mono']">Borrar</span>
                     </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </CardContent>
-      </Card>
-
-      {/* Session timeline */}
-      <Card className="bg-card border-border">
-        <CardHeader className="pb-3 flex flex-row items-center justify-between">
-          <CardTitle className="text-base font-['IBM_Plex_Mono'] uppercase tracking-wider text-muted-foreground">
-            Historial de sesiones
-          </CardTitle>
-          <Button
-            variant="ghost"
-            size="sm"
-            onClick={() => setShowSessionModal(true)}
-            className="gap-2"
-          >
-            <Plus className="w-4 h-4" />
-            Registrar sesión
-          </Button>
-        </CardHeader>
-        <CardContent>
-          {(sessions ?? []).length === 0 ? (
-            <p className="text-muted-foreground text-sm text-center py-6">Sin sesiones registradas</p>
-          ) : (
-            <div className="space-y-3">
-              {(sessions ?? []).map((s) => (
-                <div
-                  key={s.id}
-                  className="flex items-center gap-4 p-3 rounded-lg bg-background border border-border group"
-                >
-                  <div className="text-xs font-['IBM_Plex_Mono'] text-muted-foreground w-24 shrink-0">
-                    {format(new Date(s.date + "T00:00:00"), "d MMM yyyy", { locale: es })}
-                  </div>
-                  <Badge variant="outline" className="text-xs font-['IBM_Plex_Mono'] shrink-0">
-                    {SESSION_TYPE_LABELS[s.type]}
-                  </Badge>
-                  {s.body_zone && (
-                    <span className="text-sm text-muted-foreground">{s.body_zone}</span>
-                  )}
-                  <div className="ml-auto flex items-center gap-3">
-                    {s.price != null && (
-                      <span className="font-['IBM_Plex_Mono'] text-sm">€{s.price.toFixed(0)}</span>
-                    )}
-                    <Badge variant={s.paid ? "default" : "destructive"} className="text-xs">
-                      {s.paid ? "Pagado" : "Pendiente"}
-                    </Badge>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 w-7 p-0 opacity-0 group-hover:opacity-100 transition-opacity shrink-0"
-                      onClick={() => openEditSession(s)}
-                    >
-                      <Pencil className="w-3.5 h-3.5" />
-                    </Button>
                   </div>
                 </div>
               ))}
@@ -444,15 +615,27 @@ export default function ClientProfile() {
                 />
               </div>
               <div className="space-y-1.5">
-                <Label className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Estado</Label>
-                <div className="flex items-center gap-2 h-10">
-                  <Checkbox
-                    id="edit-paid"
-                    checked={editPaid}
-                    onCheckedChange={(v) => setEditPaid(!!v)}
-                  />
-                  <Label htmlFor="edit-paid" className="text-sm cursor-pointer">Sesión pagada</Label>
-                </div>
+                <Label className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Duración (min)</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  step="15"
+                  placeholder="ej. 90"
+                  value={editDuration}
+                  onChange={(e) => setEditDuration(e.target.value)}
+                  className="bg-background border-border"
+                />
+              </div>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Estado</Label>
+              <div className="flex items-center gap-2 h-10">
+                <Checkbox
+                  id="edit-paid"
+                  checked={editPaid}
+                  onCheckedChange={(v) => setEditPaid(!!v)}
+                />
+                <Label htmlFor="edit-paid" className="text-sm cursor-pointer">Sesión pagada</Label>
               </div>
             </div>
             <div className="space-y-1.5">
@@ -474,13 +657,61 @@ export default function ClientProfile() {
         </DialogContent>
       </Dialog>
 
+      {/* Photo-session link dialog */}
+      <Dialog open={showLinkDialog} onOpenChange={(open) => { if (!open) { setShowLinkDialog(false); setPendingFile(null); } }}>
+        <DialogContent className="bg-card border-border">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Link2 className="w-4 h-4" />
+              Vincular foto a sesión
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 mt-2">
+            <p className="text-sm text-muted-foreground">
+              Puedes vincular esta foto a una sesión concreta o subirla sin asociar.
+            </p>
+            <div className="space-y-1.5">
+              <Label className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Sesión (opcional)</Label>
+              <Select value={linkSessionId || "none"} onValueChange={(v) => setLinkSessionId(v === "none" ? "" : v)}>
+                <SelectTrigger className="bg-background border-border">
+                  <SelectValue placeholder="Sin vincular" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">Sin vincular</SelectItem>
+                  {(sessions ?? []).map((s) => (
+                    <SelectItem key={s.id} value={s.id}>
+                      {format(new Date(s.date + "T00:00:00"), "d MMM yyyy", { locale: es })} — {SESSION_TYPE_LABELS[s.type]}
+                      {s.body_zone ? ` · ${s.body_zone}` : ""}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter className="mt-4">
+            <Button variant="ghost" onClick={() => { setShowLinkDialog(false); setPendingFile(null); }}>Cancelar</Button>
+            <Button className="cta-button" onClick={handleConfirmUpload} disabled={uploading}>
+              {uploading ? "Subiendo..." : "Subir foto"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* Session modal */}
       <Dialog open={showSessionModal} onOpenChange={setShowSessionModal}>
         <DialogContent className="bg-card border-border">
           <DialogHeader>
-            <DialogTitle>Registrar sesión</DialogTitle>
+            <div className="flex items-center justify-between">
+              <DialogTitle>Registrar sesión</DialogTitle>
+              <div className="flex gap-2">
+                <Button type="button" variant="ghost" size="sm" onClick={() => setShowSessionModal(false)}>Cancelar</Button>
+                <Button type="submit" form="session-form" size="sm" className="cta-button" disabled={createSession.isPending}>
+                  {createSession.isPending ? "Guardando..." : "Registrar"}
+                </Button>
+              </div>
+            </div>
           </DialogHeader>
-          <form onSubmit={handleCreateSession} className="space-y-4 mt-2">
+          <form id="session-form" onSubmit={handleCreateSession} className="space-y-4 mt-2">
             <div className="grid grid-cols-2 gap-3">
               <div className="space-y-1.5">
                 <Label className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Fecha *</Label>
@@ -510,23 +741,56 @@ export default function ClientProfile() {
                 <Input type="number" min="0" step="0.01" value={sessionDeposit} onChange={(e) => setSessionDeposit(e.target.value)} className="bg-background border-border" />
               </div>
             </div>
-            <div className="space-y-1.5">
-              <Label className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Zona del cuerpo</Label>
-              <Input value={sessionZone} onChange={(e) => setSessionZone(e.target.value)} className="bg-background border-border" />
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1.5">
+                <Label className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Zona del cuerpo</Label>
+                <Input value={sessionZone} onChange={(e) => setSessionZone(e.target.value)} className="bg-background border-border" />
+              </div>
+              <div className="space-y-1.5">
+                <Label className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Duración (min)</Label>
+                <Input
+                  type="number"
+                  min="0"
+                  step="15"
+                  placeholder="ej. 90"
+                  value={sessionDuration}
+                  onChange={(e) => setSessionDuration(e.target.value)}
+                  className="bg-background border-border"
+                />
+              </div>
             </div>
             <div className="space-y-1.5">
               <Label className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Notas</Label>
               <Textarea value={sessionNotes} onChange={(e) => setSessionNotes(e.target.value)} className="bg-background border-border" rows={2} />
             </div>
-            <DialogFooter>
-              <Button type="button" variant="ghost" onClick={() => setShowSessionModal(false)}>Cancelar</Button>
-              <Button type="submit" className="cta-button" disabled={createSession.isPending}>
-                {createSession.isPending ? "Guardando..." : "Registrar"}
-              </Button>
-            </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!deletePhotoTarget} onOpenChange={(open) => !open && setDeletePhotoTarget(null)}>
+        <AlertDialogContent className="bg-card border-border">
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar foto?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Esta acción no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                if (deletePhotoTarget) {
+                  deletePhoto.mutate({ photoId: deletePhotoTarget.id, storagePath: deletePhotoTarget.storage_path, clientId: id! });
+                }
+                setDeletePhotoTarget(null);
+              }}
+            >
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

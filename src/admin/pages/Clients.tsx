@@ -1,12 +1,14 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
-import { useClientsPaged, useCreateClient, useClientCoverPhotos } from "@admin/hooks/useClients";
+import { useClientsPaged, useCreateClient, useUpdateClient, useDeleteClient, useClientCoverPhotos } from "@admin/hooks/useClients";
 import { useArtistProfiles } from "@admin/hooks/useArtistProfiles";
 import { useAdminAuth } from "@admin/contexts/AdminAuthContext";
+import { DatePickerInput } from "@admin/components/DatePickerInput";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import {
   Dialog,
@@ -16,14 +18,26 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Plus, Search, UserCircle } from "lucide-react";
+import { Plus, Search, UserCircle, Pencil, Trash2 } from "lucide-react";
 import { ArtistAvatar } from "@admin/components/ArtistAvatar";
+import { PhoneInput, formatPhone } from "@admin/components/PhoneInput";
+import type { Client } from "@shared/types/index";
 
 export default function Clients() {
   const navigate = useNavigate();
@@ -33,6 +47,8 @@ export default function Clients() {
   const { data: artists } = useArtistProfiles();
   const { data: coverPhotos } = useClientCoverPhotos();
   const createClient = useCreateClient();
+  const updateClient = useUpdateClient();
+  const deleteClient = useDeleteClient();
 
   const PAGE_SIZE = 20;
   const [page, setPage] = useState(0);
@@ -70,7 +86,59 @@ export default function Clients() {
   const [newName, setNewName] = useState("");
   const [newPhone, setNewPhone] = useState("");
   const [newEmail, setNewEmail] = useState("");
+  const [newNotes, setNewNotes] = useState("");
+  const [newAllergies, setNewAllergies] = useState("");
+  const [newBirthday, setNewBirthday] = useState("");
   const [newArtist, setNewArtist] = useState("");
+
+  // Edit client state
+  const [editingClient, setEditingClient] = useState<Client | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editPhone, setEditPhone] = useState("");
+  const [editEmail, setEditEmail] = useState("");
+  const [editNotes, setEditNotes] = useState("");
+  const [editAllergies, setEditAllergies] = useState("");
+  const [editBirthday, setEditBirthday] = useState("");
+  const [editArtist, setEditArtist] = useState("");
+
+  const openEdit = (e: React.MouseEvent, client: Client) => {
+    e.stopPropagation();
+    setEditingClient(client);
+    setEditName(client.name);
+    setEditPhone(client.phone ?? "");
+    setEditEmail(client.email ?? "");
+    setEditNotes(client.notes ?? "");
+    setEditAllergies(client.allergies ?? "");
+    setEditBirthday(client.birthday ?? "");
+    setEditArtist((client as any).primary_artist_id ?? "");
+  };
+
+  const handleEdit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!editingClient) return;
+    try {
+      await updateClient.mutateAsync({
+        id: editingClient.id,
+        name: editName,
+        phone: editPhone || null,
+        email: editEmail || null,
+        notes: editNotes || null,
+        allergies: editAllergies || null,
+        birthday: editBirthday || null,
+        primary_artist_id: editArtist || null,
+      });
+      setEditingClient(null);
+    } catch {
+      toast.error("Error al guardar los cambios.");
+    }
+  };
+
+  const [deleteTarget, setDeleteTarget] = useState<Client | null>(null);
+
+  const handleDelete = (e: React.MouseEvent, client: Client) => {
+    e.stopPropagation();
+    setDeleteTarget(client);
+  };
 
   const handleCreate = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -79,15 +147,14 @@ export default function Clients() {
         name: newName,
         phone: newPhone || null,
         email: newEmail || null,
-        notes: null,
-        allergies: null,
-        birthday: null,
+        notes: newNotes || null,
+        allergies: newAllergies || null,
+        birthday: newBirthday || null,
         primary_artist_id: newArtist || null,
       });
       setShowCreate(false);
-      setNewName("");
-      setNewPhone("");
-      setNewEmail("");
+      setNewName(""); setNewPhone(""); setNewEmail("");
+      setNewNotes(""); setNewAllergies(""); setNewBirthday("");
       setNewArtist("");
     } catch {
       toast.error("Error al crear el cliente. Inténtalo de nuevo.");
@@ -148,6 +215,7 @@ export default function Clients() {
                   <span className="hidden sm:inline">Artista</span>
                 </TableHead>
               )}
+              <TableHead className="w-20" />
             </TableRow>
           </TableHeader>
           <TableBody>
@@ -167,7 +235,7 @@ export default function Clients() {
               clients.map((client) => (
                 <TableRow
                   key={client.id}
-                  className="border-border cursor-pointer hover:bg-muted/30 transition-colors"
+                  className="border-border cursor-pointer hover:bg-muted/30 transition-colors group"
                   onClick={() => navigate(`/admin/clients/${client.id}`)}
                 >
                   <TableCell className="font-medium">
@@ -185,7 +253,7 @@ export default function Clients() {
                     </div>
                   </TableCell>
                   <TableCell className="font-['IBM_Plex_Mono'] text-sm text-muted-foreground hidden sm:table-cell">
-                    {client.phone ?? "—"}
+                    {client.phone ? formatPhone(client.phone) : "—"}
                   </TableCell>
                   <TableCell className="text-sm text-muted-foreground hidden sm:table-cell">
                     {client.email ?? "—"}
@@ -196,6 +264,29 @@ export default function Clients() {
                       <span className="hidden sm:inline text-sm text-muted-foreground">{client.primary_artist?.display_name ?? "—"}</span>
                     </TableCell>
                   )}
+                  <TableCell className="text-right">
+                    <div className="flex items-center justify-end gap-1">
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
+                        onClick={(e) => openEdit(e, client)}
+                        title="Editar cliente"
+                      >
+                        <Pencil className="w-3.5 h-3.5" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
+                        onClick={(e) => handleDelete(e, client)}
+                        title="Eliminar cliente"
+                        disabled={deleteClient.isPending}
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
+                    </div>
+                  </TableCell>
                 </TableRow>
               ))
             )}
@@ -238,37 +329,35 @@ export default function Clients() {
           <DialogHeader>
             <DialogTitle>Nuevo cliente</DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleCreate} className="space-y-4 mt-2">
-            <div className="space-y-1.5">
+          <form onSubmit={handleCreate} className="space-y-3 mt-2">
+            <div className="space-y-1">
               <Label className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Nombre *</Label>
-              <Input
-                value={newName}
-                onChange={(e) => setNewName(e.target.value)}
-                required
-                className="bg-background border-border"
-              />
+              <Input value={newName} onChange={(e) => setNewName(e.target.value)} required className="bg-background border-border" />
+            </div>
+            <div className="space-y-1">
+              <Label className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Teléfono</Label>
+              <PhoneInput value={newPhone} onChange={setNewPhone} />
+            </div>
+            <div className="space-y-1">
+              <Label className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Email</Label>
+              <Input type="email" value={newEmail} onChange={(e) => setNewEmail(e.target.value)} className="bg-background border-border" />
             </div>
             <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
-                <Label className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Teléfono</Label>
-                <Input
-                  value={newPhone}
-                  onChange={(e) => setNewPhone(e.target.value)}
-                  className="bg-background border-border"
-                />
+              <div className="space-y-1">
+                <Label className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Alergias</Label>
+                <Input value={newAllergies} onChange={(e) => setNewAllergies(e.target.value)} className="bg-background border-border" />
               </div>
-              <div className="space-y-1.5">
-                <Label className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Email</Label>
-                <Input
-                  type="email"
-                  value={newEmail}
-                  onChange={(e) => setNewEmail(e.target.value)}
-                  className="bg-background border-border"
-                />
+              <div className="space-y-1">
+                <Label className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Nacimiento</Label>
+                <DatePickerInput value={newBirthday} onChange={setNewBirthday} fromYear={1930} toYear={new Date().getFullYear()} />
               </div>
             </div>
+            <div className="space-y-1">
+              <Label className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Notas</Label>
+              <Textarea value={newNotes} onChange={(e) => setNewNotes(e.target.value)} className="bg-background border-border" rows={2} />
+            </div>
             {isOwner && (
-              <div className="space-y-1.5">
+              <div className="space-y-1">
                 <Label className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Artista</Label>
                 <Select value={newArtist || "none"} onValueChange={(v) => setNewArtist(v === "none" ? "" : v)}>
                   <SelectTrigger className="bg-background border-border">
@@ -277,18 +366,14 @@ export default function Clients() {
                   <SelectContent>
                     <SelectItem value="none">Sin asignar</SelectItem>
                     {(artists ?? []).map((a) => (
-                      <SelectItem key={a.id} value={a.id}>
-                        {a.display_name}
-                      </SelectItem>
+                      <SelectItem key={a.id} value={a.id}>{a.display_name}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
             )}
             <DialogFooter>
-              <Button type="button" variant="ghost" onClick={() => setShowCreate(false)}>
-                Cancelar
-              </Button>
+              <Button type="button" variant="ghost" onClick={() => setShowCreate(false)}>Cancelar</Button>
               <Button type="submit" className="cta-button" disabled={createClient.isPending}>
                 {createClient.isPending ? "Guardando..." : "Crear cliente"}
               </Button>
@@ -296,6 +381,94 @@ export default function Clients() {
           </form>
         </DialogContent>
       </Dialog>
+      {/* Edit dialog */}
+      <Dialog open={!!editingClient} onOpenChange={(open) => { if (!open) setEditingClient(null); }}>
+        <DialogContent className="bg-card border-border">
+          <DialogHeader>
+            <DialogTitle>Editar cliente</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleEdit} className="space-y-3 mt-2">
+            <div className="space-y-1">
+              <Label className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Nombre *</Label>
+              <Input value={editName} onChange={(e) => setEditName(e.target.value)} required className="bg-background border-border" />
+            </div>
+            <div className="space-y-1">
+              <Label className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Teléfono</Label>
+              <PhoneInput value={editPhone} onChange={setEditPhone} />
+            </div>
+            <div className="space-y-1">
+              <Label className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Email</Label>
+              <Input type="email" value={editEmail} onChange={(e) => setEditEmail(e.target.value)} className="bg-background border-border" />
+            </div>
+            <div className="grid grid-cols-2 gap-3">
+              <div className="space-y-1">
+                <Label className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Alergias</Label>
+                <Input value={editAllergies} onChange={(e) => setEditAllergies(e.target.value)} className="bg-background border-border" />
+              </div>
+              <div className="space-y-1">
+                <Label className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Nacimiento</Label>
+                <DatePickerInput value={editBirthday} onChange={setEditBirthday} fromYear={1930} toYear={new Date().getFullYear()} />
+              </div>
+            </div>
+            <div className="space-y-1">
+              <Label className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Notas</Label>
+              <Textarea value={editNotes} onChange={(e) => setEditNotes(e.target.value)} className="bg-background border-border" rows={2} />
+            </div>
+            {isOwner && (
+              <div className="space-y-1">
+                <Label className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Artista</Label>
+                <Select value={editArtist || "none"} onValueChange={(v) => setEditArtist(v === "none" ? "" : v)}>
+                  <SelectTrigger className="bg-background border-border">
+                    <SelectValue placeholder="Sin asignar" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="none">Sin asignar</SelectItem>
+                    {(artists ?? []).map((a) => (
+                      <SelectItem key={a.id} value={a.id}>{a.display_name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            <DialogFooter>
+              <Button type="button" variant="ghost" onClick={() => setEditingClient(null)}>Cancelar</Button>
+              <Button type="submit" className="cta-button" disabled={updateClient.isPending}>
+                {updateClient.isPending ? "Guardando..." : "Guardar"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent className="bg-card border-border">
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar cliente?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Vas a eliminar a <strong>{deleteTarget?.name}</strong>. Esta acción no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={async () => {
+                if (!deleteTarget) return;
+                try {
+                  await deleteClient.mutateAsync(deleteTarget.id);
+                  toast.success("Cliente eliminado");
+                } catch {
+                  toast.error("Error al eliminar el cliente.");
+                } finally {
+                  setDeleteTarget(null);
+                }
+              }}
+            >
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

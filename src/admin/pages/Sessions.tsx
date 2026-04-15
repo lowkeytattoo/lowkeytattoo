@@ -20,6 +20,16 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import {
   Select,
   SelectContent,
   SelectItem,
@@ -209,6 +219,7 @@ export default function Sessions() {
   };
 
   const isPending = createSession.isPending || updateSession.isPending;
+  const [deleteTarget, setDeleteTarget] = useState<SessionRow | null>(null);
 
   return (
     <div className="space-y-5">
@@ -326,22 +337,90 @@ export default function Sessions() {
         );
       })()}
 
-      {/* Table */}
-      <div className="rounded-lg border border-border overflow-hidden bg-card">
+      {/* Mobile list */}
+      <div className="sm:hidden space-y-2">
+        {isLoading ? (
+          <p className="text-center py-12 text-muted-foreground text-sm">Cargando...</p>
+        ) : filteredSessions.length === 0 ? (
+          <p className="text-center py-12 text-muted-foreground text-sm">Sin sesiones</p>
+        ) : (
+          filteredSessions.map((s) => (
+            <div key={s.id} className="rounded-lg border border-border bg-card p-3 space-y-1.5">
+              {/* Row 1: client + date */}
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-medium text-sm truncate">{(s.client as any)?.name ?? "—"}</span>
+                <span className="text-xs font-['IBM_Plex_Mono'] text-muted-foreground shrink-0">
+                  {format(new Date(s.date + "T00:00:00"), "d MMM yyyy", { locale: es })}
+                </span>
+              </div>
+              {/* Row 2: type · zone · artist */}
+              <div className="flex items-center gap-2 flex-wrap">
+                <Badge variant="outline" className="text-[10px] font-['IBM_Plex_Mono']">
+                  {SESSION_TYPE_LABELS[s.type]}
+                </Badge>
+                {s.body_zone && (
+                  <span className="text-xs text-muted-foreground truncate">{s.body_zone}</span>
+                )}
+                {isOwner && (s.artist as any)?.display_name && (
+                  <span className="text-xs text-muted-foreground ml-auto shrink-0">{(s.artist as any).display_name}</span>
+                )}
+              </div>
+              {/* Row 3: price · duration · paid badge · actions */}
+              <div className="flex items-center gap-2">
+                {s.price != null && (
+                  <span className="font-['IBM_Plex_Mono'] text-sm shrink-0">€{s.price.toFixed(0)}</span>
+                )}
+                {s.duration_minutes != null && (
+                  <span className="font-['IBM_Plex_Mono'] text-xs text-muted-foreground shrink-0">{s.duration_minutes}m</span>
+                )}
+                <div className="ml-auto flex items-center gap-1.5">
+                  <button onClick={() => togglePaid(s.id, s.paid)}>
+                    <Badge
+                      variant={s.paid ? "default" : "destructive"}
+                      className="text-[10px] cursor-pointer hover:opacity-80 transition-opacity"
+                    >
+                      {s.paid ? "Pagado" : "Pendiente"}
+                    </Badge>
+                  </button>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
+                    onClick={() => openEdit(s as SessionRow)}
+                  >
+                    <Pencil className="w-3.5 h-3.5" />
+                  </Button>
+                  {isOwner && (
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
+                      onClick={() => setDeleteTarget(s as SessionRow)}
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </Button>
+                  )}
+                </div>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Desktop table */}
+      <div className="hidden sm:block rounded-lg border border-border overflow-hidden bg-card">
         <Table>
           <TableHeader>
             <TableRow className="border-border">
               <TableHead className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Fecha</TableHead>
               <TableHead className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Cliente</TableHead>
               {isOwner && (
-                <TableHead className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">
-                  <span className="hidden sm:inline">Artista</span>
-                </TableHead>
+                <TableHead className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Artista</TableHead>
               )}
               <TableHead className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Tipo</TableHead>
-              <TableHead className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider hidden sm:table-cell">Zona</TableHead>
+              <TableHead className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Zona</TableHead>
               <TableHead className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider text-right">€</TableHead>
-              <TableHead className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider text-right hidden sm:table-cell">Dur.</TableHead>
+              <TableHead className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider text-right">Dur.</TableHead>
               <TableHead className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Pago</TableHead>
               <TableHead className="w-12" />
             </TableRow>
@@ -359,28 +438,24 @@ export default function Sessions() {
               filteredSessions.map((s) => (
                 <TableRow key={s.id} className="border-border group">
                   <TableCell className="text-xs font-['IBM_Plex_Mono'] whitespace-nowrap">
-                    <span className="hidden sm:inline">{format(new Date(s.date + "T00:00:00"), "d MMM yyyy", { locale: es })}</span>
-                    <span className="sm:hidden">{format(new Date(s.date + "T00:00:00"), "d MMM", { locale: es })}</span>
+                    {format(new Date(s.date + "T00:00:00"), "d MMM yyyy", { locale: es })}
                   </TableCell>
                   <TableCell className="text-sm max-w-[100px] truncate">{(s.client as any)?.name ?? "—"}</TableCell>
                   {isOwner && (
-                    <TableCell>
-                      <span className="sm:hidden"><ArtistAvatar name={(s.artist as any)?.display_name} /></span>
-                      <span className="hidden sm:inline text-sm">{(s.artist as any)?.display_name ?? "—"}</span>
-                    </TableCell>
+                    <TableCell className="text-sm">{(s.artist as any)?.display_name ?? "—"}</TableCell>
                   )}
                   <TableCell>
                     <Badge variant="outline" className="text-[10px] font-['IBM_Plex_Mono'] whitespace-nowrap">
                       {SESSION_TYPE_LABELS[s.type]}
                     </Badge>
                   </TableCell>
-                  <TableCell className="text-xs text-muted-foreground hidden sm:table-cell max-w-[80px] truncate">
+                  <TableCell className="text-xs text-muted-foreground max-w-[80px] truncate">
                     {s.body_zone ?? "—"}
                   </TableCell>
                   <TableCell className="text-right font-['IBM_Plex_Mono'] text-sm whitespace-nowrap">
                     {s.price != null ? `€${s.price.toFixed(0)}` : "—"}
                   </TableCell>
-                  <TableCell className="text-right font-['IBM_Plex_Mono'] text-xs text-muted-foreground hidden sm:table-cell whitespace-nowrap">
+                  <TableCell className="text-right font-['IBM_Plex_Mono'] text-xs text-muted-foreground whitespace-nowrap">
                     {s.duration_minutes != null ? `${s.duration_minutes}m` : "—"}
                   </TableCell>
                   <TableCell>
@@ -394,11 +469,11 @@ export default function Sessions() {
                     </button>
                   </TableCell>
                   <TableCell>
-                    <div className="flex items-center gap-0.5 opacity-0 group-hover:opacity-100 transition-opacity">
+                    <div className="flex items-center gap-0.5">
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="h-7 w-7 p-0"
+                        className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
                         onClick={() => openEdit(s as SessionRow)}
                       >
                         <Pencil className="w-3.5 h-3.5" />
@@ -407,12 +482,8 @@ export default function Sessions() {
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="h-7 w-7 p-0 text-destructive hover:text-destructive hover:bg-destructive/10"
-                          onClick={() => {
-                            if (confirm(`¿Eliminar sesión de ${(s.client as any)?.name ?? "este cliente"}?`)) {
-                              deleteSession.mutate(s.id);
-                            }
-                          }}
+                          className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
+                          onClick={() => setDeleteTarget(s as SessionRow)}
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </Button>
@@ -428,13 +499,13 @@ export default function Sessions() {
 
       {/* Create / Edit modal */}
       <Dialog open={showModal} onOpenChange={(open) => { if (!open) closeModal(); }}>
-        <DialogContent className="bg-card border-border">
+        <DialogContent className="bg-card border-border max-h-[90dvh] flex flex-col">
           <DialogHeader>
             <DialogTitle>{editingSession ? "Editar sesión" : "Nueva sesión"}</DialogTitle>
           </DialogHeader>
-          <form onSubmit={handleSubmit} className="space-y-4 mt-2">
+          <form id="session-modal-form" onSubmit={handleSubmit} className="space-y-3 mt-1 overflow-y-auto flex-1 pr-1">
             {/* Cliente — solo editable al crear */}
-            <div className="space-y-1.5">
+            <div className="space-y-1">
               <Label className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Cliente *</Label>
               {editingSession ? (
                 <div className="px-3 py-2 rounded-md border border-border bg-muted/30 text-sm text-muted-foreground">
@@ -455,7 +526,7 @@ export default function Sessions() {
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
+              <div className="space-y-1">
                 <Label className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Fecha *</Label>
                 <Popover>
                   <PopoverTrigger asChild>
@@ -483,7 +554,7 @@ export default function Sessions() {
                   </PopoverContent>
                 </Popover>
               </div>
-              <div className="space-y-1.5">
+              <div className="space-y-1">
                 <Label className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Tipo</Label>
                 <Select value={form.type} onValueChange={form.setType}>
                   <SelectTrigger className="bg-background border-border"><SelectValue /></SelectTrigger>
@@ -497,7 +568,7 @@ export default function Sessions() {
             </div>
 
             <div className="grid grid-cols-2 gap-3">
-              <div className="space-y-1.5">
+              <div className="space-y-1">
                 <Label className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Precio (€)</Label>
                 <Input
                   type="number"
@@ -508,7 +579,7 @@ export default function Sessions() {
                   className="bg-background border-border"
                 />
               </div>
-              <div className="space-y-1.5">
+              <div className="space-y-1">
                 <Label className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Señal (€)</Label>
                 <Input
                   type="number"
@@ -522,7 +593,7 @@ export default function Sessions() {
             </div>
 
             {isOwner && (
-              <div className="space-y-1.5">
+              <div className="space-y-1">
                 <Label className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Artista</Label>
                 <Select value={form.artistId || "none"} onValueChange={(v) => form.setArtistId(v === "none" ? "" : v)}>
                   <SelectTrigger className="bg-background border-border">
@@ -538,25 +609,25 @@ export default function Sessions() {
               </div>
             )}
 
-            <div className="grid grid-cols-3 gap-3">
-              <div className="space-y-1.5">
-                <Label className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Zona del cuerpo</Label>
+            <div className="grid grid-cols-3 gap-2">
+              <div className="space-y-1">
+                <Label className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider truncate block">Zona</Label>
                 <Input
                   value={form.zone}
                   onChange={(e) => form.setZone(e.target.value)}
                   className="bg-background border-border"
                 />
               </div>
-              <div className="space-y-1.5">
-                <Label className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Estilo</Label>
+              <div className="space-y-1">
+                <Label className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider truncate block">Estilo</Label>
                 <Input
                   value={form.style}
                   onChange={(e) => form.setStyle(e.target.value)}
                   className="bg-background border-border"
                 />
               </div>
-              <div className="space-y-1.5">
-                <Label className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Duración (min)</Label>
+              <div className="space-y-1">
+                <Label className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider truncate block">Dur. (min)</Label>
                 <Input
                   type="number"
                   min="0"
@@ -569,23 +640,32 @@ export default function Sessions() {
               </div>
             </div>
 
-            <div className="space-y-1.5">
+            <div className="space-y-1">
               <Label className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Notas</Label>
               <Textarea
                 value={form.notes}
                 onChange={(e) => form.setNotes(e.target.value)}
                 className="bg-background border-border"
-                rows={2}
+                rows={1}
               />
             </div>
 
-            <div className="flex items-center gap-2">
-              <Checkbox
-                id="paid"
-                checked={form.paid}
-                onCheckedChange={(v) => form.setPaid(!!v)}
-              />
-              <Label htmlFor="paid" className="text-sm cursor-pointer">Sesión pagada</Label>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Checkbox
+                  id="paid"
+                  checked={form.paid}
+                  onCheckedChange={(v) => form.setPaid(!!v)}
+                />
+                <Label htmlFor="paid" className="text-sm cursor-pointer">Sesión pagada</Label>
+              </div>
+              <Button
+                type="submit"
+                className="cta-button"
+                disabled={isPending || (!editingSession && !form.clientId)}
+              >
+                {isPending ? "Guardando..." : editingSession ? "Guardar cambios" : "Registrar"}
+              </Button>
             </div>
 
             {/* Calendar invite */}
@@ -612,7 +692,7 @@ export default function Sessions() {
                     </button>
                   </div>
                   {sendInvite && (
-                    <div className="space-y-1.5">
+                    <div className="space-y-1">
                       <Label className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Hora de inicio</Label>
                       <Input
                         type="time"
@@ -629,19 +709,32 @@ export default function Sessions() {
               );
             })()}
 
-            <DialogFooter>
-              <Button type="button" variant="ghost" onClick={closeModal}>Cancelar</Button>
-              <Button
-                type="submit"
-                className="cta-button"
-                disabled={isPending || (!editingSession && !form.clientId)}
-              >
-                {isPending ? "Guardando..." : editingSession ? "Guardar cambios" : "Registrar"}
-              </Button>
-            </DialogFooter>
           </form>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <AlertDialogContent className="bg-card border-border">
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar sesión?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Vas a eliminar la sesión de <strong>{(deleteTarget?.client as any)?.name ?? "este cliente"}</strong>. Esta acción no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                if (deleteTarget) deleteSession.mutate(deleteTarget.id);
+                setDeleteTarget(null);
+              }}
+            >
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

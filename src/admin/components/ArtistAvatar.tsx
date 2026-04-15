@@ -19,8 +19,8 @@ function getInitials(name: string) {
 
 interface ArtistAvatarProps {
   name?: string | null;
-  /** xs = 20px, sm = 24px (default) */
-  size?: "xs" | "sm";
+  /** xs = 20px, sm = 24px (default), md = 40px */
+  size?: "xs" | "sm" | "md";
 }
 
 export function ArtistAvatar({ name, size = "sm" }: ArtistAvatarProps) {
@@ -28,7 +28,7 @@ export function ArtistAvatar({ name, size = "sm" }: ArtistAvatarProps) {
 
   const color = PALETTE[nameHash(name) % PALETTE.length];
   const initials = getInitials(name);
-  const dim = size === "xs" ? "w-5 h-5 text-[9px]" : "w-6 h-6 text-[10px]";
+  const dim = size === "xs" ? "w-5 h-5 text-[9px]" : size === "md" ? "w-10 h-10 text-xs" : "w-6 h-6 text-[10px]";
 
   return (
     <span
