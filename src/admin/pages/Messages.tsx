@@ -6,6 +6,12 @@ import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { MailOpen, Phone, Mail, Reply, Trash2 } from "lucide-react";
 
+function normalizePhone(raw: string): string {
+  const trimmed = raw.trim();
+  if (trimmed.startsWith("+") || trimmed.startsWith("00")) return trimmed.replace(/\D/g, "");
+  return "34" + trimmed.replace(/\D/g, "");
+}
+
 export default function Messages() {
   const qc = useQueryClient();
 
@@ -126,7 +132,7 @@ export default function Messages() {
                           target="_blank"
                           rel="noopener noreferrer"
                         >
-                          <Reply className="w-3.5 h-3.5" />
+                          <Mail className="w-3.5 h-3.5" />
                           Responder
                         </a>
                       </Button>
@@ -134,11 +140,11 @@ export default function Messages() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        className="text-xs gap-1.5 text-muted-foreground"
+                        className="text-xs gap-1.5 text-green-500 hover:text-green-400 hover:bg-green-500/10"
                         asChild
                       >
                         <a
-                          href={`https://wa.me/${m.client_phone.replace(/\D/g, "")}?text=${encodeURIComponent(`Hola ${m.client_name}, te contactamos desde Lowkey Tattoo en respuesta a tu mensaje:\n\n"${m.description ?? ""}"\n\n`)}`}
+                          href={`https://wa.me/+${normalizePhone(m.client_phone)}?text=${encodeURIComponent(`Hola ${m.client_name}, te contactamos desde Lowkey Tattoo en respuesta a tu mensaje:\n\n"${m.description ?? ""}"\n\n`)}`}
                           target="_blank"
                           rel="noopener noreferrer"
                         >

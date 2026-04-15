@@ -61,33 +61,12 @@ export function DatePickerInput({
       </PopoverTrigger>
 
       <PopoverContent className="w-auto p-0 bg-card border-border" align="start">
+        {/*
+          The Calendar always renders so the popover size never changes.
+          The year picker overlays it with absolute inset-0, preventing
+          any repositioning by Radix on open/close.
+        */}
         <div className="relative">
-
-          {/* ── Year picker overlay ── */}
-          {yearPickerOpen && (
-            <div className="absolute inset-x-0 bottom-full mb-1 z-20 bg-card border border-border rounded-md shadow-lg max-h-52 overflow-y-auto">
-              {years.map((year) => (
-                <button
-                  key={year}
-                  type="button"
-                  className={cn(
-                    "w-full py-1.5 text-sm text-center hover:bg-muted transition-colors",
-                    year === calendarMonth.getFullYear() && "text-primary font-semibold"
-                  )}
-                  onClick={() => {
-                    const next = new Date(calendarMonth);
-                    next.setFullYear(year);
-                    setMonth(next);
-                    setYearPickerOpen(false);
-                  }}
-                >
-                  {year}
-                </button>
-              ))}
-            </div>
-          )}
-
-          {/* ── Calendar with custom caption ── */}
           <Calendar
             mode="single"
             selected={selected}
@@ -122,7 +101,7 @@ export function DatePickerInput({
                     <button
                       type="button"
                       className="text-primary hover:underline font-semibold tabular-nums"
-                      onClick={() => setYearPickerOpen((o) => !o)}
+                      onClick={() => setYearPickerOpen(true)}
                     >
                       {format(dm, "yyyy")}
                     </button>
@@ -140,6 +119,51 @@ export function DatePickerInput({
               ),
             }}
           />
+
+          {/* Year picker — absolute overlay, same size as calendar, no layout shift */}
+          {yearPickerOpen && (
+            <div className="absolute inset-0 bg-card rounded-md flex flex-col">
+              <div className="flex items-center justify-between px-3 py-2 border-b border-border shrink-0">
+                <span className="text-sm font-medium capitalize">
+                  {format(calendarMonth, "MMMM yyyy", { locale: es })}
+                </span>
+                <button
+                  type="button"
+                  className="text-xs text-muted-foreground hover:text-foreground transition-colors px-1"
+                  onClick={() => setYearPickerOpen(false)}
+                >
+                  ✕
+                </button>
+              </div>
+              {/* overscroll-contain keeps wheel events inside this div */}
+              <div
+                className="flex-1 overflow-y-auto overscroll-contain p-2"
+                onWheel={(e) => e.stopPropagation()}
+              >
+                <div className="grid grid-cols-3 gap-1">
+                  {years.map((year) => (
+                    <button
+                      key={year}
+                      type="button"
+                      className={cn(
+                        "rounded py-1.5 text-sm text-center hover:bg-muted transition-colors tabular-nums",
+                        year === calendarMonth.getFullYear() &&
+                          "bg-primary text-primary-foreground hover:bg-primary/90 font-semibold"
+                      )}
+                      onClick={() => {
+                        const next = new Date(calendarMonth);
+                        next.setFullYear(year);
+                        setMonth(next);
+                        setYearPickerOpen(false);
+                      }}
+                    >
+                      {year}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </PopoverContent>
     </Popover>

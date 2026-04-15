@@ -46,15 +46,25 @@ import { useArtistProfiles } from "@admin/hooks/useArtistProfiles";
 import { toast } from "sonner";
 import { ArtistAvatar } from "@admin/components/ArtistAvatar";
 
+function normalizePhone(raw: string): string {
+  const trimmed = raw.trim();
+  // Already has international prefix (+34, 0034, etc.) → strip non-digits and keep as-is
+  if (trimmed.startsWith("+") || trimmed.startsWith("00")) {
+    return trimmed.replace(/\D/g, "");
+  }
+  // Default to Spain (+34)
+  return "34" + trimmed.replace(/\D/g, "");
+}
+
 function buildWhatsAppUrl(booking: WebBooking): string {
-  const phone = (booking.client_phone ?? "").replace(/\D/g, "");
+  const phone = normalizePhone(booking.client_phone ?? "");
   const name = booking.client_name ?? "cliente";
   const serviceLabel = SERVICE_LABELS[booking.service_type] ?? booking.service_type;
   const date = booking.preferred_date
     ? format(new Date(booking.preferred_date + "T00:00:00"), "d 'de' MMMM", { locale: es })
     : "la fecha solicitada";
   const text = `Hola ${name}, te contactamos desde Lowkey Tattoo sobre tu solicitud de ${serviceLabel.toLowerCase()} para el ${date}. `;
-  return `https://wa.me/${phone}?text=${encodeURIComponent(text)}`;
+  return `https://wa.me/+${phone}?text=${encodeURIComponent(text)}`;
 }
 
 function buildGmailUrl(booking: WebBooking): string {

@@ -37,7 +37,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, Camera, Plus, Star, Upload, Trash2, Pencil, MessageCircle, AlertCircle, Cake, Clock, Link2, UserCircle } from "lucide-react";
+import { ArrowLeft, Camera, Plus, Star, Upload, Trash2, Pencil, Phone, AlertCircle, Cake, Clock, Link2, UserCircle } from "lucide-react";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
 import { useQueryClient } from "@tanstack/react-query";
@@ -264,7 +264,13 @@ export default function ClientProfile() {
   );
 
   const whatsappHref = client?.phone
-    ? `https://wa.me/${client.phone.replace(/\D/g, "")}`
+    ? (() => {
+        const raw = client.phone.trim();
+        const digits = raw.startsWith("+") || raw.startsWith("00")
+          ? raw.replace(/\D/g, "")
+          : "34" + raw.replace(/\D/g, "");
+        return `https://wa.me/+${digits}`;
+      })()
     : null;
 
   if (isLoading) {
@@ -341,9 +347,10 @@ export default function ClientProfile() {
                         target="_blank"
                         rel="noopener noreferrer"
                         title="Abrir en WhatsApp"
-                        className="text-green-500 hover:text-green-400 transition-colors"
+                        className="inline-flex items-center gap-1 text-green-500 hover:text-green-400 transition-colors text-xs"
                       >
-                        <MessageCircle className="w-4 h-4" />
+                        <Phone className="w-3.5 h-3.5" />
+                        WA
                       </a>
                     )}
                   </span>

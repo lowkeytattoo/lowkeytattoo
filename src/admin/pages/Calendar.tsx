@@ -469,8 +469,8 @@ export default function CalendarPage() {
           </CardContent>
         </Card>
 
-        {/* Day detail panel */}
-        <div className="space-y-3">
+        {/* Desktop side panel */}
+        <div className="hidden lg:block space-y-3">
           <Card className="bg-card border-border">
             <CardHeader className="pb-2">
               <div className="flex items-center justify-between">
@@ -504,6 +504,48 @@ export default function CalendarPage() {
           </Card>
         </div>
       </div>
+
+      {/* Mobile centered overlay */}
+      {selectedDay && (
+        <div className="lg:hidden fixed inset-0 z-20 flex items-center justify-center p-4 bg-black/50">
+          <Card className="bg-card border-border shadow-xl w-full max-w-sm">
+            <CardHeader className="pb-2">
+              <div className="flex items-center justify-between">
+                <CardTitle className="text-sm font-['IBM_Plex_Mono'] uppercase tracking-wider text-muted-foreground truncate pr-2">
+                  {format(selectedDay, "EEEE d 'de' MMMM", { locale: es })}
+                </CardTitle>
+                <div className="flex items-center gap-0.5 shrink-0">
+                  <button
+                    onClick={() => setNewEventOpen(true)}
+                    className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+                    title="Añadir evento este día"
+                  >
+                    <Plus className="w-4 h-4" />
+                  </button>
+                  <button
+                    onClick={() => setSelectedDay(null)}
+                    className="p-1 rounded text-muted-foreground hover:text-foreground hover:bg-muted/50 transition-colors"
+                    title="Cerrar"
+                  >
+                    <X className="w-4 h-4" />
+                  </button>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              {selectedEvents.length === 0 ? (
+                <p className="text-sm text-muted-foreground py-4 text-center">
+                  Sin eventos
+                </p>
+              ) : (
+                selectedEvents.map((ev) => (
+                  <EventCard key={ev.id} ev={ev} onDelete={handleDelete} />
+                ))
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      )}
 
       <NewEventDialog
         open={newEventOpen}
