@@ -1,6 +1,7 @@
 import { Link } from "react-router-dom";
 import { CONTACT } from "@web/config/contact";
 import { ROUTES } from "@web/config/routes";
+import ogTatuajesImg from "@/assets/lowkey_tattoo_tenerife_pablo_matos_1.webp";
 
 const WhatsAppIcon = ({ size = 16 }: { size?: number }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -65,6 +66,7 @@ export default function TatuajesPage() {
         description={t("tattoos.meta.desc")}
         canonical={r.tattoos}
         alternateCanonical={alt.tattoos}
+        ogImage={`${SITE}${ogTatuajesImg}`}
         schema={schemas}
       />
       <Navbar />

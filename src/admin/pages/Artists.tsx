@@ -1,6 +1,7 @@
-import { useState } from "react";
+import { useState, useRef } from "react";
 import { toast } from "sonner";
 import { useArtistProfiles, useUpdateProfile } from "@admin/hooks/useArtistProfiles";
+import { supabase } from "@shared/lib/supabase";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -21,7 +22,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { UserCircle, Pencil } from "lucide-react";
+import { UserCircle, Pencil, Camera } from "lucide-react";
 import { ARTISTS } from "@shared/config/artists";
 import type { Profile, ServiceType } from "@shared/types/index";
 
@@ -30,6 +31,32 @@ const ALL_SERVICES: { value: ServiceType; label: string }[] = [
   { value: "piercing", label: "Piercing" },
   { value: "laser", label: "Láser" },
 ];
+
+async function resizeAvatar(file: File): Promise<Blob> {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    const url = URL.createObjectURL(file);
+    img.onload = () => {
+      URL.revokeObjectURL(url);
+      const MAX = 256;
+      let { naturalWidth: w, naturalHeight: h } = img;
+      if (w > MAX || h > MAX) {
+        if (w >= h) { h = Math.round((h * MAX) / w); w = MAX; }
+        else        { w = Math.round((w * MAX) / h); h = MAX; }
+      }
+      const canvas = document.createElement("canvas");
+      canvas.width = w; canvas.height = h;
+      canvas.getContext("2d")!.drawImage(img, 0, 0, w, h);
+      canvas.toBlob(
+        (blob) => blob ? resolve(blob) : reject(new Error("WebP conversion failed")),
+        "image/webp",
+        0.85,
+      );
+    };
+    img.onerror = reject;
+    img.src = url;
+  });
+}
 
 export default function Artists() {
   const { data: profiles, isLoading } = useArtistProfiles();
@@ -41,13 +68,15 @@ export default function Artists() {
   const [editConfigId, setEditConfigId] = useState("");
   const [editServices, setEditServices] = useState<ServiceType[]>(["tattoo"]);
   const [editCalendarId, setEditCalendarId] = useState("");
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
+
+  const avatarInputRef = useRef<HTMLInputElement>(null);
 
   const startEdit = (p: Profile) => {
     setEditing(p);
     setEditName(p.display_name);
     setEditRole(p.role);
     setEditConfigId(p.artist_config_id ?? "");
-    // Use DB override if set, else fall back to static config
     const staticServices = ARTISTS.find((a) => a.id === p.artist_config_id)?.services ?? ["tattoo"];
     setEditServices(p.available_services ?? staticServices);
     setEditCalendarId(p.calendar_id ?? "");
@@ -59,6 +88,30 @@ export default function Artists() {
         ? prev.filter((s) => s !== service)
         : [...prev, service]
     );
+  };
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !editing) return;
+    e.target.value = "";
+    setUploadingAvatar(true);
+    try {
+      const blob = await resizeAvatar(file);
+      const path = `${editing.id}.webp`;
+      const { error: uploadError } = await supabase.storage
+        .from("avatars")
+        .upload(path, blob, { contentType: "image/webp", upsert: true });
+      if (uploadError) throw uploadError;
+      const { data: { publicUrl } } = supabase.storage.from("avatars").getPublicUrl(path);
+      await updateProfile.mutateAsync({ id: editing.id, avatar_url: publicUrl });
+      setEditing((prev) => prev ? { ...prev, avatar_url: publicUrl } : prev);
+      toast.success("Avatar actualizado");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Error al subir la foto";
+      toast.error(msg);
+    } finally {
+      setUploadingAvatar(false);
+    }
   };
 
   const saveEdit = async () => {
@@ -137,6 +190,15 @@ export default function Artists() {
         </div>
       )}
 
+      {/* Hidden file input for avatar */}
+      <input
+        ref={avatarInputRef}
+        type="file"
+        accept="image/*"
+        className="hidden"
+        onChange={handleAvatarChange}
+      />
+
       <Dialog open={!!editing} onOpenChange={(open) => !open && setEditing(null)}>
         <DialogContent className="bg-card border-border">
           <DialogHeader>
@@ -146,6 +208,35 @@ export default function Artists() {
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4 mt-2">
+
+            {/* Avatar upload */}
+            <div className="flex flex-col items-center gap-2">
+              <button
+                type="button"
+                onClick={() => avatarInputRef.current?.click()}
+                disabled={uploadingAvatar}
+                className="group relative w-20 h-20 rounded-full overflow-hidden border-2 border-border hover:border-muted-foreground transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary"
+              >
+                {editing?.avatar_url ? (
+                  <img
+                    src={editing.avatar_url}
+                    alt={editing.display_name}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <UserCircle className="w-full h-full text-muted-foreground p-1" />
+                )}
+                <div className="absolute inset-0 bg-black/50 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                  {uploadingAvatar ? (
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <Camera className="w-5 h-5 text-white" />
+                  )}
+                </div>
+              </button>
+              <p className="text-xs text-muted-foreground">Pulsa para cambiar el avatar</p>
+            </div>
+
             <div className="space-y-1.5">
               <Label className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Nombre</Label>
               <Input
@@ -228,7 +319,7 @@ export default function Artists() {
           </div>
           <DialogFooter className="mt-4">
             <Button variant="ghost" onClick={() => setEditing(null)}>Cancelar</Button>
-            <Button className="cta-button" onClick={saveEdit} disabled={updateProfile.isPending}>
+            <Button className="cta-button" onClick={saveEdit} disabled={updateProfile.isPending || uploadingAvatar}>
               {updateProfile.isPending ? "Guardando..." : "Guardar"}
             </Button>
           </DialogFooter>

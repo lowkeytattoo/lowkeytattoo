@@ -53,6 +53,7 @@ export default function PiercingPage() {
         description={t("piercing.meta.desc")}
         canonical={r.piercing}
         alternateCanonical={alt.piercing}
+        ogImage={`${SITE}${piercingPablo1}`}
         schema={schemas}
       />
       <Navbar />

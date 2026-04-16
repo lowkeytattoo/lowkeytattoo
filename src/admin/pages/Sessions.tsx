@@ -39,6 +39,7 @@ import {
 import { Plus, Pencil, CalendarIcon, Trash2, Search, SlidersHorizontal, CalendarPlus } from "lucide-react";
 import { ArtistAvatar } from "@admin/components/ArtistAvatar";
 import { format, parseISO } from "date-fns";
+import { formatLocalDate } from "@shared/lib/formatDate";
 import { es } from "date-fns/locale";
 import { cn } from "@shared/lib/utils";
 import type { Session } from "@shared/types/index";
@@ -128,7 +129,7 @@ export default function Sessions() {
 
   const filteredSessions = filterSearch
     ? (sessions ?? []).filter((s) =>
-        ((s.client as any)?.name ?? "").toLowerCase().includes(filterSearch.toLowerCase())
+        (s.client?.name ?? "").toLowerCase().includes(filterSearch.toLowerCase())
       )
     : (sessions ?? []);
 
@@ -348,9 +349,9 @@ export default function Sessions() {
             <div key={s.id} className="rounded-lg border border-border bg-card p-3 space-y-1.5">
               {/* Row 1: client + date */}
               <div className="flex items-center justify-between gap-2">
-                <span className="font-medium text-sm truncate">{(s.client as any)?.name ?? "—"}</span>
+                <span className="font-medium text-sm truncate">{s.client?.name ?? "—"}</span>
                 <span className="text-xs font-['IBM_Plex_Mono'] text-muted-foreground shrink-0">
-                  {format(new Date(s.date + "T00:00:00"), "d MMM yyyy", { locale: es })}
+                  {formatLocalDate(s.date, "d MMM yyyy", { locale: es })}
                 </span>
               </div>
               {/* Row 2: type · zone · artist */}
@@ -361,8 +362,8 @@ export default function Sessions() {
                 {s.body_zone && (
                   <span className="text-xs text-muted-foreground truncate">{s.body_zone}</span>
                 )}
-                {isOwner && (s.artist as any)?.display_name && (
-                  <span className="text-xs text-muted-foreground ml-auto shrink-0">{(s.artist as any).display_name}</span>
+                {isOwner && s.artist?.display_name && (
+                  <span className="text-xs text-muted-foreground ml-auto shrink-0">{s.artist.display_name}</span>
                 )}
               </div>
               {/* Row 3: price · duration · paid badge · actions */}
@@ -438,11 +439,11 @@ export default function Sessions() {
               filteredSessions.map((s) => (
                 <TableRow key={s.id} className="border-border group">
                   <TableCell className="text-xs font-['IBM_Plex_Mono'] whitespace-nowrap">
-                    {format(new Date(s.date + "T00:00:00"), "d MMM yyyy", { locale: es })}
+                    {formatLocalDate(s.date, "d MMM yyyy", { locale: es })}
                   </TableCell>
-                  <TableCell className="text-sm max-w-[100px] truncate">{(s.client as any)?.name ?? "—"}</TableCell>
+                  <TableCell className="text-sm max-w-[100px] truncate">{s.client?.name ?? "—"}</TableCell>
                   {isOwner && (
-                    <TableCell className="text-sm">{(s.artist as any)?.display_name ?? "—"}</TableCell>
+                    <TableCell className="text-sm">{s.artist?.display_name ?? "—"}</TableCell>
                   )}
                   <TableCell>
                     <Badge variant="outline" className="text-[10px] font-['IBM_Plex_Mono'] whitespace-nowrap">
@@ -509,7 +510,7 @@ export default function Sessions() {
               <Label className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Cliente *</Label>
               {editingSession ? (
                 <div className="px-3 py-2 rounded-md border border-border bg-muted/30 text-sm text-muted-foreground">
-                  {(editingSession.client as any)?.name ?? form.clientId}
+                  {editingSession.client?.name ?? form.clientId}
                 </div>
               ) : (
                 <Select value={form.clientId} onValueChange={form.setClientId} required>
@@ -718,7 +719,7 @@ export default function Sessions() {
           <AlertDialogHeader>
             <AlertDialogTitle>¿Eliminar sesión?</AlertDialogTitle>
             <AlertDialogDescription>
-              Vas a eliminar la sesión de <strong>{(deleteTarget?.client as any)?.name ?? "este cliente"}</strong>. Esta acción no se puede deshacer.
+              Vas a eliminar la sesión de <strong>{deleteTarget?.client?.name ?? "este cliente"}</strong>. Esta acción no se puede deshacer.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

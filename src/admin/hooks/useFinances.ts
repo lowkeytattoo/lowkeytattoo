@@ -1,23 +1,24 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@shared/lib/supabase";
 import { startOfMonth, endOfMonth, subMonths, format } from "date-fns";
+import { formatLocalDate } from "@shared/lib/formatDate";
 
 const toNum = (v: unknown): number => parseFloat(String(v ?? 0)) || 0;
 
-export const useFinancesOverview = (artistId?: string) => {
+export const useFinancesOverview = (artistId?: string, dateFrom?: string, dateTo?: string) => {
   return useQuery({
-    queryKey: ["finances-overview", artistId],
+    queryKey: ["finances-overview", artistId, dateFrom, dateTo],
     queryFn: async () => {
       const now = new Date();
-      const monthStart = format(startOfMonth(now), "yyyy-MM-dd");
-      const monthEnd = format(endOfMonth(now), "yyyy-MM-dd");
+      const rangeStart = dateFrom ?? format(startOfMonth(now), "yyyy-MM-dd");
+      const rangeEnd   = dateTo   ?? format(endOfMonth(now),   "yyyy-MM-dd");
 
-      // Sesiones del mes actual (filtradas en BD, no en cliente)
+      // Sesiones del periodo seleccionado (filtradas en BD, no en cliente)
       let monthQuery = supabase
         .from("sessions")
         .select("price, date, artist_id")
-        .gte("date", monthStart)
-        .lte("date", monthEnd);
+        .gte("date", rangeStart)
+        .lte("date", rangeEnd);
       if (artistId) monthQuery = monthQuery.eq("artist_id", artistId);
       const { data: monthData, error: monthError } = await monthQuery;
       if (monthError) throw monthError;
@@ -77,8 +78,8 @@ export const useRevenueByMonth = (months = 6, artistId?: string) => {
       monthLabels.forEach((label) => { buckets[label] = {}; });
 
       (data ?? []).forEach((s) => {
-        const label = format(new Date(s.date + "T00:00:00"), "MMM yyyy");
-        const artistName = (s.artist as any)?.display_name ?? "Sin artista";
+        const label = formatLocalDate(s.date, "MMM yyyy");
+        const artistName = s.artist?.display_name ?? "Sin artista";
         if (!buckets[label]) return;
         buckets[label][artistName] = (buckets[label][artistName] ?? 0) + toNum(s.price);
       });

@@ -38,7 +38,9 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { ArrowLeft, Camera, Plus, Star, Upload, Trash2, Pencil, Phone, AlertCircle, Cake, Clock, Link2, UserCircle } from "lucide-react";
+import type { SessionType } from "@shared/types/index";
 import { format } from "date-fns";
+import { formatLocalDate } from "@shared/lib/formatDate";
 import { es } from "date-fns/locale";
 import { useQueryClient } from "@tanstack/react-query";
 
@@ -103,7 +105,7 @@ export default function ClientProfile() {
 
   const [showSessionModal, setShowSessionModal] = useState(false);
   const [sessionDate, setSessionDate] = useState(format(new Date(), "yyyy-MM-dd"));
-  const [sessionType, setSessionType] = useState<string>("tattoo");
+  const [sessionType, setSessionType] = useState<SessionType>("tattoo");
   const [sessionPrice, setSessionPrice] = useState("");
   const [sessionDeposit, setSessionDeposit] = useState("");
   const [sessionNotes, setSessionNotes] = useState("");
@@ -181,7 +183,7 @@ export default function ClientProfile() {
       client_id: id!,
       artist_id: profile?.id ?? null,
       date: sessionDate,
-      type: sessionType as any,
+      type: sessionType,
       price: sessionPrice ? parseFloat(sessionPrice) : null,
       deposit: sessionDeposit ? parseFloat(sessionDeposit) : 0,
       paid: false,
@@ -359,7 +361,7 @@ export default function ClientProfile() {
                 {client.birthday && (
                   <span className="flex items-center gap-1.5">
                     <Cake className="w-3.5 h-3.5" />
-                    {format(new Date(client.birthday + "T00:00:00"), "d MMM yyyy", { locale: es })}
+                    {formatLocalDate(client.birthday, "d MMM yyyy", { locale: es })}
                   </span>
                 )}
                 {client.allergies && (
@@ -405,7 +407,7 @@ export default function ClientProfile() {
             <CardContent className="p-3">
               <div className="text-[10px] font-['IBM_Plex_Mono'] text-muted-foreground uppercase tracking-wider">Primera visita</div>
               <div className="text-sm font-medium mt-1">
-                {firstVisit ? format(new Date(firstVisit + "T00:00:00"), "d MMM yyyy", { locale: es }) : "—"}
+                {firstVisit ? formatLocalDate(firstVisit, "d MMM yyyy", { locale: es }) : "—"}
               </div>
             </CardContent>
           </Card>
@@ -413,7 +415,7 @@ export default function ClientProfile() {
             <CardContent className="p-3">
               <div className="text-[10px] font-['IBM_Plex_Mono'] text-muted-foreground uppercase tracking-wider">Última visita</div>
               <div className="text-sm font-medium mt-1">
-                {lastVisit ? format(new Date(lastVisit + "T00:00:00"), "d MMM yyyy", { locale: es }) : "—"}
+                {lastVisit ? formatLocalDate(lastVisit, "d MMM yyyy", { locale: es }) : "—"}
               </div>
             </CardContent>
           </Card>
@@ -449,7 +451,7 @@ export default function ClientProfile() {
                   {/* Row 1: date · type · zone */}
                   <div className="flex items-center gap-2 min-w-0">
                     <div className="text-xs font-['IBM_Plex_Mono'] text-muted-foreground shrink-0">
-                      {format(new Date(s.date + "T00:00:00"), "d MMM yyyy", { locale: es })}
+                      {formatLocalDate(s.date, "d MMM yyyy", { locale: es })}
                     </div>
                     <Badge variant="outline" className="text-xs font-['IBM_Plex_Mono'] shrink-0">
                       {SESSION_TYPE_LABELS[s.type]}
@@ -687,7 +689,7 @@ export default function ClientProfile() {
                   <SelectItem value="none">Sin vincular</SelectItem>
                   {(sessions ?? []).map((s) => (
                     <SelectItem key={s.id} value={s.id}>
-                      {format(new Date(s.date + "T00:00:00"), "d MMM yyyy", { locale: es })} — {SESSION_TYPE_LABELS[s.type]}
+                      {formatLocalDate(s.date, "d MMM yyyy", { locale: es })} — {SESSION_TYPE_LABELS[s.type]}
                       {s.body_zone ? ` · ${s.body_zone}` : ""}
                     </SelectItem>
                   ))}

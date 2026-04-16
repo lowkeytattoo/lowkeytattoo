@@ -35,6 +35,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { format } from "date-fns";
+import { formatLocalDate } from "@shared/lib/formatDate";
 import { es } from "date-fns/locale";
 import { Phone, Reply, AlertTriangle, Trash2 } from "lucide-react";
 import { DatePickerInput } from "@admin/components/DatePickerInput";
@@ -61,7 +62,7 @@ function buildWhatsAppUrl(booking: WebBooking): string {
   const name = booking.client_name ?? "cliente";
   const serviceLabel = SERVICE_LABELS[booking.service_type] ?? booking.service_type;
   const date = booking.preferred_date
-    ? format(new Date(booking.preferred_date + "T00:00:00"), "d 'de' MMMM", { locale: es })
+    ? formatLocalDate(booking.preferred_date, "d 'de' MMMM", { locale: es })
     : "la fecha solicitada";
   const text = `Hola ${name}, te contactamos desde Lowkey Tattoo sobre tu solicitud de ${serviceLabel.toLowerCase()} para el ${date}. `;
   return `https://wa.me/+${phone}?text=${encodeURIComponent(text)}`;
@@ -71,7 +72,7 @@ function buildGmailUrl(booking: WebBooking): string {
   const name = booking.client_name ?? "cliente";
   const serviceLabel = SERVICE_LABELS[booking.service_type] ?? booking.service_type;
   const date = booking.preferred_date
-    ? format(new Date(booking.preferred_date + "T00:00:00"), "d 'de' MMMM", { locale: es })
+    ? formatLocalDate(booking.preferred_date, "d 'de' MMMM", { locale: es })
     : "la fecha solicitada";
   const time = booking.preferred_time ? ` a las ${booking.preferred_time}` : "";
 
@@ -347,7 +348,7 @@ export default function WebBookings() {
                   </Badge>
                   <span className="text-xs font-['IBM_Plex_Mono'] text-muted-foreground">
                     {b.preferred_date
-                      ? format(new Date(b.preferred_date + "T00:00:00"), "d MMM", { locale: es })
+                      ? formatLocalDate(b.preferred_date, "d MMM", { locale: es })
                       : "—"}
                   </span>
                   {b.status === "pending" && <ConflictBadge booking={b} />}
@@ -470,7 +471,7 @@ export default function WebBookings() {
                   <TableCell className="text-xs font-['IBM_Plex_Mono'] whitespace-nowrap">
                     <div className="flex items-center gap-1">
                       {b.preferred_date
-                        ? format(new Date(b.preferred_date + "T00:00:00"), "d MMM yyyy", { locale: es })
+                        ? formatLocalDate(b.preferred_date, "d MMM yyyy", { locale: es })
                         : "—"}
                       {b.status === "pending" && <ConflictBadge booking={b} />}
                     </div>

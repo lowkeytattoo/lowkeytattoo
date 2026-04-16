@@ -110,7 +110,7 @@ export default function Clients() {
     setEditNotes(client.notes ?? "");
     setEditAllergies(client.allergies ?? "");
     setEditBirthday(client.birthday ?? "");
-    setEditArtist((client as any).primary_artist_id ?? "");
+    setEditArtist(client.primary_artist_id ?? "");
   };
 
   const handleEdit = async (e: React.FormEvent) => {

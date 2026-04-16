@@ -58,6 +58,7 @@ export default function LaserPage() {
         description={t("laser.meta.desc")}
         canonical={r.laser}
         alternateCanonical={alt.laser}
+        ogImage={`${SITE}${laserImg}`}
         schema={schemas}
       />
       <Navbar />

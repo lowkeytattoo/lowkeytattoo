@@ -45,7 +45,18 @@ const ALL_SERVICES: { value: ServiceType; label: string }[] = [
   { value: "laser",     label: "Láser"    },
 ];
 
-const allNavItems = [
+interface NavItem {
+  to: string;
+  label: string;
+  icon: React.ElementType;
+  ownerOnly?: boolean;
+  requiresCalendar?: boolean;
+  badge?: boolean;
+  messagesBadge?: boolean;
+  bookingsBadge?: boolean;
+}
+
+const allNavItems: NavItem[] = [
   { to: "/admin/dashboard", label: "Dashboard",  icon: LayoutDashboard },
   { to: "/admin/clients",   label: "Clientes",   icon: Users },
   { to: "/admin/sessions",  label: "Sesiones",   icon: Calendar },
@@ -115,10 +126,16 @@ export const AdminSidebar = () => {
     return true;
   });
 
-  // Sort mobileItems according to MOBILE_ITEMS order
-  const mobileItems = MOBILE_ITEMS
-    .map((path) => allItems.find((i) => i.to === path))
-    .filter((i): i is NonNullable<typeof i> => i != null);
+  // Build mobile bar: preserve MOBILE_ITEMS order; backfill any missing slot
+  // with the next available item not already in the bar — always 5 icons
+  const mobileItems = (() => {
+    const usedPaths = new Set(MOBILE_ITEMS);
+    const backfill = allItems.filter((i) => !usedPaths.has(i.to));
+    let bi = 0;
+    return MOBILE_ITEMS
+      .map((path) => allItems.find((i) => i.to === path) ?? backfill[bi++] ?? null)
+      .filter((i): i is NonNullable<typeof i> => i != null);
+  })();
 
   const moreItems = allItems.filter((i) => !MOBILE_ITEMS.includes(i.to));
 

@@ -121,7 +121,7 @@ function NewEventDialog({
   });
   const [invitedIds, setInvitedIds] = useState<string[]>([]);
 
-  // Reset form and invites when dialog closes without saving
+  // Reset when closing; sync date when the selected day changes while open
   useEffect(() => {
     if (!open) {
       setInvitedIds([]);
@@ -133,11 +133,10 @@ function NewEventDialog({
         description: "",
         allDay: false,
       });
+    } else if (defaultDate) {
+      setForm((f) => ({ ...f, date: format(defaultDate, "yyyy-MM-dd") }));
     }
-  }, [open]);
-
-  // Keep date in sync when defaultDate changes
-  const dateStr = defaultDate ? format(defaultDate, "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd");
+  }, [open, defaultDate]);
 
   const set = (k: keyof NewEventForm, v: string | boolean) =>
     setForm((f) => ({ ...f, [k]: v }));
@@ -204,7 +203,7 @@ function NewEventDialog({
           {/* Date */}
           <div className="space-y-1.5">
             <Label className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Fecha *</Label>
-            <DatePickerInput value={form.date || dateStr} onChange={(v) => set("date", v)} required />
+            <DatePickerInput value={form.date} onChange={(v) => set("date", v)} required />
           </div>
 
           {/* All day toggle */}

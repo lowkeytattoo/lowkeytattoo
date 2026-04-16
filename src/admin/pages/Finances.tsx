@@ -14,6 +14,7 @@ import {
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
 } from "recharts";
 import { format, startOfMonth, endOfMonth, subMonths, startOfYear } from "date-fns";
+import { formatLocalDate } from "@shared/lib/formatDate";
 import { es } from "date-fns/locale";
 import { Download, Printer } from "lucide-react";
 import { ArtistAvatar } from "@admin/components/ArtistAvatar";
@@ -121,8 +122,8 @@ function printSessionReceipt(session: any) {
   <div class="sub">Justificante de sesión</div>
   <hr>
   <div class="row"><span class="lbl">Fecha</span><span>${session.date ?? "—"}</span></div>
-  <div class="row"><span class="lbl">Cliente</span><span>${(session.client as any)?.name ?? "—"}</span></div>
-  <div class="row"><span class="lbl">Artista</span><span>${(session.artist as any)?.display_name ?? "—"}</span></div>
+  <div class="row"><span class="lbl">Cliente</span><span>${session.client?.name ?? "—"}</span></div>
+  <div class="row"><span class="lbl">Artista</span><span>${session.artist?.display_name ?? "—"}</span></div>
   <div class="row"><span class="lbl">Servicio</span><span>${session.type ?? "—"}</span></div>
   <div class="row"><span class="lbl">Zona</span><span>${session.body_zone ?? "—"}</span></div>
   <hr>
@@ -184,8 +185,8 @@ export default function Finances() {
   const handleExport = () => {
     const rows = (sessions ?? []).map((s) => ({
       fecha: s.date,
-      cliente: (s.client as any)?.name ?? "",
-      artista: (s.artist as any)?.display_name ?? "",
+      cliente: s.client?.name ?? "",
+      artista: s.artist?.display_name ?? "",
       tipo: s.type,
       precio: s.price ?? 0,
       señal: s.deposit,
@@ -413,14 +414,14 @@ function FinancesContent({
                 {(unpaid ?? []).map((s) => (
                   <TableRow key={s.id} className="border-border group">
                     <TableCell className="text-xs font-['IBM_Plex_Mono'] whitespace-nowrap">
-                      <span className="hidden sm:inline">{format(new Date(s.date + "T00:00:00"), "d MMM yyyy", { locale: es })}</span>
-                      <span className="sm:hidden">{format(new Date(s.date + "T00:00:00"), "d MMM", { locale: es })}</span>
+                      <span className="hidden sm:inline">{formatLocalDate(s.date, "d MMM yyyy", { locale: es })}</span>
+                      <span className="sm:hidden">{formatLocalDate(s.date, "d MMM", { locale: es })}</span>
                     </TableCell>
-                    <TableCell className="text-sm max-w-[100px] truncate">{(s.client as any)?.name ?? "—"}</TableCell>
+                    <TableCell className="text-sm max-w-[100px] truncate">{s.client?.name ?? "—"}</TableCell>
                     {isOwner && (
                       <TableCell>
-                        <span className="sm:hidden"><ArtistAvatar name={(s.artist as any)?.display_name} /></span>
-                        <span className="hidden sm:inline text-sm">{(s.artist as any)?.display_name ?? "—"}</span>
+                        <span className="sm:hidden"><ArtistAvatar name={s.artist?.display_name} /></span>
+                        <span className="hidden sm:inline text-sm">{s.artist?.display_name ?? "—"}</span>
                       </TableCell>
                     )}
                     <TableCell className="text-right font-['IBM_Plex_Mono'] text-sm text-destructive whitespace-nowrap">

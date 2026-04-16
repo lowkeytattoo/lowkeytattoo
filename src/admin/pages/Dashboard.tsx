@@ -1,8 +1,11 @@
+import { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
+import { useQuery } from "@tanstack/react-query";
 import { useAdminAuth } from "@admin/contexts/AdminAuthContext";
 import { useFinancesOverview, useRevenueByMonth } from "@admin/hooks/useFinances";
 import { useSessions } from "@admin/hooks/useSessions";
 import { useLowStockCount } from "@admin/hooks/useStock";
+import { supabase } from "@shared/lib/supabase";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
@@ -11,11 +14,19 @@ import {
   BarChart, Bar,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer,
 } from "recharts";
-import { format, startOfDay, endOfDay, parseISO } from "date-fns";
+import {
+  format, startOfDay, endOfDay, parseISO,
+  startOfWeek, endOfWeek, startOfMonth, endOfMonth, startOfQuarter, endOfQuarter,
+} from "date-fns";
+import { formatLocalDate } from "@shared/lib/formatDate";
 import { es } from "date-fns/locale";
-import { TrendingUp, Users, Calendar, AlertCircle, ExternalLink, Clock } from "lucide-react";
+import { TrendingUp, Users, Calendar, AlertCircle, ExternalLink, Clock, BookOpen } from "lucide-react";
 import { ArtistAvatar } from "@admin/components/ArtistAvatar";
 import { useCalendarEvents } from "@admin/hooks/useGoogleCalendar";
+
+type Period = "week" | "month" | "quarter";
+const PERIOD_LABELS: Record<Period, string> = { week: "Semana", month: "Mes", quarter: "Trimestre" };
+const PERIOD_KPI: Record<Period, string> = { week: "esta semana", month: "este mes", quarter: "este trimestre" };
 
 const SESSION_TYPE_LABELS: Record<string, string> = {
   tattoo: "Tatuaje",
@@ -35,8 +46,39 @@ export default function Dashboard() {
   const isOwner = profile?.role === "owner";
   const artistId = isOwner ? undefined : profile?.id;
 
-  const { data: overview } = useFinancesOverview(artistId);
+  const [period, setPeriod] = useState<Period>("month");
+  const { dateFrom, dateTo } = useMemo(() => {
+    const now = new Date();
+    if (period === "week") return {
+      dateFrom: format(startOfWeek(now, { weekStartsOn: 1 }), "yyyy-MM-dd"),
+      dateTo:   format(endOfWeek(now,   { weekStartsOn: 1 }), "yyyy-MM-dd"),
+    };
+    if (period === "quarter") return {
+      dateFrom: format(startOfQuarter(now), "yyyy-MM-dd"),
+      dateTo:   format(endOfQuarter(now),   "yyyy-MM-dd"),
+    };
+    return {
+      dateFrom: format(startOfMonth(now), "yyyy-MM-dd"),
+      dateTo:   format(endOfMonth(now),   "yyyy-MM-dd"),
+    };
+  }, [period]);
+
+  const { data: overview } = useFinancesOverview(artistId, dateFrom, dateTo);
   const { data: revenueResult } = useRevenueByMonth(6, artistId);
+
+  const { data: pendingBookingsCount = 0 } = useQuery({
+    queryKey: ["bookings-pending-count"],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from("web_bookings")
+        .select("*", { count: "exact", head: true })
+        .not("preferred_date", "is", null)
+        .eq("status", "pending");
+      if (error) throw error;
+      return count ?? 0;
+    },
+    refetchInterval: 60_000,
+  });
   const { data: recentSessions } = useSessions({ artistId });
   const { data: lowStockCount } = useLowStockCount();
 
@@ -82,13 +124,30 @@ export default function Dashboard() {
         </p>
       </div>
 
+      {/* Period selector */}
+      <div className="flex items-center gap-1 p-1 rounded-md bg-muted/40 border border-border w-fit">
+        {(["week", "month", "quarter"] as Period[]).map((p) => (
+          <button
+            key={p}
+            onClick={() => setPeriod(p)}
+            className={`px-3 py-1 rounded text-xs font-['IBM_Plex_Mono'] uppercase tracking-wider transition-colors ${
+              period === p
+                ? "bg-card text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground"
+            }`}
+          >
+            {PERIOD_LABELS[p]}
+          </button>
+        ))}
+      </div>
+
       {/* KPI Cards — 2 cols mobile, 4 cols tablet+ */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         <Card className="bg-card border-border">
           <CardContent className="p-4">
             <div className="flex items-center justify-between mb-2">
               <span className="text-[10px] font-['IBM_Plex_Mono'] uppercase tracking-wider text-muted-foreground leading-tight">
-                Ingresos mes
+                Ingresos {PERIOD_KPI[period]}
               </span>
               <TrendingUp className="w-4 h-4 text-primary shrink-0" />
             </div>
@@ -102,7 +161,7 @@ export default function Dashboard() {
           <CardContent className="p-4">
             <div className="flex items-center justify-between mb-2">
               <span className="text-[10px] font-['IBM_Plex_Mono'] uppercase tracking-wider text-muted-foreground leading-tight">
-                Sesiones mes
+                Sesiones {PERIOD_KPI[period]}
               </span>
               <Calendar className="w-4 h-4 text-primary shrink-0" />
             </div>
@@ -141,6 +200,25 @@ export default function Dashboard() {
             </div>
           </CardContent>
         </Card>
+
+        {isOwner && (
+          <Link to="/admin/bookings" className="col-span-2 md:col-span-1 block group">
+            <Card className="bg-card border-border h-full group-hover:border-muted-foreground transition-colors">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[10px] font-['IBM_Plex_Mono'] uppercase tracking-wider text-muted-foreground leading-tight">
+                    Citas web
+                  </span>
+                  <BookOpen className="w-4 h-4 text-primary shrink-0" />
+                </div>
+                <div className={`text-2xl font-bold ${pendingBookingsCount > 0 ? "text-primary" : "text-foreground"}`}>
+                  {pendingBookingsCount}
+                </div>
+                <p className="text-[10px] font-['IBM_Plex_Mono'] text-muted-foreground mt-1">pendientes</p>
+              </CardContent>
+            </Card>
+          </Link>
+        )}
       </div>
 
       {/* Stock alert banner */}
@@ -336,7 +414,7 @@ export default function Dashboard() {
                   {/* Row 1: date + price */}
                   <div className="flex items-center justify-between">
                     <span className="font-['IBM_Plex_Mono'] text-xs text-muted-foreground">
-                      {format(new Date(s.date + "T00:00:00"), "d MMM yyyy", { locale: es })}
+                      {formatLocalDate(s.date, "d MMM yyyy", { locale: es })}
                     </span>
                     <span className="font-['IBM_Plex_Mono'] text-sm font-semibold text-foreground">
                       {s.price != null ? `€${parseFloat(String(s.price)).toFixed(0)}` : "—"}
@@ -387,7 +465,7 @@ export default function Dashboard() {
                   last10Sessions.map((s) => (
                     <TableRow key={s.id} className="border-border">
                       <TableCell className="text-sm">
-                        {format(new Date(s.date + "T00:00:00"), "d MMM yyyy", { locale: es })}
+                        {formatLocalDate(s.date, "d MMM yyyy", { locale: es })}
                       </TableCell>
                       <TableCell className="text-sm">{s.client?.name ?? "—"}</TableCell>
                       {isOwner && (
