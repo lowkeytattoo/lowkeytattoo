@@ -20,7 +20,7 @@ import {
 } from "date-fns";
 import { formatLocalDate } from "@shared/lib/formatDate";
 import { es } from "date-fns/locale";
-import { TrendingUp, Users, Calendar, AlertCircle, ExternalLink, Clock, BookOpen } from "lucide-react";
+import { TrendingUp, Users, Calendar, AlertCircle, ExternalLink, Clock, BookOpen, MessageSquare } from "lucide-react";
 import { ArtistAvatar } from "@admin/components/ArtistAvatar";
 import { useCalendarEvents } from "@admin/hooks/useGoogleCalendar";
 
@@ -73,6 +73,20 @@ export default function Dashboard() {
         .from("web_bookings")
         .select("*", { count: "exact", head: true })
         .not("preferred_date", "is", null)
+        .eq("status", "pending");
+      if (error) throw error;
+      return count ?? 0;
+    },
+    refetchInterval: 60_000,
+  });
+
+  const { data: unreadMessagesCount = 0 } = useQuery({
+    queryKey: ["messages-unread-count"],
+    queryFn: async () => {
+      const { count, error } = await supabase
+        .from("web_bookings")
+        .select("*", { count: "exact", head: true })
+        .is("preferred_date", null)
         .eq("status", "pending");
       if (error) throw error;
       return count ?? 0;
@@ -141,8 +155,8 @@ export default function Dashboard() {
         ))}
       </div>
 
-      {/* KPI Cards — 2 cols mobile, 4 cols tablet+ */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+      {/* KPI Cards — 3 cols mobile, 6 cols desktop */}
+      <div className="grid grid-cols-3 lg:grid-cols-6 gap-3">
         <Card className="bg-card border-border">
           <CardContent className="p-4">
             <div className="flex items-center justify-between mb-2">
@@ -202,7 +216,7 @@ export default function Dashboard() {
         </Card>
 
         {isOwner && (
-          <Link to="/admin/bookings" className="col-span-2 md:col-span-1 block group">
+          <Link to="/admin/bookings" className="block group">
             <Card className="bg-card border-border h-full group-hover:border-muted-foreground transition-colors">
               <CardContent className="p-4">
                 <div className="flex items-center justify-between mb-2">
@@ -215,6 +229,25 @@ export default function Dashboard() {
                   {pendingBookingsCount}
                 </div>
                 <p className="text-[10px] font-['IBM_Plex_Mono'] text-muted-foreground mt-1">pendientes</p>
+              </CardContent>
+            </Card>
+          </Link>
+        )}
+
+        {isOwner && (
+          <Link to="/admin/messages" className="block group">
+            <Card className="bg-card border-border h-full group-hover:border-muted-foreground transition-colors">
+              <CardContent className="p-4">
+                <div className="flex items-center justify-between mb-2">
+                  <span className="text-[10px] font-['IBM_Plex_Mono'] uppercase tracking-wider text-muted-foreground leading-tight">
+                    Mensajes
+                  </span>
+                  <MessageSquare className="w-4 h-4 text-primary shrink-0" />
+                </div>
+                <div className={`text-2xl font-bold ${unreadMessagesCount > 0 ? "text-primary" : "text-foreground"}`}>
+                  {unreadMessagesCount}
+                </div>
+                <p className="text-[10px] font-['IBM_Plex_Mono'] text-muted-foreground mt-1">sin leer</p>
               </CardContent>
             </Card>
           </Link>
