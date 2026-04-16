@@ -1,10 +1,10 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import { MapPin, Clock, Phone, MessageSquare } from "lucide-react";
 import emailjs from "@emailjs/browser";
 import { useI18n } from "@web/i18n/I18nProvider";
 import { CONTACT } from "@web/config/contact";
-import { supabase } from "@shared/lib/supabase";
+// supabase imported dynamically in handleContactSubmit to keep it out of the initial bundle
 
 const WhatsAppIcon = ({ size = 16 }: { size?: number }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -23,11 +23,26 @@ const StudioInfo = () => {
   const [message, setMessage] = useState("");
   const [sending, setSending] = useState(false);
   const [sent, setSent] = useState(false);
+  const [mapLoaded, setMapLoaded] = useState(false);
+  const [mapReady, setMapReady] = useState(false);
+  const mapRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = mapRef.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      ([entry]) => { if (entry.isIntersecting) { setMapLoaded(true); observer.disconnect(); } },
+      { rootMargin: "200px" }
+    );
+    observer.observe(el);
+    return () => observer.disconnect();
+  }, []);
 
   const handleContactSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSending(true);
     try {
+      const { supabase } = await import("@shared/lib/supabase");
       const isEmail = contact.includes("@");
       await supabase.from("web_bookings").insert({
         client_name: name,
@@ -136,20 +151,37 @@ const StudioInfo = () => {
           </motion.div>
 
           <motion.div
+            ref={mapRef}
             initial={{ opacity: 0, y: 10 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6, delay: 0.2 }}
-            className="rounded-lg overflow-hidden h-[400px] lg:h-auto"
+            className="relative rounded-lg overflow-hidden h-[400px] lg:h-auto"
+            style={{ minHeight: "400px" }}
           >
-            <iframe
-              title="Lowkey Tattoo Location"
-              src="https://maps.google.com/maps?q=Calle+Doctor+Allart+50,+38003+Santa+Cruz+de+Tenerife,+Spain&z=17&output=embed"
-              className="w-full h-full border-0 grayscale invert rounded-lg"
-              loading="lazy"
-              referrerPolicy="no-referrer-when-downgrade"
-              style={{ minHeight: "400px" }}
-            />
+            {/* Skeleton — visible until iframe fires onLoad */}
+            {!mapReady && (
+              <div className="absolute inset-0 bg-card rounded-lg flex flex-col items-center justify-center gap-4 z-10">
+                <div className="relative">
+                  <MapPin size={28} className="text-muted-foreground/40" />
+                  <span className="absolute -inset-3 rounded-full border border-border animate-ping opacity-30" />
+                </div>
+                <div className="space-y-2 text-center">
+                  <div className="h-3 w-40 rounded bg-muted animate-pulse mx-auto" />
+                  <div className="h-3 w-28 rounded bg-muted animate-pulse mx-auto" />
+                </div>
+              </div>
+            )}
+            {mapLoaded && (
+              <iframe
+                title="Lowkey Tattoo Location"
+                src="https://maps.google.com/maps?q=Calle+Doctor+Allart+50,+38003+Santa+Cruz+de+Tenerife,+Spain&z=17&output=embed"
+                className="w-full h-full border-0 grayscale invert rounded-lg"
+                referrerPolicy="no-referrer-when-downgrade"
+                onLoad={() => setMapReady(true)}
+                style={{ minHeight: "400px" }}
+              />
+            )}
           </motion.div>
         </div>
 

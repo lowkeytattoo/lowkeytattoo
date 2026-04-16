@@ -1,14 +1,13 @@
-import { lazy, Suspense } from "react";
+import { lazy, Suspense, useState, useEffect } from "react";
 import { BrowserRouter, Route, Routes, Navigate, useLocation } from "react-router-dom";
-import { useEffect } from "react";
 import { HelmetProvider } from "react-helmet-async";
 import { Toaster } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { I18nProvider, LocaleSync } from "@web/i18n/I18nProvider";
 import { CookieConsentProvider } from "@web/contexts/CookieConsentContext";
-import { BookingProvider } from "@web/contexts/BookingContext";
-import { BookingModal } from "@web/components/BookingModal";
+import { BookingProvider, useBooking } from "@web/contexts/BookingContext";
+const BookingModal = lazy(() => import("@web/components/BookingModal").then(m => ({ default: m.BookingModal })));
 import { CookieBanner } from "@web/components/CookieBanner";
 import { AdminAuthProvider } from "@admin/contexts/AdminAuthContext";
 import { ProtectedRoute } from "@admin/components/ProtectedRoute";
@@ -41,6 +40,15 @@ const AdminMessages     = lazy(() => import("@admin/pages/Messages"));
 const AdminBlog         = lazy(() => import("@admin/pages/BlogAdmin"));
 const BlogPreview       = lazy(() => import("@admin/pages/BlogPreview"));
 
+// Mounts BookingModal only after the first open — chunk stays deferred until needed
+const LazyBookingModal = () => {
+  const { isOpen } = useBooking();
+  const [hasOpened, setHasOpened] = useState(false);
+  useEffect(() => { if (isOpen) setHasOpened(true); }, [isOpen]);
+  if (!hasOpened) return null;
+  return <Suspense fallback={null}><BookingModal /></Suspense>;
+};
+
 const queryClient = new QueryClient();
 
 function ScrollToTop() {
@@ -70,7 +78,7 @@ const App = () => (
             <AdminAuthProvider>
               <TooltipProvider>
                 <Toaster />
-                <BookingModal />
+                <LazyBookingModal />
                 <CookieBanner />
                 <ScrollToTop />
                 {/* Syncs locale context with URL on every navigation */}

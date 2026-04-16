@@ -66,9 +66,9 @@ const ARTIST_PHOTO: Record<string, [string, string, string]> = {
   fifo:   [fifoImg, fifoImgS, fifoImgXS],
 };
 
-const CATEGORIES: { id: Category; labelKey: string; bg: string | null }[] = [
-  { id: "tattoo",   labelKey: "gallery.cat.tattoo",  bg: pablo3 },
-  { id: "piercing", labelKey: "gallery.cat.piercing", bg: piercingPablo1 },
+const CATEGORIES: { id: Category; labelKey: string; bg: string | null; bgS?: string; bgXS?: string }[] = [
+  { id: "tattoo",   labelKey: "gallery.cat.tattoo",  bg: pablo3,        bgS: pablo3s,         bgXS: pablo3xs },
+  { id: "piercing", labelKey: "gallery.cat.piercing", bg: piercingPablo1, bgS: piercingPablo1s, bgXS: piercingPablo1xs },
   { id: "laser",    labelKey: "gallery.cat.laser",    bg: laserImg },
 ];
 
@@ -458,10 +458,14 @@ const Gallery = () => {
                 >
                   {cat.bg ? (
                     <img
-                      src={cat.bg}
+                      src={cat.bgXS ?? cat.bg}
+                      srcSet={cat.bgS ? `${cat.bgXS} 400w, ${cat.bgS} 800w, ${cat.bg} 1600w` : undefined}
+                      sizes="(max-width: 480px) calc(100vw - 48px), (max-width: 640px) calc(50vw - 24px), 340px"
                       alt={t(cat.labelKey)}
                       className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105 saturate-[0.65] group-hover:saturate-100"
                       loading="lazy"
+                      width={400}
+                      height={533}
                     />
                   ) : (
                     <div className="absolute inset-0 bg-secondary" />
