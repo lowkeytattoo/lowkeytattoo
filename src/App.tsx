@@ -1,4 +1,5 @@
-import { lazy, Suspense, useState, useEffect } from "react";
+import { lazy, Suspense, useState, useEffect, Component } from "react";
+import type { ReactNode, ErrorInfo } from "react";
 import { BrowserRouter, Route, Routes, Navigate, useLocation } from "react-router-dom";
 import { HelmetProvider } from "react-helmet-async";
 import { Toaster } from "@/components/ui/sonner";
@@ -40,6 +41,19 @@ const AdminMessages     = lazy(() => import("@admin/pages/Messages"));
 const AdminBlog         = lazy(() => import("@admin/pages/BlogAdmin"));
 const BlogPreview       = lazy(() => import("@admin/pages/BlogPreview"));
 
+// Catches "Failed to fetch dynamically imported module" after a new deploy
+// and forces a hard reload so the browser picks up the new chunk hashes.
+class ChunkErrorBoundary extends Component<{ children: ReactNode }, { crashed: boolean }> {
+  state = { crashed: false };
+  componentDidCatch(error: Error, _info: ErrorInfo) {
+    if (error.message.includes("dynamically imported module") || error.message.includes("Failed to fetch")) {
+      window.location.reload();
+    }
+  }
+  static getDerivedStateFromError() { return { crashed: true }; }
+  render() { return this.state.crashed ? null : this.props.children; }
+}
+
 // Mounts BookingModal only after the first open — chunk stays deferred until needed
 const LazyBookingModal = () => {
   const { isOpen } = useBooking();
@@ -71,6 +85,7 @@ const App = () => (
       children) can use useLocation() from React Router. Locale is now derived
       purely from the URL path — /en/* = English, everything else = Spanish.
     */}
+    <ChunkErrorBoundary>
     <BrowserRouter>
       <I18nProvider>
         <CookieConsentProvider>
@@ -153,6 +168,7 @@ const App = () => (
         </CookieConsentProvider>
       </I18nProvider>
     </BrowserRouter>
+    </ChunkErrorBoundary>
   </QueryClientProvider>
   </HelmetProvider>
 );
