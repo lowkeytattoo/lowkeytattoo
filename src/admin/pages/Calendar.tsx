@@ -144,9 +144,8 @@ function NewEventDialog({
   const attendees = invitedIds
     .map((profileId) => {
       const profile = artistProfiles.find((p) => p.id === profileId);
-      if (!profile?.artist_config_id) return null;
-      const email = ARTISTS.find((a) => a.id === profile.artist_config_id)?.email ?? null;
-      return email ? { email, displayName: profile.display_name } : null;
+      if (!profile?.calendar_id) return null;
+      return { email: profile.calendar_id, displayName: profile.display_name };
     })
     .filter((a): a is { email: string; displayName: string } => a !== null);
 
@@ -257,7 +256,7 @@ function NewEventDialog({
           </div>
 
           {/* Invite artists */}
-          {artistProfiles.filter((p) => p.artist_config_id && ARTISTS.find((a) => a.id === p.artist_config_id)?.email).length > 0 && (
+          {artistProfiles.filter((p) => p.calendar_id).length > 0 && (
             <div className="space-y-2 rounded-md border border-border bg-muted/20 p-3">
               <div className="flex items-center gap-2 text-xs font-['IBM_Plex_Mono'] uppercase tracking-wider text-muted-foreground">
                 <UserPlus className="w-3.5 h-3.5" />
@@ -265,7 +264,7 @@ function NewEventDialog({
               </div>
               <div className="flex flex-wrap gap-3">
                 {artistProfiles
-                  .filter((p) => p.artist_config_id && ARTISTS.find((a) => a.id === p.artist_config_id)?.email)
+                  .filter((p) => p.calendar_id)
                   .map((p) => (
                     <button
                       key={p.id}
