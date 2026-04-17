@@ -194,14 +194,15 @@ serve(async (req) => {
     // ── POST — create event ───────────────────────────────────────────────────
     if (req.method === "POST") {
       const body = await req.json();
-      // Allow overriding calendarId in the body
       const targetCalendar = body.calendarId || calendarId;
       const { calendarId: _removed, ...eventBody } = body;
 
+      const { attendees: _attendees, ...safeEventBody } = eventBody;
+
       const res = await calApi(
-        `/calendars/${encodeURIComponent(targetCalendar)}/events?sendUpdates=none`,
+        `/calendars/${encodeURIComponent(targetCalendar)}/events`,
         token,
-        { method: "POST", body: JSON.stringify(eventBody) },
+        { method: "POST", body: JSON.stringify(safeEventBody) },
       );
       const data = await res.json();
       if (!res.ok) return json({ error: data }, res.status);

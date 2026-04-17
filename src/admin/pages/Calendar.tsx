@@ -1,8 +1,8 @@
 import { useState, useEffect } from "react";
 import { format, startOfMonth, endOfMonth, addMonths, subMonths, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, isSameMonth, isToday, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
-import { CalendarDays, ChevronLeft, ChevronRight, Clock, MapPin, Plus, Trash2, X, UserPlus } from "lucide-react";
-import { useCalendarEvents, useCreateCalendarEvent, useDeleteCalendarEvent, type CalendarEvent } from "@admin/hooks/useGoogleCalendar";
+import { CalendarDays, ChevronLeft, ChevronRight, Clock, MapPin, Plus, Trash2, X } from "lucide-react";
+import { useAllCalendarEvents, useCreateCalendarEvent, useDeleteCalendarEvent, type CalendarEvent, type CalendarEventWithSource } from "@admin/hooks/useGoogleCalendar";
 import { useAdminAuth } from "@admin/contexts/AdminAuthContext";
 import { useArtistProfiles } from "@admin/hooks/useArtistProfiles";
 import { ARTISTS } from "@shared/config/artists";
@@ -19,17 +19,19 @@ import { toast } from "sonner";
 
 // ── Color helpers ────────────────────────────────────────────────────────────
 
-const SERVICE_COLORS: Record<string, string> = {
-  Tatuaje:  "bg-blue-500/20 text-blue-300 border-blue-500/30",
-  Piercing: "bg-purple-500/20 text-purple-300 border-purple-500/30",
-  Láser:    "bg-orange-500/20 text-orange-300 border-orange-500/30",
-};
+const CALENDAR_PALETTE = [
+  "bg-blue-500/20 text-blue-300 border-blue-500/30",
+  "bg-emerald-500/20 text-emerald-300 border-emerald-500/30",
+  "bg-violet-500/20 text-violet-300 border-violet-500/30",
+  "bg-orange-500/20 text-orange-300 border-orange-500/30",
+  "bg-rose-500/20 text-rose-300 border-rose-500/30",
+  "bg-cyan-500/20 text-cyan-300 border-cyan-500/30",
+];
 
-function eventColor(summary: string) {
-  for (const [key, cls] of Object.entries(SERVICE_COLORS)) {
-    if (summary.includes(key)) return cls;
-  }
-  return "bg-primary/20 text-primary border-primary/30";
+function buildColorMap(calendarIds: string[]): Record<string, string> {
+  return Object.fromEntries(
+    calendarIds.map((id, i) => [id, CALENDAR_PALETTE[i % CALENDAR_PALETTE.length]])
+  );
 }
 
 function eventTime(ev: CalendarEvent): string {
@@ -39,9 +41,9 @@ function eventTime(ev: CalendarEvent): string {
 
 // ── Sub-components ───────────────────────────────────────────────────────────
 
-function EventPill({ ev }: { ev: CalendarEvent }) {
+function EventPill({ ev, colorClass }: { ev: CalendarEvent; colorClass: string }) {
   return (
-    <div className={`text-[10px] leading-tight px-1 py-0.5 rounded border truncate ${eventColor(ev.summary)}`}>
+    <div className={`text-[10px] leading-tight px-1 py-0.5 rounded border truncate ${colorClass}`}>
       {eventTime(ev) !== "Todo el día" && (
         <span className="opacity-70 mr-1">{eventTime(ev)}</span>
       )}
@@ -50,12 +52,12 @@ function EventPill({ ev }: { ev: CalendarEvent }) {
   );
 }
 
-function EventCard({ ev, onDelete }: { ev: CalendarEvent; onDelete: (ev: CalendarEvent) => void }) {
+function EventCard({ ev, colorClass, onDelete }: { ev: CalendarEvent; colorClass: string; onDelete: (ev: CalendarEvent) => void }) {
   const start = ev.start.dateTime ? format(parseISO(ev.start.dateTime), "HH:mm") : null;
   const end   = ev.end.dateTime   ? format(parseISO(ev.end.dateTime),   "HH:mm") : null;
 
   return (
-    <div className={`rounded-lg border p-3 space-y-1 ${eventColor(ev.summary)}`}>
+    <div className={`rounded-lg border p-3 space-y-1 ${colorClass}`}>
       <div className="flex items-start justify-between gap-2">
         <div className="font-medium text-sm leading-tight">{ev.summary}</div>
         <button
@@ -102,15 +104,20 @@ function NewEventDialog({
   open,
   defaultDate,
   calendarId,
+  allCalendarIds,
+  colorMap,
+  labelMap,
   onClose,
 }: {
   open: boolean;
   defaultDate: Date | null;
   calendarId: string | null;
+  allCalendarIds: string[];
+  colorMap: Record<string, string>;
+  labelMap: Record<string, string>;
   onClose: () => void;
 }) {
   const createEvent = useCreateCalendarEvent(calendarId);
-  const { data: artistProfiles = [] } = useArtistProfiles();
   const [form, setForm] = useState<NewEventForm>({
     summary: "",
     date: defaultDate ? format(defaultDate, "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"),
@@ -119,12 +126,10 @@ function NewEventDialog({
     description: "",
     allDay: false,
   });
-  const [invitedIds, setInvitedIds] = useState<string[]>([]);
+  const [targetCalendarId, setTargetCalendarId] = useState<string>(calendarId ?? "");
 
-  // Reset when closing; sync date when the selected day changes while open
   useEffect(() => {
     if (!open) {
-      setInvitedIds([]);
       setForm({
         summary: "",
         date: defaultDate ? format(defaultDate, "yyyy-MM-dd") : format(new Date(), "yyyy-MM-dd"),
@@ -133,47 +138,35 @@ function NewEventDialog({
         description: "",
         allDay: false,
       });
+      setTargetCalendarId(calendarId ?? "");
     } else if (defaultDate) {
       setForm((f) => ({ ...f, date: format(defaultDate, "yyyy-MM-dd") }));
     }
-  }, [open, defaultDate]);
+  }, [open, defaultDate, calendarId]);
 
   const set = (k: keyof NewEventForm, v: string | boolean) =>
     setForm((f) => ({ ...f, [k]: v }));
-
-  const attendees = invitedIds
-    .map((profileId) => {
-      const profile = artistProfiles.find((p) => p.id === profileId);
-      if (!profile?.calendar_id) return null;
-      return { email: profile.calendar_id, displayName: profile.display_name };
-    })
-    .filter((a): a is { email: string; displayName: string } => a !== null);
-
-  const toggleInvite = (id: string) =>
-    setInvitedIds((prev) => prev.includes(id) ? prev.filter((i) => i !== id) : [...prev, id]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!form.summary.trim()) return;
 
+    const timing = form.allDay
+      ? { start: { date: form.date }, end: { date: form.date } }
+      : {
+          start: { dateTime: `${form.date}T${form.startTime}:00`, timeZone: "Atlantic/Canary" },
+          end:   { dateTime: `${form.date}T${form.endTime}:00`,   timeZone: "Atlantic/Canary" },
+        };
+
     try {
-      const base = {
+      await createEvent.mutateAsync({
+        calendarId: targetCalendarId || undefined,
         summary: form.summary,
         description: form.description || undefined,
         location: "Calle Dr. Allart, 50, Santa Cruz de Tenerife",
-        attendees: attendees.length > 0 ? attendees : undefined,
-      };
-      if (form.allDay) {
-        await createEvent.mutateAsync({ ...base, start: { date: form.date }, end: { date: form.date } });
-      } else {
-        await createEvent.mutateAsync({
-          ...base,
-          start: { dateTime: `${form.date}T${form.startTime}:00`, timeZone: "Atlantic/Canary" },
-          end:   { dateTime: `${form.date}T${form.endTime}:00`,   timeZone: "Atlantic/Canary" },
-        });
-      }
-      toast.success(attendees.length > 0 ? `Evento creado e invitación enviada a ${attendees.map(a => a.displayName).join(", ")}` : "Evento creado");
-      setInvitedIds([]);
+        ...timing,
+      });
+      toast.success(`Evento creado en ${labelMap[targetCalendarId] ?? "calendario"}`);
       onClose();
     } catch {
       toast.error("Error al crear el evento");
@@ -198,6 +191,34 @@ function NewEventDialog({
               required
             />
           </div>
+
+          {/* Calendar selector */}
+          {allCalendarIds.length > 1 && (
+            <div className="space-y-1.5">
+              <Label className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Calendario</Label>
+              <div className="flex flex-wrap gap-2">
+                {allCalendarIds.map((id) => {
+                  const isSelected = targetCalendarId === id;
+                  const dotColor = colorMap[id] ?? CALENDAR_PALETTE[0];
+                  return (
+                    <button
+                      key={id}
+                      type="button"
+                      onClick={() => setTargetCalendarId(id)}
+                      className={`flex items-center gap-2 px-3 py-1.5 rounded-md border text-sm transition-all ${
+                        isSelected
+                          ? "border-primary bg-primary/10 text-foreground"
+                          : "border-border bg-background text-muted-foreground hover:text-foreground hover:border-muted-foreground"
+                      }`}
+                    >
+                      <span className={`w-2 h-2 rounded-full border ${dotColor}`} />
+                      {labelMap[id] ?? id}
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Date */}
           <div className="space-y-1.5">
@@ -255,43 +276,6 @@ function NewEventDialog({
             />
           </div>
 
-          {/* Invite artists */}
-          {artistProfiles.filter((p) => p.calendar_id).length > 0 && (
-            <div className="space-y-2 rounded-md border border-border bg-muted/20 p-3">
-              <div className="flex items-center gap-2 text-xs font-['IBM_Plex_Mono'] uppercase tracking-wider text-muted-foreground">
-                <UserPlus className="w-3.5 h-3.5" />
-                Invitar artista
-              </div>
-              <div className="flex flex-wrap gap-3">
-                {artistProfiles
-                  .filter((p) => p.calendar_id)
-                  .map((p) => (
-                    <button
-                      key={p.id}
-                      type="button"
-                      onClick={() => toggleInvite(p.id)}
-                      title={p.display_name}
-                      className={`relative rounded-full transition-all focus:outline-none ${
-                        invitedIds.includes(p.id)
-                          ? "ring-2 ring-primary ring-offset-2 ring-offset-card"
-                          : "opacity-60 hover:opacity-100"
-                      }`}
-                    >
-                      <ArtistAvatar name={p.display_name} size="md" />
-                      {invitedIds.includes(p.id) && (
-                        <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-primary border border-card" />
-                      )}
-                    </button>
-                  ))}
-              </div>
-              {attendees.length > 0 && (
-                <p className="text-[10px] text-muted-foreground">
-                  Google Calendar enviará una invitación por email a {attendees.map(a => a.displayName).join(" y ")}.
-                </p>
-              )}
-            </div>
-          )}
-
           <DialogFooter>
             <Button type="button" variant="ghost" onClick={onClose}>Cancelar</Button>
             <Button type="submit" className="cta-button" disabled={createEvent.isPending}>
@@ -309,6 +293,7 @@ function NewEventDialog({
 export default function CalendarPage() {
   const { profile } = useAdminAuth();
   const calendarId = profile?.calendar_id ?? null;
+  const { data: artistProfiles = [] } = useArtistProfiles();
 
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState<Date | null>(new Date());
@@ -318,8 +303,22 @@ export default function CalendarPage() {
   const timeMin = startOfWeek(startOfMonth(currentMonth), { weekStartsOn: 1 }).toISOString();
   const timeMax = endOfWeek(endOfMonth(currentMonth), { weekStartsOn: 1 }).toISOString();
 
-  const { data: events = [], isLoading, error } = useCalendarEvents(timeMin, timeMax, calendarId);
+  // Collect all calendar IDs: current user + all artists (deduped)
+  const allCalendarIds = [...new Set([
+    ...(calendarId ? [calendarId] : []),
+    ...artistProfiles.map((p) => p.calendar_id).filter((id): id is string => !!id),
+  ])];
+
+  const { events, isLoading, error } = useAllCalendarEvents(timeMin, timeMax, allCalendarIds);
   const deleteEvent = useDeleteCalendarEvent(calendarId);
+  const colorMap = buildColorMap(allCalendarIds);
+
+  // Label map: calendarId → artist display name
+  const labelMap: Record<string, string> = {};
+  if (calendarId) labelMap[calendarId] = profile?.display_name ?? "Estudio";
+  for (const p of artistProfiles) {
+    if (p.calendar_id) labelMap[p.calendar_id] = p.display_name;
+  }
 
   if (!calendarId) {
     return (
@@ -340,7 +339,7 @@ export default function CalendarPage() {
   const days = eachDayOfInterval({ start: gridStart, end: gridEnd });
 
   const eventsForDay = (day: Date) =>
-    events.filter((ev) => {
+    (events as CalendarEventWithSource[]).filter((ev) => {
       const d = ev.start.dateTime ? parseISO(ev.start.dateTime) : ev.start.date ? parseISO(ev.start.date) : null;
       return d ? isSameDay(d, day) : false;
     });
@@ -378,6 +377,18 @@ export default function CalendarPage() {
           Nueva cita
         </Button>
       </div>
+
+      {/* Legend */}
+      {allCalendarIds.length > 1 && (
+        <div className="flex flex-wrap gap-3">
+          {allCalendarIds.map((id) => (
+            <div key={id} className="flex items-center gap-1.5">
+              <span className={`w-2.5 h-2.5 rounded-full border ${colorMap[id]}`} />
+              <span className="text-xs text-muted-foreground">{labelMap[id] ?? id}</span>
+            </div>
+          ))}
+        </div>
+      )}
 
       <div className="grid lg:grid-cols-[1fr_280px] gap-5">
         {/* Calendar grid */}
@@ -451,7 +462,7 @@ export default function CalendarPage() {
                       </span>
                       <div className="space-y-0.5">
                         {dayEvents.slice(0, 2).map((ev) => (
-                          <EventPill key={ev.id} ev={ev} />
+                          <EventPill key={ev.id} ev={ev} colorClass={colorMap[ev._calendarId] ?? CALENDAR_PALETTE[0]} />
                         ))}
                         {dayEvents.length > 2 && (
                           <div className="text-[10px] text-muted-foreground pl-1">
@@ -495,7 +506,7 @@ export default function CalendarPage() {
                 </p>
               ) : (
                 selectedEvents.map((ev) => (
-                  <EventCard key={ev.id} ev={ev} onDelete={handleDelete} />
+                  <EventCard key={ev.id} ev={ev} colorClass={colorMap[(ev as CalendarEventWithSource)._calendarId] ?? CALENDAR_PALETTE[0]} onDelete={handleDelete} />
                 ))
               )}
             </CardContent>
@@ -537,7 +548,7 @@ export default function CalendarPage() {
                 </p>
               ) : (
                 selectedEvents.map((ev) => (
-                  <EventCard key={ev.id} ev={ev} onDelete={handleDelete} />
+                  <EventCard key={ev.id} ev={ev} colorClass={colorMap[(ev as CalendarEventWithSource)._calendarId] ?? CALENDAR_PALETTE[0]} onDelete={handleDelete} />
                 ))
               )}
             </CardContent>
@@ -549,6 +560,9 @@ export default function CalendarPage() {
         open={newEventOpen}
         defaultDate={selectedDay}
         calendarId={calendarId}
+        allCalendarIds={allCalendarIds}
+        colorMap={colorMap}
+        labelMap={labelMap}
         onClose={() => setNewEventOpen(false)}
       />
 

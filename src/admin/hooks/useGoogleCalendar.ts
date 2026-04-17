@@ -1,4 +1,4 @@
-import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useQuery, useQueries, useMutation, useQueryClient } from "@tanstack/react-query";
 
 export interface CalendarEvent {
   id: string;
@@ -51,6 +51,31 @@ export function useCalendarEvents(timeMin: string, timeMax: string, calendarId?:
     enabled: !!timeMin && !!timeMax && !!calendarId,
     staleTime: 2 * 60 * 1000,
   });
+}
+
+// ── List events from multiple calendars ──────────────────────────────────────
+
+export type CalendarEventWithSource = CalendarEvent & { _calendarId: string };
+
+export function useAllCalendarEvents(timeMin: string, timeMax: string, calendarIds: string[]) {
+  const results = useQueries({
+    queries: calendarIds.map((calendarId) => ({
+      queryKey: ["calendar-events", timeMin, timeMax, calendarId],
+      queryFn: async () => {
+        const params: Record<string, string> = { timeMin, timeMax, calendarId };
+        const data = await callCalendarFunction("GET", params) as { items?: CalendarEvent[] };
+        return (data?.items ?? []).map((ev) => ({ ...ev, _calendarId: calendarId })) as CalendarEventWithSource[];
+      },
+      enabled: !!timeMin && !!timeMax,
+      staleTime: 2 * 60 * 1000,
+    })),
+  });
+
+  const isLoading = results.some((r) => r.isLoading);
+  const error = results.find((r) => r.error)?.error ?? null;
+  const events = results.flatMap((r) => r.data ?? []);
+
+  return { events, isLoading, error };
 }
 
 // ── Create event ─────────────────────────────────────────────────────────────
