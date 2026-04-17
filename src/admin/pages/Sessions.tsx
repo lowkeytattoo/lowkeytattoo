@@ -189,7 +189,7 @@ export default function Sessions() {
       const clientName = (clients ?? []).find((c) => c.id === form.clientId)?.name ?? "Cliente";
       const serviceLabel = SESSION_TYPE_LABELS[form.type] ?? form.type;
 
-      if (artistProfile?.calendar_id && artistConfig?.email) {
+      if (artistProfile?.calendar_id) {
         const durationMins = form.duration ? parseInt(form.duration) : 60;
         const [h, m] = inviteTime.split(":").map(Number);
         const endDate = new Date(0, 0, 0, h, m + durationMins);
@@ -197,13 +197,12 @@ export default function Sessions() {
 
         try {
           await createCalendarEvent.mutateAsync({
-            calendarId: artistProfile.calendar_id,
             summary: `${serviceLabel} — ${clientName}`,
             description: [form.zone && `Zona: ${form.zone}`, form.notes].filter(Boolean).join("\n") || undefined,
             location: "Calle Dr. Allart, 50, Santa Cruz de Tenerife",
             start: { dateTime: `${form.date}T${inviteTime}:00`, timeZone: "Atlantic/Canary" },
             end:   { dateTime: `${form.date}T${endTime}:00`,   timeZone: "Atlantic/Canary" },
-            attendees: [{ email: artistConfig.email, displayName: artistProfile.display_name }],
+            attendees: [{ email: artistProfile.calendar_id, displayName: artistProfile.display_name }],
           });
           toast.success(`Invitación enviada a ${artistProfile.display_name}`);
         } catch {
