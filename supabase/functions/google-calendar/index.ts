@@ -199,7 +199,7 @@ serve(async (req) => {
       const { calendarId: _removed, ...eventBody } = body;
 
       const res = await calApi(
-        `/calendars/${encodeURIComponent(targetCalendar)}/events`,
+        `/calendars/${encodeURIComponent(targetCalendar)}/events?sendUpdates=none`,
         token,
         { method: "POST", body: JSON.stringify(eventBody) },
       );
