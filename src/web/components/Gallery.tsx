@@ -8,12 +8,17 @@ import { trackCategorySelect, trackArtistView, trackIgClick } from "@web/lib/ana
 import { useBooking } from "@web/contexts/BookingContext";
 import { CONTACT } from "@web/config/contact";
 
-import gallery2 from "@/assets/gallery-2.webp";
-import gallery3 from "@/assets/gallery-3.webp";
-import gallery4 from "@/assets/gallery-4.webp";
-import gallery5 from "@/assets/gallery-5.webp";
-import gallery6 from "@/assets/gallery-6.webp";
 import laserImg from "@/assets/laser_lowkey.webp";
+import sergio1 from "@/assets/sergio/lowkey_tattoo_tenerife_sergio_1.webp";
+import sergio2 from "@/assets/sergio/lowkey_tattoo_tenerife_sergio_2.webp";
+import sergio3 from "@/assets/sergio/lowkey_tattoo_tenerife_sergio_3.webp";
+import sergio4 from "@/assets/sergio/lowkey_tattoo_tenerife_sergio_4.webp";
+import sergio5 from "@/assets/sergio/lowkey_tattoo_tenerife_sergio_5.webp";
+import fifo1 from "@/assets/fifo/lowkey_tattoo_tenerife_fifo_1.webp";
+import fifo2 from "@/assets/fifo/lowkey_tattoo_tenerife_fifo_2.webp";
+import fifo3 from "@/assets/fifo/lowkey_tattoo_tenerife_fifo_3.webp";
+import fifo4 from "@/assets/fifo/lowkey_tattoo_tenerife_fifo_4.webp";
+import fifo5 from "@/assets/fifo/lowkey_tattoo_tenerife_fifo_5.webp";
 import pabloImg from "@/assets/pablo_lowkey_tattoo_tenerife.webp";
 import pabloImgS from "@/assets/pablo_lowkey_tattoo_tenerife_800.webp";
 import pabloImgXS from "@/assets/pablo_lowkey_tattoo_tenerife_400.webp";
@@ -56,8 +61,14 @@ const ARTIST_WORKS: Record<string, [string, string, string][]> = {
     [pablo1, pablo1s, pablo1xs], [pablo2, pablo2s, pablo2xs], [pablo3, pablo3s, pablo3xs],
     [pablo4, pablo4s, pablo4xs], [pablo5, pablo5s, pablo5xs],
   ],
-  sergio: [[gallery2, gallery2, gallery2], [gallery5, gallery5, gallery5], [gallery6, gallery6, gallery6]],
-  fifo:   [[gallery4, gallery4, gallery4], [gallery3, gallery3, gallery3]],
+  sergio: [
+    [sergio1, sergio1, sergio1], [sergio2, sergio2, sergio2], [sergio3, sergio3, sergio3],
+    [sergio4, sergio4, sergio4], [sergio5, sergio5, sergio5],
+  ],
+  fifo: [
+    [fifo1, fifo1, fifo1], [fifo2, fifo2, fifo2], [fifo3, fifo3, fifo3],
+    [fifo4, fifo4, fifo4], [fifo5, fifo5, fifo5],
+  ],
 };
 
 const ARTIST_PHOTO: Record<string, [string, string, string]> = {
