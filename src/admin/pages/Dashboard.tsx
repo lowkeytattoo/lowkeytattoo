@@ -383,9 +383,10 @@ export default function Dashboard() {
                       {events.map((ev) => {
                         const timeStart = ev.start.dateTime ? format(parseISO(ev.start.dateTime), "HH:mm") : null;
                         const timeEnd   = ev.end.dateTime   ? format(parseISO(ev.end.dateTime),   "HH:mm") : null;
-                        const [service, client] = ev.summary.includes(" — ")
-                          ? ev.summary.split(" — ")
-                          : [ev.summary, null];
+                        const summary = ev.summary ?? "";
+                        const [service, client] = summary.includes(" — ")
+                          ? summary.split(" — ")
+                          : [summary || "Sin título", null];
                         return (
                           <div
                             key={ev.id}
