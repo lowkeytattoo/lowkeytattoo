@@ -309,7 +309,7 @@ export default function CalendarPage() {
     ...artistProfiles.map((p) => p.calendar_id).filter((id): id is string => !!id),
   ])];
 
-  const { events, isLoading, error } = useAllCalendarEvents(timeMin, timeMax, allCalendarIds);
+  const { events, isLoading, failedCalendarIds } = useAllCalendarEvents(timeMin, timeMax, allCalendarIds);
   const deleteEvent = useDeleteCalendarEvent(calendarId);
   const colorMap = buildColorMap(allCalendarIds);
 
@@ -421,6 +421,11 @@ export default function CalendarPage() {
             </div>
           </CardHeader>
           <CardContent className="p-0">
+            {failedCalendarIds.length > 0 && (
+              <div className="px-4 py-2 text-xs text-amber-400 bg-amber-400/10 border-b border-amber-400/20">
+                Sin acceso a: {failedCalendarIds.map((id) => labelMap[id] ?? id).join(", ")}. Comparte el calendario con la cuenta de servicio de Google.
+              </div>
+            )}
             <div className="grid grid-cols-7 border-b border-border">
               {weekdays.map((d) => (
                 <div key={d} className="py-2 text-center font-['IBM_Plex_Mono'] text-xs text-muted-foreground uppercase tracking-wider">
@@ -431,11 +436,6 @@ export default function CalendarPage() {
 
             {isLoading ? (
               <div className="py-20 text-center text-muted-foreground text-sm">Cargando eventos...</div>
-            ) : error ? (
-              <div className="py-20 text-center text-destructive text-sm">
-                Error al cargar el calendario.<br />
-                <span className="text-xs text-muted-foreground">Asegúrate de que el calendario está compartido con la cuenta de servicio.</span>
-              </div>
             ) : (
               <div className="grid grid-cols-7">
                 {days.map((day, i) => {

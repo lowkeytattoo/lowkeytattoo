@@ -68,14 +68,15 @@ export function useAllCalendarEvents(timeMin: string, timeMax: string, calendarI
       },
       enabled: !!timeMin && !!timeMax,
       staleTime: 2 * 60 * 1000,
+      retry: false,
     })),
   });
 
   const isLoading = results.some((r) => r.isLoading);
-  const error = results.find((r) => r.error)?.error ?? null;
+  const failedCalendarIds = calendarIds.filter((_, i) => !!results[i]?.error);
   const events = results.flatMap((r) => r.data ?? []);
 
-  return { events, isLoading, error };
+  return { events, isLoading, failedCalendarIds };
 }
 
 // ── Create event ─────────────────────────────────────────────────────────────
