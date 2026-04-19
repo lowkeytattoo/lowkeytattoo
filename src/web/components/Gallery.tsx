@@ -1,6 +1,6 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { ArrowLeft } from "lucide-react";
+import { ArrowLeft, ChevronLeft, ChevronRight, X } from "lucide-react";
 import { useI18n } from "@web/i18n/I18nProvider";
 import { ARTISTS, Artist } from "@shared/config/artists";
 import { InstagramIcon } from "@/components/ui/InstagramIcon";
@@ -43,6 +43,8 @@ import pablo4xs from "@/assets/lowkey_tattoo_tenerife_pablo_matos_4_400.webp";
 import pablo5 from "@/assets/lowkey_tattoo_tenerife_pablo_matos_5.webp";
 import pablo5s from "@/assets/lowkey_tattoo_tenerife_pablo_matos_5_800.webp";
 import pablo5xs from "@/assets/lowkey_tattoo_tenerife_pablo_matos_5_400.webp";
+import pablo6 from "@/assets/lowkey_tattoo_tenerife_pablo_6.webp";
+import pablo7 from "@/assets/lowkey_tattoo_tenerife_pablo_7.webp";
 import piercingPablo1 from "@/assets/lowkey_tattoo_tenerife_piercing_pablo.webp";
 import piercingPablo1s from "@/assets/lowkey_tattoo_tenerife_piercing_pablo_800.webp";
 import piercingPablo1xs from "@/assets/lowkey_tattoo_tenerife_piercing_pablo_400.webp";
@@ -60,6 +62,7 @@ const ARTIST_WORKS: Record<string, [string, string, string][]> = {
   pablo:  [
     [pablo1, pablo1s, pablo1xs], [pablo2, pablo2s, pablo2xs], [pablo3, pablo3s, pablo3xs],
     [pablo4, pablo4s, pablo4xs], [pablo5, pablo5s, pablo5xs],
+    [pablo6, pablo6, pablo6], [pablo7, pablo7, pablo7],
   ],
   sergio: [
     [sergio1, sergio1, sergio1], [sergio2, sergio2, sergio2], [sergio3, sergio3, sergio3],
@@ -86,6 +89,94 @@ const CATEGORIES: { id: Category; labelKey: string; bg: string | null; bgS?: str
 const igUrl = (handle: string) =>
   `https://www.instagram.com/${handle.replace("@", "")}/`;
 
+// ── Lightbox ─────────────────────────────────────────────────────────────────
+const Lightbox = ({
+  images,
+  index,
+  onClose,
+  onPrev,
+  onNext,
+}: {
+  images: [string, string, string][];
+  index: number;
+  onClose: () => void;
+  onPrev: () => void;
+  onNext: () => void;
+}) => {
+  const [src, srcS, srcXS] = images[index];
+
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+      if (e.key === "ArrowLeft") onPrev();
+      if (e.key === "ArrowRight") onNext();
+    };
+    window.addEventListener("keydown", handler);
+    return () => window.removeEventListener("keydown", handler);
+  }, [onClose, onPrev, onNext]);
+
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2 }}
+      className="fixed inset-0 z-50 flex items-center justify-center bg-background/95 backdrop-blur-sm"
+      onClick={onClose}
+    >
+      {/* Close */}
+      <button
+        className="absolute top-4 right-4 p-2 text-muted-foreground hover:text-foreground transition-colors"
+        onClick={onClose}
+        aria-label="Cerrar"
+      >
+        <X size={22} />
+      </button>
+
+      {/* Prev */}
+      {images.length > 1 && (
+        <button
+          className="absolute left-3 md:left-6 p-2 text-muted-foreground hover:text-foreground transition-colors"
+          onClick={(e) => { e.stopPropagation(); onPrev(); }}
+          aria-label="Anterior"
+        >
+          <ChevronLeft size={32} />
+        </button>
+      )}
+
+      {/* Image */}
+      <motion.img
+        key={index}
+        initial={{ opacity: 0, scale: 0.97 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.22 }}
+        src={src}
+        srcSet={srcS !== src ? `${srcXS} 400w, ${srcS} 800w, ${src} 1600w` : undefined}
+        sizes="100vw"
+        alt={`Tatuaje ${index + 1}`}
+        className="max-h-[90vh] max-w-[90vw] object-contain rounded-lg shadow-2xl"
+        onClick={(e) => e.stopPropagation()}
+      />
+
+      {/* Next */}
+      {images.length > 1 && (
+        <button
+          className="absolute right-3 md:right-6 p-2 text-muted-foreground hover:text-foreground transition-colors"
+          onClick={(e) => { e.stopPropagation(); onNext(); }}
+          aria-label="Siguiente"
+        >
+          <ChevronRight size={32} />
+        </button>
+      )}
+
+      {/* Counter */}
+      <span className="absolute bottom-5 left-1/2 -translate-x-1/2 font-mono text-xs text-muted-foreground">
+        {index + 1} / {images.length}
+      </span>
+    </motion.div>
+  );
+};
+
 // ── Transition config ────────────────────────────────────────────────────────
 const fadeSlide = {
   initial:  { opacity: 0, y: 18 },
@@ -97,67 +188,135 @@ const fadeSlide = {
 // ── Artist + works row ───────────────────────────────────────────────────────
 // Desktop: [square artist card] | [work img × 3]
 // Mobile:  artist card on top, work images below
+const PAGE_SIZE = 6; // 2 rows × 3 cols
+
 export const ArtistWorkRow = ({ artist, index }: { artist: Artist; index: number }) => {
   const [photo, photoS, photoXS] = ARTIST_PHOTO[artist.id] ?? [];
   const works = ARTIST_WORKS[artist.id] ?? [];
   const igHref = igUrl(artist.handle);
+  const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
+  const [page, setPage] = useState(0);
+
+  const totalPages = Math.ceil(works.length / PAGE_SIZE);
+  const pageWorks = works.slice(page * PAGE_SIZE, (page + 1) * PAGE_SIZE);
 
   useEffect(() => { trackArtistView(artist.id, artist.name); }, [artist.id, artist.name]);
 
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 16 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.45, delay: index * 0.1, ease: [0.4, 0, 0.2, 1] }}
-      className="flex flex-col md:flex-row gap-3"
-    >
-      {/* Artist card — 4:3 on mobile, square auto-height on desktop */}
-      <a
-        href={igHref}
-        target="_blank"
-        rel="noopener noreferrer"
-        onClick={() => trackIgClick(artist.handle, "gallery")}
-        className="group relative w-full aspect-[4/3] md:w-48 lg:w-56 md:aspect-auto flex-shrink-0 overflow-hidden rounded-lg border border-border bg-card hover:border-muted-foreground transition-colors duration-200"
-      >
-        <img
-          src={photo ?? works[0]?.[0]}
-          srcSet={photoS ? `${photoXS} 400w, ${photoS} 800w, ${photo} 1200w` : undefined}
-          alt={artist.name}
-          className="absolute inset-0 h-full w-full object-cover object-top transition-transform duration-500 group-hover:scale-105"
-          loading="lazy"
-          width={224}
-          height={224}
-          sizes="(max-width: 480px) 100vw, (max-width: 768px) 50vw, 224px"
-        />
-        {/* Bottom gradient info overlay */}
-        <div className="absolute inset-0 bg-gradient-to-t from-background/85 via-background/10 to-transparent" />
-        <div className="absolute inset-x-0 bottom-0 p-3 flex flex-col gap-0.5">
-          <p className="text-sm font-semibold text-foreground leading-tight">{artist.name}</p>
-          <span className="inline-flex items-center gap-1.5 font-mono text-[11px] text-muted-foreground group-hover:text-foreground transition-colors duration-200">
-            <InstagramIcon size={11} />
-            {artist.handle}
-          </span>
-        </div>
-      </a>
+  const openLightbox = useCallback((pageLocal: number) => setLightboxIndex(page * PAGE_SIZE + pageLocal), [page]);
+  const closeLightbox = useCallback(() => setLightboxIndex(null), []);
+  const prevImage = useCallback(() => setLightboxIndex((i) => i !== null ? (i - 1 + works.length) % works.length : null), [works.length]);
+  const nextImage = useCallback(() => setLightboxIndex((i) => i !== null ? (i + 1) % works.length : null), [works.length]);
 
-      {/* Work images — responsive grid, fills remaining space */}
-      <div className="grid grid-cols-3 gap-2 md:gap-3 flex-1">
-        {works.map(([src, srcS, srcXS], i) => (
-          <div key={i} className="aspect-square overflow-hidden rounded-lg">
-            <img
-              src={src}
-              srcSet={srcS !== src ? `${srcXS} 400w, ${srcS} 800w, ${src} 1600w` : undefined}
-              alt={`${artist.name} — trabajo ${i + 1}`}
-              className="h-full w-full object-cover gallery-image"
-              loading="lazy"
-              width={400}
-              height={400}
-              sizes="(max-width: 480px) 30vw, (max-width: 1024px) 20vw, 180px"
-            />
+  return (
+    <>
+      <motion.div
+        initial={{ opacity: 0, y: 16 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.45, delay: index * 0.1, ease: [0.4, 0, 0.2, 1] }}
+        className="flex flex-col md:flex-row gap-3"
+      >
+        {/* Artist card — 4:3 on mobile, square auto-height on desktop */}
+        <a
+          href={igHref}
+          target="_blank"
+          rel="noopener noreferrer"
+          onClick={() => trackIgClick(artist.handle, "gallery")}
+          className="group relative w-full aspect-[4/3] md:w-48 lg:w-56 md:aspect-auto flex-shrink-0 overflow-hidden rounded-lg border border-border bg-card hover:border-muted-foreground transition-colors duration-200"
+        >
+          <img
+            src={photo ?? works[0]?.[0]}
+            srcSet={photoS ? `${photoXS} 400w, ${photoS} 800w, ${photo} 1200w` : undefined}
+            alt={artist.name}
+            className="absolute inset-0 h-full w-full object-cover object-top transition-transform duration-500 group-hover:scale-105"
+            loading="lazy"
+            width={224}
+            height={224}
+            sizes="(max-width: 480px) 100vw, (max-width: 768px) 50vw, 224px"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-background/85 via-background/10 to-transparent" />
+          <div className="absolute inset-x-0 bottom-0 p-3 flex flex-col gap-0.5">
+            <p className="text-sm font-semibold text-foreground leading-tight">{artist.name}</p>
+            <span className="inline-flex items-center gap-1.5 font-mono text-[11px] text-muted-foreground group-hover:text-foreground transition-colors duration-200">
+              <InstagramIcon size={11} />
+              {artist.handle}
+            </span>
           </div>
-        ))}
-      </div>
-    </motion.div>
+        </a>
+
+        {/* Work images — 2 rows, paginated */}
+        <div className="flex flex-col gap-2 flex-1 min-w-0">
+          <div className="grid grid-cols-3 gap-2 md:gap-3">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={page}
+                initial={{ opacity: 0, x: 12 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: -12 }}
+                transition={{ duration: 0.22 }}
+                className="contents"
+              >
+                {pageWorks.map(([src, srcS, srcXS], i) => (
+                  <button
+                    key={i}
+                    className="aspect-square overflow-hidden rounded-lg group cursor-zoom-in"
+                    onClick={() => openLightbox(i)}
+                    aria-label={`Ver ${artist.name} — trabajo ${page * PAGE_SIZE + i + 1} en pantalla completa`}
+                  >
+                    <img
+                      src={src}
+                      srcSet={srcS !== src ? `${srcXS} 400w, ${srcS} 800w, ${src} 1600w` : undefined}
+                      alt={`${artist.name} — trabajo ${page * PAGE_SIZE + i + 1}`}
+                      className="h-full w-full object-cover gallery-image transition-transform duration-300 group-hover:scale-105"
+                      loading="lazy"
+                      width={400}
+                      height={400}
+                      sizes="(max-width: 480px) 30vw, (max-width: 1024px) 20vw, 180px"
+                    />
+                  </button>
+                ))}
+              </motion.div>
+            </AnimatePresence>
+          </div>
+
+          {/* Pagination arrows — only shown when there are multiple pages */}
+          {totalPages > 1 && (
+            <div className="flex items-center justify-end gap-2 pt-0.5">
+              <span className="font-mono text-[10px] text-muted-foreground mr-1">
+                {page + 1} / {totalPages}
+              </span>
+              <button
+                onClick={() => setPage((p) => p - 1)}
+                disabled={page === 0}
+                className="p-1.5 rounded border border-border text-muted-foreground hover:text-foreground hover:border-muted-foreground transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                aria-label="Página anterior"
+              >
+                <ChevronLeft size={14} />
+              </button>
+              <button
+                onClick={() => setPage((p) => p + 1)}
+                disabled={page >= totalPages - 1}
+                className="p-1.5 rounded border border-border text-muted-foreground hover:text-foreground hover:border-muted-foreground transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
+                aria-label="Página siguiente"
+              >
+                <ChevronRight size={14} />
+              </button>
+            </div>
+          )}
+        </div>
+      </motion.div>
+
+      <AnimatePresence>
+        {lightboxIndex !== null && (
+          <Lightbox
+            images={works}
+            index={lightboxIndex}
+            onClose={closeLightbox}
+            onPrev={prevImage}
+            onNext={nextImage}
+          />
+        )}
+      </AnimatePresence>
+    </>
   );
 };
 
