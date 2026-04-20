@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { BookingToSessionModal } from "@admin/components/BookingToSessionModal";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@shared/lib/supabase";
 import { useAdminAuth } from "@admin/contexts/AdminAuthContext";
@@ -236,6 +237,7 @@ export default function WebBookings() {
   const { data: clients } = useClients();
 
   const [convertBooking, setConvertBooking] = useState<WebBooking | null>(null);
+  const [registerBooking, setRegisterBooking] = useState<WebBooking | null>(null);
   const [convertClientId, setConvertClientId] = useState("");
   const [convertDate, setConvertDate] = useState("");
   const [convertPrice, setConvertPrice] = useState("");
@@ -388,12 +390,11 @@ export default function WebBookings() {
                 {b.status === "pending" && (
                   <>
                     <Button
-                      variant="ghost"
                       size="sm"
-                      className="text-xs h-7 px-2"
-                      onClick={() => openConvert(b)}
+                      className="text-xs h-7 px-2 cta-button"
+                      onClick={() => setRegisterBooking(b)}
                     >
-                      Convertir
+                      Confirmar
                     </Button>
                     <Button
                       variant="ghost"
@@ -632,6 +633,14 @@ export default function WebBookings() {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {registerBooking && (
+        <BookingToSessionModal
+          open={!!registerBooking}
+          booking={registerBooking}
+          onClose={() => setRegisterBooking(null)}
+        />
+      )}
     </div>
   );
 }

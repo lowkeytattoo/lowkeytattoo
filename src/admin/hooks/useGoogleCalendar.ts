@@ -97,13 +97,38 @@ export function useCreateCalendarEvent(calendarId?: string | null) {
 
 // ── Delete event ─────────────────────────────────────────────────────────────
 
-export function useDeleteCalendarEvent(calendarId?: string | null) {
+export function useDeleteCalendarEvent(defaultCalendarId?: string | null) {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (eventId: string) => {
+    mutationFn: async (arg: string | { eventId: string; calendarId?: string }) => {
+      const eventId    = typeof arg === "string" ? arg : arg.eventId;
+      const calendarId = typeof arg === "string" ? defaultCalendarId : (arg.calendarId ?? defaultCalendarId);
       const params: Record<string, string> = { eventId };
       if (calendarId) params.calendarId = calendarId;
       await callCalendarFunction("DELETE", params);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["calendar-events"] }),
+  });
+}
+
+// ── Update event ─────────────────────────────────────────────────────────────
+
+export interface UpdateCalendarEventParams {
+  calendarId: string;
+  eventId: string;
+  summary?: string;
+  description?: string;
+  start?: string;    // ISO 8601
+  end?: string;      // ISO 8601
+  colorId?: string;  // Google Calendar colorId ("2", "7", etc.)
+}
+
+export function useUpdateCalendarEvent() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (params: UpdateCalendarEventParams) => {
+      const data = await callCalendarFunction("PATCH", undefined, params) as CalendarEvent;
+      return data;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["calendar-events"] }),
   });

@@ -1,16 +1,18 @@
 import { useState, useEffect } from "react";
 import { format, startOfMonth, endOfMonth, addMonths, subMonths, startOfWeek, endOfWeek, eachDayOfInterval, isSameDay, isSameMonth, isToday, parseISO } from "date-fns";
 import { es } from "date-fns/locale";
-import { CalendarDays, ChevronLeft, ChevronRight, Clock, MapPin, Plus, Trash2, X } from "lucide-react";
+import { AnimatePresence } from "framer-motion";
+import { CalendarDays, ChevronLeft, ChevronRight, Clock, MapPin, Plus, X } from "lucide-react";
 import { useAllCalendarEvents, useCreateCalendarEvent, useDeleteCalendarEvent, type CalendarEvent, type CalendarEventWithSource } from "@admin/hooks/useGoogleCalendar";
 import { useAdminAuth } from "@admin/contexts/AdminAuthContext";
 import { useArtistProfiles } from "@admin/hooks/useArtistProfiles";
-import { ARTISTS } from "@shared/config/artists";
 import { DatePickerInput } from "@admin/components/DatePickerInput";
 import { ArtistAvatar } from "@admin/components/ArtistAvatar";
+import { EventActionPanel } from "@admin/components/EventActionPanel";
+import { sendCalendarEmail, formatEventDate, formatEventTime, formatDuration } from "@admin/lib/calendarEmail";
+import { GOOGLE_COLOR_CLASS } from "@shared/config/calendar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
@@ -41,33 +43,36 @@ function eventTime(ev: CalendarEvent): string {
 
 // ── Sub-components ───────────────────────────────────────────────────────────
 
-function EventPill({ ev, colorClass }: { ev: CalendarEvent; colorClass: string }) {
+function eventColorClass(ev: CalendarEvent, fallbackClass: string): string {
+  return ev.colorId ? (GOOGLE_COLOR_CLASS[ev.colorId] ?? fallbackClass) : fallbackClass;
+}
+
+function EventPill({ ev, colorClass, onClick }: { ev: CalendarEvent; colorClass: string; onClick: (ev: CalendarEvent) => void }) {
+  const cls = eventColorClass(ev, colorClass);
   return (
-    <div className={`text-[10px] leading-tight px-1 py-0.5 rounded border truncate ${colorClass}`}>
+    <button
+      onClick={(e) => { e.stopPropagation(); onClick(ev); }}
+      className={`w-full text-left text-[10px] leading-tight px-1 py-0.5 rounded border truncate hover:opacity-80 transition-opacity ${cls}`}
+    >
       {eventTime(ev) !== "Todo el día" && (
         <span className="opacity-70 mr-1">{eventTime(ev)}</span>
       )}
       {ev.summary}
-    </div>
+    </button>
   );
 }
 
-function EventCard({ ev, colorClass, onDelete }: { ev: CalendarEvent; colorClass: string; onDelete: (ev: CalendarEvent) => void }) {
+function EventCard({ ev, colorClass, onClick }: { ev: CalendarEvent; colorClass: string; onClick: (ev: CalendarEvent) => void }) {
   const start = ev.start.dateTime ? format(parseISO(ev.start.dateTime), "HH:mm") : null;
   const end   = ev.end.dateTime   ? format(parseISO(ev.end.dateTime),   "HH:mm") : null;
+  const cls   = eventColorClass(ev, colorClass);
 
   return (
-    <div className={`rounded-lg border p-3 space-y-1 ${colorClass}`}>
-      <div className="flex items-start justify-between gap-2">
-        <div className="font-medium text-sm leading-tight">{ev.summary}</div>
-        <button
-          onClick={() => onDelete(ev)}
-          className="shrink-0 opacity-50 hover:opacity-100 transition-opacity"
-          title="Eliminar evento"
-        >
-          <Trash2 className="w-3.5 h-3.5" />
-        </button>
-      </div>
+    <button
+      onClick={() => onClick(ev)}
+      className={`w-full text-left rounded-lg border p-3 space-y-1 hover:opacity-80 transition-opacity ${cls}`}
+    >
+      <div className="font-medium text-sm leading-tight">{ev.summary}</div>
       {(start || end) && (
         <div className="flex items-center gap-1 text-xs opacity-80">
           <Clock className="w-3 h-3" />
@@ -85,7 +90,7 @@ function EventCard({ ev, colorClass, onDelete }: { ev: CalendarEvent; colorClass
           {ev.description}
         </div>
       )}
-    </div>
+    </button>
   );
 }
 
@@ -108,6 +113,7 @@ function NewEventDialog({
   colorMap,
   labelMap,
   onClose,
+  onEventCreated,
 }: {
   open: boolean;
   defaultDate: Date | null;
@@ -116,6 +122,7 @@ function NewEventDialog({
   colorMap: Record<string, string>;
   labelMap: Record<string, string>;
   onClose: () => void;
+  onEventCreated?: (artistConfigId: string, startIso: string, endIso: string, title: string) => void;
 }) {
   const createEvent = useCreateCalendarEvent(calendarId);
   const [form, setForm] = useState<NewEventForm>({
@@ -167,6 +174,12 @@ function NewEventDialog({
         ...timing,
       });
       toast.success(`Evento creado en ${labelMap[targetCalendarId] ?? "calendario"}`);
+      console.log("[DEBUG] Evento creado OK — allDay:", form.allDay, "startTime:", form.startTime, "endTime:", form.endTime, "onEventCreated:", !!onEventCreated, "calendarId:", targetCalendarId);
+      if (onEventCreated && !form.allDay && form.startTime && form.endTime) {
+        const startIso = `${form.date}T${form.startTime}:00`;
+        const endIso   = `${form.date}T${form.endTime}:00`;
+        onEventCreated(targetCalendarId, startIso, endIso, form.summary);
+      }
       onClose();
     } catch {
       toast.error("Error al crear el evento");
@@ -298,7 +311,7 @@ export default function CalendarPage() {
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [selectedDay, setSelectedDay] = useState<Date | null>(new Date());
   const [newEventOpen, setNewEventOpen] = useState(false);
-  const [deleteTarget, setDeleteTarget] = useState<CalendarEvent | null>(null);
+  const [activeEvent, setActiveEvent] = useState<CalendarEventWithSource | null>(null);
 
   const timeMin = startOfWeek(startOfMonth(currentMonth), { weekStartsOn: 1 }).toISOString();
   const timeMax = endOfWeek(endOfMonth(currentMonth), { weekStartsOn: 1 }).toISOString();
@@ -310,7 +323,6 @@ export default function CalendarPage() {
   ])];
 
   const { events, isLoading, failedCalendarIds } = useAllCalendarEvents(timeMin, timeMax, allCalendarIds);
-  const deleteEvent = useDeleteCalendarEvent(calendarId);
   const colorMap = buildColorMap(allCalendarIds);
 
   // Label map: calendarId → artist display name
@@ -346,18 +358,25 @@ export default function CalendarPage() {
 
   const selectedEvents = selectedDay ? eventsForDay(selectedDay) : [];
 
-  const handleDelete = (ev: CalendarEvent) => setDeleteTarget(ev);
+  const handleEventClick = (ev: CalendarEvent) => {
+    setActiveEvent(ev as CalendarEventWithSource);
+  };
 
-  const confirmDelete = async () => {
-    if (!deleteTarget) return;
-    try {
-      await deleteEvent.mutateAsync(deleteTarget.id);
-      toast.success("Evento eliminado");
-    } catch {
-      toast.error("Error al eliminar el evento");
-    } finally {
-      setDeleteTarget(null);
-    }
+  const handleEventCreated = async (targetCalendarId: string, startIso: string, endIso: string, title: string) => {
+    console.log("[DEBUG] handleEventCreated — calendarId:", targetCalendarId);
+    console.log("[DEBUG] artistProfiles:", artistProfiles.map((p) => ({ calendar_id: p.calendar_id, artist_config_id: p.artist_config_id, name: p.display_name })));
+    const profile = artistProfiles.find((p) => p.calendar_id === targetCalendarId);
+    const artistConfigId = profile?.artist_config_id;
+    console.log("[DEBUG] profile encontrado:", profile?.display_name, "→ artist_config_id:", artistConfigId);
+    if (!artistConfigId) { console.warn("[DEBUG] No artistConfigId — email cancelado"); return; }
+    await sendCalendarEmail({
+      action:     "Nueva cita en calendario",
+      artistId:   artistConfigId,
+      eventTitle: title,
+      eventDate:  formatEventDate(new Date(startIso)),
+      eventTime:  formatEventTime(startIso, endIso),
+      duration:   formatDuration(startIso, endIso),
+    });
   };
 
   const weekdays = ["Lun", "Mar", "Mié", "Jue", "Vie", "Sáb", "Dom"];
@@ -462,7 +481,7 @@ export default function CalendarPage() {
                       </span>
                       <div className="space-y-0.5">
                         {dayEvents.slice(0, 2).map((ev) => (
-                          <EventPill key={ev.id} ev={ev} colorClass={colorMap[ev._calendarId] ?? CALENDAR_PALETTE[0]} />
+                          <EventPill key={ev.id} ev={ev} colorClass={colorMap[ev._calendarId] ?? CALENDAR_PALETTE[0]} onClick={handleEventClick} />
                         ))}
                         {dayEvents.length > 2 && (
                           <div className="text-[10px] text-muted-foreground pl-1">
@@ -506,7 +525,7 @@ export default function CalendarPage() {
                 </p>
               ) : (
                 selectedEvents.map((ev) => (
-                  <EventCard key={ev.id} ev={ev} colorClass={colorMap[(ev as CalendarEventWithSource)._calendarId] ?? CALENDAR_PALETTE[0]} onDelete={handleDelete} />
+                  <EventCard key={ev.id} ev={ev} colorClass={colorMap[(ev as CalendarEventWithSource)._calendarId] ?? CALENDAR_PALETTE[0]} onClick={handleEventClick} />
                 ))
               )}
             </CardContent>
@@ -548,13 +567,30 @@ export default function CalendarPage() {
                 </p>
               ) : (
                 selectedEvents.map((ev) => (
-                  <EventCard key={ev.id} ev={ev} colorClass={colorMap[(ev as CalendarEventWithSource)._calendarId] ?? CALENDAR_PALETTE[0]} onDelete={handleDelete} />
+                  <EventCard key={ev.id} ev={ev} colorClass={colorMap[(ev as CalendarEventWithSource)._calendarId] ?? CALENDAR_PALETTE[0]} onClick={handleEventClick} />
                 ))
               )}
             </CardContent>
           </Card>
         </div>
       )}
+
+      {/* Leyenda de colores */}
+      <div className="flex flex-wrap items-center gap-4 text-xs text-muted-foreground">
+        <span className="font-mono uppercase tracking-wider text-[10px] mr-1">Origen:</span>
+        <span className="flex items-center gap-1.5">
+          <span className="w-2.5 h-2.5 rounded-sm border bg-orange-500/20 border-orange-500/30 inline-block" />
+          Cita manual
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="w-2.5 h-2.5 rounded-sm border bg-green-500/20 border-green-500/30 inline-block" />
+          Sesión registrada (app)
+        </span>
+        <span className="flex items-center gap-1.5">
+          <span className="w-2.5 h-2.5 rounded-sm border bg-blue-500/20 border-blue-500/30 inline-block" />
+          Reserva web confirmada
+        </span>
+      </div>
 
       <NewEventDialog
         open={newEventOpen}
@@ -564,27 +600,17 @@ export default function CalendarPage() {
         colorMap={colorMap}
         labelMap={labelMap}
         onClose={() => setNewEventOpen(false)}
+        onEventCreated={handleEventCreated}
       />
 
-      <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
-        <AlertDialogContent className="bg-card border-border">
-          <AlertDialogHeader>
-            <AlertDialogTitle>¿Eliminar evento?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Vas a eliminar <strong>{deleteTarget?.summary}</strong>. Esta acción no se puede deshacer.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-              onClick={confirmDelete}
-            >
-              Eliminar
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      <AnimatePresence>
+        {activeEvent && (
+          <EventActionPanel
+            event={activeEvent}
+            onClose={() => setActiveEvent(null)}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

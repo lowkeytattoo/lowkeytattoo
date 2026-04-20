@@ -4,7 +4,7 @@ import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 const CORS = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
-  "Access-Control-Allow-Methods": "GET, POST, DELETE, OPTIONS",
+  "Access-Control-Allow-Methods": "GET, POST, PATCH, DELETE, OPTIONS",
 };
 
 // ── Google Service Account JWT auth ─────────────────────────────────────────
@@ -203,6 +203,30 @@ serve(async (req) => {
         `/calendars/${encodeURIComponent(targetCalendar)}/events`,
         token,
         { method: "POST", body: JSON.stringify(safeEventBody) },
+      );
+      const data = await res.json();
+      if (!res.ok) return json({ error: data }, res.status);
+      return json(data);
+    }
+
+    // ── PATCH — update existing event ────────────────────────────────────────
+    if (req.method === "PATCH") {
+      const { calendarId: patchCalendarId, eventId, summary, description, start, end, colorId } = await req.json();
+      const targetCalendar = patchCalendarId || calendarId;
+
+      if (!targetCalendar || !eventId) return json({ error: "calendarId and eventId required" }, 400);
+
+      const body: Record<string, unknown> = {};
+      if (summary     !== undefined) body.summary     = summary;
+      if (description !== undefined) body.description = description;
+      if (start)  body.start   = { dateTime: start, timeZone: "Atlantic/Canary" };
+      if (end)    body.end     = { dateTime: end,   timeZone: "Atlantic/Canary" };
+      if (colorId !== undefined) body.colorId = colorId;
+
+      const res = await calApi(
+        `/calendars/${encodeURIComponent(targetCalendar)}/events/${eventId}`,
+        token,
+        { method: "PATCH", body: JSON.stringify(body) },
       );
       const data = await res.json();
       if (!res.ok) return json({ error: data }, res.status);
