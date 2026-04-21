@@ -11,6 +11,7 @@ export type CalendarEmailAction =
   | "Nueva cita en calendario"
   | "Sesión registrada"
   | "Cita modificada"
+  | "Cita eliminada"
   | "Reserva confirmada";
 
 export interface CalendarEmailData {

@@ -113,8 +113,19 @@ export function EventActionPanel({ event, onClose }: Props) {
   // ── Eliminar ───────────────────────────────────────────────────────────────
   const handleDelete = async () => {
     try {
-      // Pasamos el calendarId del propio evento (fix del bug pre-existente)
       await deleteEvent.mutateAsync({ eventId: event.id, calendarId: event._calendarId });
+
+      if (artistConfigId) {
+        await sendCalendarEmail({
+          action:     "Cita eliminada",
+          artistId:   artistConfigId,
+          eventTitle: event.summary ?? "",
+          eventDate:  startDate ? formatEventDate(startDate) : "",
+          eventTime:  startIso && endIso ? formatEventTime(startIso, endIso) : "",
+          duration:   startIso && endIso ? formatDuration(startIso, endIso) : undefined,
+        });
+      }
+
       toast.success("Evento eliminado");
       setDeleteOpen(false);
       onClose();
