@@ -13,7 +13,7 @@ import Footer from "@web/components/Footer";
 import { SEOHead } from "@web/components/SEOHead";
 import { useI18n } from "@web/i18n/I18nProvider";
 import { useBooking } from "@web/contexts/BookingContext";
-import { ARTISTS } from "@shared/config/artists";
+import { ARTISTS, PUBLIC_ARTISTS } from "@shared/config/artists";
 import { ArtistWorkRow } from "@web/components/Gallery";
 
 export default function TatuajesPage() {
@@ -105,7 +105,7 @@ export default function TatuajesPage() {
 
           {/* Artists */}
           <div className="flex flex-col gap-4 mb-16">
-            {ARTISTS.map((artist, i) => (
+            {PUBLIC_ARTISTS(ARTISTS).map((artist, i) => (
               <ArtistWorkRow key={artist.id} artist={artist} index={i} />
             ))}
           </div>

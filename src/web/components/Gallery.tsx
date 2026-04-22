@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeft, ChevronLeft, ChevronRight, X } from "lucide-react";
 import { useI18n } from "@web/i18n/I18nProvider";
-import { ARTISTS, Artist } from "@shared/config/artists";
+import { ARTISTS, PUBLIC_ARTISTS, Artist } from "@shared/config/artists";
 import { InstagramIcon } from "@/components/ui/InstagramIcon";
 import { trackCategorySelect, trackArtistView, trackIgClick } from "@web/lib/analytics";
 import { useBooking } from "@web/contexts/BookingContext";
@@ -419,7 +419,7 @@ const TattooView = () => {
         <CategoryCTAs waMessage={t("gallery.tattoo.wa")} />
       </div>
       <div className="flex flex-col gap-4">
-        {ARTISTS.map((artist, i) => (
+        {PUBLIC_ARTISTS(ARTISTS).map((artist, i) => (
           <ArtistWorkRow key={artist.id} artist={artist} index={i} />
         ))}
       </div>
@@ -525,7 +525,7 @@ const LaserArtistCard = ({ artist }: { artist: Artist }) => {
 
 const LaserView = () => {
   const { t } = useI18n();
-  const laserArtists = ARTISTS.filter((a) => a.services.includes("laser"));
+  const laserArtists = PUBLIC_ARTISTS(ARTISTS).filter((a) => a.services.includes("laser"));
 
   return (
     <div className="flex flex-col gap-8">

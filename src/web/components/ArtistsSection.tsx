@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import { useI18n } from "@web/i18n/I18nProvider";
-import { ARTISTS } from "@shared/config/artists";
+import { ARTISTS, PUBLIC_ARTISTS } from "@shared/config/artists";
 import { ArtistCard } from "@web/components/Gallery";
 
 const ArtistsSection = () => {
@@ -26,7 +26,7 @@ const ArtistsSection = () => {
         </motion.div>
 
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-          {ARTISTS.map((artist, i) => (
+          {PUBLIC_ARTISTS(ARTISTS).map((artist, i) => (
             <ArtistCard key={artist.id} artist={artist} index={i} />
           ))}
         </div>

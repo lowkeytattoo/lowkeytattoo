@@ -8,7 +8,10 @@ export interface Artist {
   calendarId: string;
   styles: string[];
   services: ServiceType[];
+  hidden?: boolean;
 }
+
+export const PUBLIC_ARTISTS = (artists: Artist[]) => artists.filter((a) => !a.hidden);
 
 export const ARTISTS: Artist[] = [
   {
@@ -46,5 +49,6 @@ export const ARTISTS: Artist[] = [
     calendarId: "lowkeytattootenerife@gmail.com",
     styles: [],
     services: ["tattoo", "piercing", "laser"],
+    hidden: true,
   },
 ];
