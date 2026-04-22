@@ -232,6 +232,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "blog.cta.title": "Ready for your next tattoo?",
     "blog.cta.desc": "Book at Lowkey Tattoo — Santa Cruz de Tenerife.",
     "blog.cta.btn": "Contact via WhatsApp",
+    "blog.cta.contact": "Contact Us",
 
     // Common service page
     "service.book.online": "Book Online",
@@ -490,6 +491,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "blog.cta.title": "¿Listo para tu próximo tatuaje?",
     "blog.cta.desc": "Reserva cita en Lowkey Tattoo — Santa Cruz de Tenerife.",
     "blog.cta.btn": "Contactar por WhatsApp",
+    "blog.cta.contact": "Contacta con nosotros",
 
     // Común páginas de servicio
     "service.book.online": "Solicitar Cita Online",

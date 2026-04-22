@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@shared/lib/supabase";
-import { ARTISTS, Artist } from "@shared/config/artists";
+import { ARTISTS, PUBLIC_ARTISTS, Artist } from "@shared/config/artists";
 import type { ServiceType } from "@shared/types/index";
 
 /**
@@ -33,9 +33,9 @@ export const useArtistsWithServices = (): Artist[] => {
     staleTime: 5 * 60 * 1000,
   });
 
-  if (!overrideMap) return ARTISTS;
+  if (!overrideMap) return PUBLIC_ARTISTS(ARTISTS);
 
-  return ARTISTS.map((artist) => {
+  return PUBLIC_ARTISTS(ARTISTS.map((artist) => {
     const override = overrideMap[artist.id];
     if (!override) return artist;
     return {
@@ -43,5 +43,5 @@ export const useArtistsWithServices = (): Artist[] => {
       ...(override.services ? { services: override.services } : {}),
       ...(override.calendarId ? { calendarId: override.calendarId } : {}),
     };
-  });
+  }));
 };

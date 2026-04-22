@@ -31,6 +31,7 @@ import {
   useCreateBlogPost,
   useUpdateBlogPost,
   useDeleteBlogPost,
+  uploadBlogImage,
   type BlogPostRow,
 } from "@admin/hooks/useBlogPosts";
 import { cn } from "@shared/lib/utils";
@@ -51,6 +52,7 @@ interface PostForm {
   slug: string;
   meta_description: string;
   excerpt: string;
+  cover_image: string;
   content: string;
   tags: string;
   published: boolean;
@@ -62,6 +64,7 @@ const EMPTY_FORM: PostForm = {
   slug: "",
   meta_description: "",
   excerpt: "",
+  cover_image: "",
   content: "",
   tags: "",
   published: true,
@@ -80,12 +83,15 @@ export default function BlogAdmin() {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [slugManuallyEdited, setSlugManuallyEdited] = useState(false);
   const [slugError, setSlugError] = useState<string | null>(null);
+  const [coverUploading, setCoverUploading] = useState(false);
+  const [coverError, setCoverError] = useState<string | null>(null);
 
   const openCreate = () => {
     setEditingPost(null);
     setForm(EMPTY_FORM);
     setSlugManuallyEdited(false);
     setSlugError(null);
+    setCoverError(null);
     setEditorOpen(true);
   };
 
@@ -96,6 +102,7 @@ export default function BlogAdmin() {
       slug: post.slug,
       meta_description: post.meta_description ?? "",
       excerpt: post.excerpt ?? "",
+      cover_image: post.cover_image ?? "",
       content: post.content,
       tags: post.tags.join(", "),
       published: post.published,
@@ -103,7 +110,25 @@ export default function BlogAdmin() {
     });
     setSlugManuallyEdited(true);
     setSlugError(null);
+    setCoverError(null);
     setEditorOpen(true);
+  };
+
+  const handleCoverUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setCoverUploading(true);
+    setCoverError(null);
+    try {
+      const url = await uploadBlogImage(file);
+      setForm((f) => ({ ...f, cover_image: url }));
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setCoverError(msg || "Error al subir la imagen.");
+    } finally {
+      setCoverUploading(false);
+      e.target.value = "";
+    }
   };
 
   const handleTitleChange = (value: string) => {
@@ -138,6 +163,7 @@ export default function BlogAdmin() {
       slug: form.slug,
       meta_description: form.meta_description || null,
       excerpt: form.excerpt || null,
+      cover_image: form.cover_image || null,
       content: form.content,
       tags: form.tags.split(",").map((t) => t.trim()).filter(Boolean),
       published: form.published,
@@ -332,6 +358,56 @@ export default function BlogAdmin() {
                 rows={2}
                 className="bg-background border-border resize-none"
               />
+            </div>
+
+            {/* Cover image */}
+            <div className="space-y-2">
+              <Label className="font-mono text-xs uppercase tracking-wider">
+                Imagen de cabecera <span className="text-muted-foreground">(opcional)</span>
+              </Label>
+              {form.cover_image ? (
+                <div className="relative rounded-md overflow-hidden">
+                  <img
+                    src={form.cover_image}
+                    alt="Vista previa"
+                    className="w-full aspect-[16/6] object-cover rounded-md"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setForm((f) => ({ ...f, cover_image: "" }))}
+                    className="absolute top-2 right-2 bg-background/80 backdrop-blur-sm rounded-sm px-2 py-1 text-xs font-mono text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    Eliminar
+                  </button>
+                </div>
+              ) : (
+                <div className="flex gap-2">
+                  <Input
+                    value={form.cover_image}
+                    onChange={(e) => setForm((f) => ({ ...f, cover_image: e.target.value }))}
+                    placeholder="Pega una URL o sube un archivo →"
+                    className="bg-background border-border text-sm"
+                  />
+                  <label className={cn(
+                    "cursor-pointer inline-flex items-center whitespace-nowrap border border-border rounded-sm px-3 text-xs font-mono shrink-0 transition-colors",
+                    coverUploading
+                      ? "opacity-50 pointer-events-none text-muted-foreground"
+                      : "text-muted-foreground hover:text-foreground hover:border-muted-foreground"
+                  )}>
+                    {coverUploading ? "Subiendo..." : "Subir archivo"}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="sr-only"
+                      disabled={coverUploading}
+                      onChange={handleCoverUpload}
+                    />
+                  </label>
+                </div>
+              )}
+              {coverError && (
+                <p className="text-[10px] text-destructive font-mono">{coverError}</p>
+              )}
             </div>
 
             {/* Tags */}

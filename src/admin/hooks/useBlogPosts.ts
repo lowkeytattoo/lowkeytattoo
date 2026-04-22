@@ -7,6 +7,7 @@ export interface BlogPostRow {
   title: string;
   meta_description: string | null;
   excerpt: string | null;
+  cover_image: string | null;
   content: string;
   tags: string[];
   published: boolean;

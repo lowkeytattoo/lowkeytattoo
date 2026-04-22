@@ -56,6 +56,16 @@ export default function BlogPage() {
               <div className="space-y-8">
                 {(posts ?? []).slice(0, visibleCount).map((post) => (
                   <article key={post.slug} className="border-b border-border pb-8">
+                    {post.cover_image && (
+                      <Link to={r.blogPost(post.slug)} className="block mb-5 rounded-lg overflow-hidden aspect-[16/7] group">
+                        <img
+                          src={post.cover_image}
+                          alt={post.title}
+                          className="h-full w-full object-cover transition-transform duration-300 group-hover:scale-[1.02]"
+                          loading="lazy"
+                        />
+                      </Link>
+                    )}
                     <div className="flex items-center gap-3 mb-3">
                       <time dateTime={post.date} className="font-mono text-xs text-muted-foreground">
                         {format(new Date(post.date), "d MMM yyyy", { locale: dateFnsLocale })}
