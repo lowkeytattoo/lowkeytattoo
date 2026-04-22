@@ -7,6 +7,7 @@ import { useBooking } from "@web/contexts/BookingContext";
 import { CONTACT } from "@web/config/contact";
 import { ROUTES } from "@web/config/routes";
 import piercingPablo1 from "@/assets/lowkey_tattoo_tenerife_piercing_pablo.webp";
+import tamuraImg from "@/assets/lowkey_tattoo_tenerife_tamura.webp";
 
 const WhatsAppIcon = ({ size = 16 }: { size?: number }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -21,6 +22,10 @@ export default function PiercingPage() {
   const alt = ROUTES[locale === "es" ? "en" : "es"];
 
   const SITE = "https://tattoolowkey.com";
+  const TAMURA_START = "2026-05-22";
+  const TAMURA_END   = "2026-05-29";
+  const isEventVisible = new Date() < new Date(TAMURA_END);
+
   const schemas = [
     {
       "@context": "https://schema.org",
@@ -40,6 +45,39 @@ export default function PiercingPage() {
         { "@type": "ListItem", position: 2, name: t("piercing.h1"), item: `${SITE}${r.piercing}` },
       ],
     },
+    ...(isEventVisible ? [{
+      "@context": "https://schema.org",
+      "@type": "Event",
+      name: locale === "es"
+        ? "Tamurathepiercer — Piercing profesional en Lowkey Tattoo Tenerife"
+        : "Tamurathepiercer — Professional Piercing at Lowkey Tattoo Tenerife",
+      startDate: TAMURA_START,
+      endDate: TAMURA_END,
+      eventStatus: "https://schema.org/EventScheduled",
+      eventAttendanceMode: "https://schema.org/OfflineEventAttendanceMode",
+      description: locale === "es"
+        ? "Tamurathepiercer, anilladora profesional, visita Lowkey Tattoo en Santa Cruz de Tenerife del 22 al 28 de mayo de 2026. Plazas muy limitadas."
+        : "Professional body piercer Tamurathepiercer visits Lowkey Tattoo in Santa Cruz de Tenerife from 22 to 28 May 2026. Very limited spots.",
+      image: `${SITE}${tamuraImg}`,
+      url: `${SITE}${r.piercing}`,
+      location: {
+        "@type": "Place",
+        name: "Lowkey Tattoo",
+        address: {
+          "@type": "PostalAddress",
+          streetAddress: "Calle Dr. Allart, 50",
+          addressLocality: "Santa Cruz de Tenerife",
+          addressRegion: "Tenerife",
+          addressCountry: "ES",
+        },
+      },
+      organizer: { "@type": "Organization", name: "Lowkey Tattoo", url: SITE },
+      performer: {
+        "@type": "Person",
+        name: "Tamurathepiercer",
+        url: "https://www.instagram.com/tamurathepiercer/",
+      },
+    }] : []),
   ];
 
   const piercingTypes = [
@@ -84,6 +122,52 @@ export default function PiercingPage() {
               height="700"
             />
           </div>
+
+          {/* Artista invitada – Tamurathepiercer */}
+          {isEventVisible && (
+            <section className="mb-16 border border-border rounded-lg overflow-hidden">
+              <div className="aspect-[21/9] overflow-hidden">
+                <img
+                  src={tamuraImg}
+                  alt="Tamurathepiercer — anilladora profesional invitada en Lowkey Tattoo Santa Cruz de Tenerife"
+                  className="h-full w-full object-cover"
+                  loading="eager"
+                  width="1400"
+                  height="600"
+                />
+              </div>
+              <div className="p-8">
+                <p className="font-mono text-xs text-muted-foreground uppercase tracking-widest mb-3">
+                  {t("tamura.label")}
+                </p>
+                <h2 className="text-2xl font-medium text-foreground mb-4">
+                  {t("tamura.h2")}
+                </h2>
+                <p className="text-muted-foreground mb-6 leading-relaxed">
+                  {t("tamura.desc")}
+                </p>
+                <div className="flex flex-col sm:flex-row gap-3">
+                  <a
+                    href={`${CONTACT.whatsapp}?text=${encodeURIComponent(t("tamura.wa"))}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center justify-center gap-2 cta-button rounded-sm text-xs tracking-[0.1em] uppercase px-6 py-3"
+                  >
+                    <WhatsAppIcon size={14} />
+                    {t("tamura.cta")}
+                  </a>
+                  <a
+                    href="https://www.instagram.com/tamurathepiercer/"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="inline-flex items-center justify-center border border-border rounded-sm text-xs tracking-[0.1em] uppercase px-6 py-3 text-muted-foreground hover:text-foreground hover:border-muted-foreground transition-colors"
+                  >
+                    {t("tamura.ig")}
+                  </a>
+                </div>
+              </div>
+            </section>
+          )}
 
           {/* Tipos */}
           <section className="mb-16">

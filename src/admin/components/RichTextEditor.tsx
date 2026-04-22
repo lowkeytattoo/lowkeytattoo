@@ -21,7 +21,7 @@ import {
   List, ListOrdered,
   Link2, Image as ImageIcon,
   AlignLeft, AlignCenter, AlignJustify,
-  Undo, Redo,
+  Undo, Redo, Code2,
 } from "lucide-react";
 import { cn } from "@shared/lib/utils";
 
@@ -38,7 +38,10 @@ export function RichTextEditor({ value, onChange }: RichTextEditorProps) {
   const [imageUrl, setImageUrl] = useState("");
   const [imageAlt, setImageAlt] = useState("");
   const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
+  const [htmlMode, setHtmlMode] = useState(false);
+  const [rawHtml, setRawHtml] = useState("");
 
   const editor = useEditor({
     extensions: [
@@ -84,9 +87,21 @@ export function RichTextEditor({ value, onChange }: RichTextEditorProps) {
     </button>
   );
 
+  const toggleHtmlMode = () => {
+    if (!htmlMode) {
+      setRawHtml(editor.getHTML());
+      setHtmlMode(true);
+    } else {
+      editor.commands.setContent(rawHtml, false);
+      onChange(rawHtml);
+      setHtmlMode(false);
+    }
+  };
+
   const resetImageDialog = () => {
     setImageUrl("");
     setImageAlt("");
+    setUploadError(null);
     setImageOpen(false);
   };
 
@@ -99,13 +114,20 @@ export function RichTextEditor({ value, onChange }: RichTextEditorProps) {
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
+    if (!imageAlt.trim()) {
+      setUploadError("Introduce el texto alternativo (campo de arriba) antes de subir.");
+      if (fileRef.current) fileRef.current.value = "";
+      return;
+    }
     setUploading(true);
+    setUploadError(null);
     try {
       const url = await uploadBlogImage(file);
       editor.chain().focus().setImage({ src: url, alt: imageAlt.trim() }).run();
       resetImageDialog();
-    } catch (err) {
-      console.error("Error uploading image:", err);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : String(err);
+      setUploadError(msg || "Error al subir la imagen. Revisa que el bucket blog-images existe en Supabase Storage.");
     } finally {
       setUploading(false);
       if (fileRef.current) fileRef.current.value = "";
@@ -116,43 +138,43 @@ export function RichTextEditor({ value, onChange }: RichTextEditorProps) {
     <div className="border border-border rounded-lg overflow-hidden bg-background">
       {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-0.5 p-2 border-b border-border bg-card">
-        <ToolBtn title="Negrita" active={editor.isActive("bold")} onClick={() => editor.chain().focus().toggleBold().run()}>
+        <ToolBtn title="Negrita" disabled={htmlMode} active={editor.isActive("bold")} onClick={() => editor.chain().focus().toggleBold().run()}>
           <Bold className="w-4 h-4" />
         </ToolBtn>
-        <ToolBtn title="Cursiva" active={editor.isActive("italic")} onClick={() => editor.chain().focus().toggleItalic().run()}>
+        <ToolBtn title="Cursiva" disabled={htmlMode} active={editor.isActive("italic")} onClick={() => editor.chain().focus().toggleItalic().run()}>
           <Italic className="w-4 h-4" />
         </ToolBtn>
-        <ToolBtn title="Tachado" active={editor.isActive("strike")} onClick={() => editor.chain().focus().toggleStrike().run()}>
+        <ToolBtn title="Tachado" disabled={htmlMode} active={editor.isActive("strike")} onClick={() => editor.chain().focus().toggleStrike().run()}>
           <Strikethrough className="w-4 h-4" />
         </ToolBtn>
 
         <span className="w-px h-5 bg-border mx-1" />
 
-        <ToolBtn title="Título H2" active={editor.isActive("heading", { level: 2 })} onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}>
+        <ToolBtn title="Título H2" disabled={htmlMode} active={editor.isActive("heading", { level: 2 })} onClick={() => editor.chain().focus().toggleHeading({ level: 2 }).run()}>
           <Heading2 className="w-4 h-4" />
         </ToolBtn>
-        <ToolBtn title="Título H3" active={editor.isActive("heading", { level: 3 })} onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}>
+        <ToolBtn title="Título H3" disabled={htmlMode} active={editor.isActive("heading", { level: 3 })} onClick={() => editor.chain().focus().toggleHeading({ level: 3 }).run()}>
           <Heading3 className="w-4 h-4" />
         </ToolBtn>
 
         <span className="w-px h-5 bg-border mx-1" />
 
-        <ToolBtn title="Lista" active={editor.isActive("bulletList")} onClick={() => editor.chain().focus().toggleBulletList().run()}>
+        <ToolBtn title="Lista" disabled={htmlMode} active={editor.isActive("bulletList")} onClick={() => editor.chain().focus().toggleBulletList().run()}>
           <List className="w-4 h-4" />
         </ToolBtn>
-        <ToolBtn title="Lista numerada" active={editor.isActive("orderedList")} onClick={() => editor.chain().focus().toggleOrderedList().run()}>
+        <ToolBtn title="Lista numerada" disabled={htmlMode} active={editor.isActive("orderedList")} onClick={() => editor.chain().focus().toggleOrderedList().run()}>
           <ListOrdered className="w-4 h-4" />
         </ToolBtn>
 
         <span className="w-px h-5 bg-border mx-1" />
 
-        <ToolBtn title="Alinear izquierda" active={editor.isActive({ textAlign: "left" })} onClick={() => editor.chain().focus().setTextAlign("left").run()}>
+        <ToolBtn title="Alinear izquierda" disabled={htmlMode} active={editor.isActive({ textAlign: "left" })} onClick={() => editor.chain().focus().setTextAlign("left").run()}>
           <AlignLeft className="w-4 h-4" />
         </ToolBtn>
-        <ToolBtn title="Centrar" active={editor.isActive({ textAlign: "center" })} onClick={() => editor.chain().focus().setTextAlign("center").run()}>
+        <ToolBtn title="Centrar" disabled={htmlMode} active={editor.isActive({ textAlign: "center" })} onClick={() => editor.chain().focus().setTextAlign("center").run()}>
           <AlignCenter className="w-4 h-4" />
         </ToolBtn>
-        <ToolBtn title="Justificar" active={editor.isActive({ textAlign: "justify" })} onClick={() => editor.chain().focus().setTextAlign("justify").run()}>
+        <ToolBtn title="Justificar" disabled={htmlMode} active={editor.isActive({ textAlign: "justify" })} onClick={() => editor.chain().focus().setTextAlign("justify").run()}>
           <AlignJustify className="w-4 h-4" />
         </ToolBtn>
 
@@ -160,6 +182,7 @@ export function RichTextEditor({ value, onChange }: RichTextEditorProps) {
 
         <ToolBtn
           title="Enlace"
+          disabled={htmlMode}
           active={editor.isActive("link")}
           onClick={() => {
             const url = window.prompt("URL del enlace:", editor.getAttributes("link").href ?? "https://");
@@ -170,22 +193,39 @@ export function RichTextEditor({ value, onChange }: RichTextEditorProps) {
         >
           <Link2 className="w-4 h-4" />
         </ToolBtn>
-        <ToolBtn title="Imagen" onClick={() => setImageOpen(true)}>
+        <ToolBtn title="Imagen" disabled={htmlMode} onClick={() => setImageOpen(true)}>
           <ImageIcon className="w-4 h-4" />
         </ToolBtn>
 
         <span className="w-px h-5 bg-border mx-1" />
 
-        <ToolBtn title="Deshacer" disabled={!editor.can().undo()} onClick={() => editor.chain().focus().undo().run()}>
+        <ToolBtn title="Deshacer" disabled={htmlMode || !editor.can().undo()} onClick={() => editor.chain().focus().undo().run()}>
           <Undo className="w-4 h-4" />
         </ToolBtn>
-        <ToolBtn title="Rehacer" disabled={!editor.can().redo()} onClick={() => editor.chain().focus().redo().run()}>
+        <ToolBtn title="Rehacer" disabled={htmlMode || !editor.can().redo()} onClick={() => editor.chain().focus().redo().run()}>
           <Redo className="w-4 h-4" />
+        </ToolBtn>
+
+        <span className="w-px h-5 bg-border mx-1" />
+
+        <ToolBtn title={htmlMode ? "Editor visual" : "Editar HTML"} active={htmlMode} onClick={toggleHtmlMode}>
+          <Code2 className="w-4 h-4" />
         </ToolBtn>
       </div>
 
-      {/* Editor area */}
-      <EditorContent
+      {/* HTML source textarea */}
+      {htmlMode && (
+        <textarea
+          value={rawHtml}
+          onChange={(e) => { setRawHtml(e.target.value); onChange(e.target.value); }}
+          className="w-full min-h-[320px] px-4 py-3 bg-background text-muted-foreground font-mono text-xs leading-relaxed resize-y outline-none"
+          spellCheck={false}
+          placeholder="Pega aquí el HTML del contenido..."
+        />
+      )}
+
+      {/* Visual editor area */}
+      {!htmlMode && <EditorContent
         editor={editor}
         className="min-h-[320px] px-4 py-3 prose prose-invert prose-sm max-w-none
           focus-within:outline-none
@@ -217,7 +257,7 @@ export function RichTextEditor({ value, onChange }: RichTextEditorProps) {
           [&_.ProseMirror_.is-editor-empty:first-child::before]:pointer-events-none
           [&_.ProseMirror_.is-editor-empty:first-child::before]:float-left
           [&_.ProseMirror_.is-editor-empty:first-child::before]:h-0"
-      />
+      />}
 
       {/* Image dialog */}
       <Dialog open={imageOpen} onOpenChange={(o) => { if (!o) resetImageDialog(); else setImageOpen(true); }}>
@@ -271,20 +311,18 @@ export function RichTextEditor({ value, onChange }: RichTextEditorProps) {
                   type="file"
                   accept="image/*"
                   onChange={handleFileUpload}
-                  disabled={!imageAlt.trim()}
+                  disabled={uploading}
                   className="block w-full text-sm text-muted-foreground
                     file:mr-4 file:py-2 file:px-4 file:rounded file:border-0
                     file:text-xs file:font-mono file:uppercase file:tracking-wider
                     file:bg-muted file:text-foreground hover:file:bg-muted/80 cursor-pointer
                     disabled:opacity-50 disabled:cursor-not-allowed"
                 />
-                {!imageAlt.trim() && (
-                  <p className="text-[10px] text-muted-foreground/60 font-mono">
-                    Introduce el texto alternativo antes de subir la imagen.
-                  </p>
-                )}
                 {uploading && (
                   <p className="text-xs text-muted-foreground font-mono animate-pulse">Subiendo imagen...</p>
+                )}
+                {uploadError && (
+                  <p className="text-xs text-destructive font-mono bg-destructive/10 rounded p-2 leading-relaxed">{uploadError}</p>
                 )}
               </div>
             ) : (

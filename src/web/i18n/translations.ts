@@ -239,6 +239,14 @@ export const translations: Record<Locale, Record<string, string>> = {
     "service.also": "We also offer",
     "service.breadcrumb.home": "Home",
 
+    // Guest piercer – Tamurathepiercer (22–28 May 2026)
+    "tamura.label": "Guest Artist · 22–28 May 2026",
+    "tamura.h2": "Tamurathepiercer at Lowkey",
+    "tamura.desc": "From 22 to 28 May we welcome Tamurathepiercer to the studio — a professional body piercer with exceptional technique and a unique jewellery selection. Very limited spots.",
+    "tamura.cta": "Book a session with Tamura",
+    "tamura.wa": "Hi! I'd like to book a piercing session with Tamurathepiercer at Lowkey Tattoo (22–28 May).",
+    "tamura.ig": "View on Instagram",
+
     // Contact form
     "contact.form.title": "Send us a message",
     "contact.form.name": "Name",
@@ -488,6 +496,14 @@ export const translations: Record<Locale, Record<string, string>> = {
     "service.whatsapp": "WhatsApp",
     "service.also": "También ofrecemos",
     "service.breadcrumb.home": "Inicio",
+
+    // Artista invitada – Tamurathepiercer (22–28 mayo 2026)
+    "tamura.label": "Artista invitada · 22–28 mayo 2026",
+    "tamura.h2": "Tamurathepiercer en Lowkey",
+    "tamura.desc": "Del 22 al 28 de mayo recibimos en el estudio a Tamurathepiercer, anilladora profesional con una técnica avanzada y una selección de joyas únicas. Plazas muy limitadas.",
+    "tamura.cta": "Reservar sesión con Tamura",
+    "tamura.wa": "¡Hola! Me gustaría reservar una sesión de piercing con Tamurathepiercer en Lowkey Tattoo (22–28 mayo).",
+    "tamura.ig": "Ver en Instagram",
 
     // Formulario de contacto
     "contact.form.title": "Envíanos un mensaje",
