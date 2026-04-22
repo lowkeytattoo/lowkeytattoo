@@ -36,14 +36,12 @@ export interface CalendarEmailData {
 
 /** Envía email al artista y al admin vía Brevo. Falla silencioso. */
 export async function sendCalendarEmail(data: CalendarEmailData): Promise<void> {
-  console.log("[calendarEmail] sendCalendarEmail llamado:", data.action, "| artistId:", data.artistId);
   if (!BREVO_API_KEY) {
     console.warn("[calendarEmail] VITE_BREVO_API_KEY no configurada — no se envían emails");
     return;
   }
 
   const artist = ARTISTS.find((a) => a.id === data.artistId);
-  console.log("[calendarEmail] Artista resuelto:", artist?.name, "→ email:", artist?.email);
   if (!artist) {
     console.warn(`[calendarEmail] Artista no encontrado en ARTISTS[]: ${data.artistId}`);
     return;
@@ -82,7 +80,6 @@ export async function sendCalendarEmail(data: CalendarEmailData): Promise<void> 
     return true;
   });
 
-  console.log("[calendarEmail] Enviando a:", recipients.map((r) => r.email));
   await Promise.allSettled(
     recipients.map((to) => sendBrevoEmail(to, subject, lines)),
   );

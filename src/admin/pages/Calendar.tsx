@@ -174,7 +174,6 @@ function NewEventDialog({
         ...timing,
       });
       toast.success(`Evento creado en ${labelMap[targetCalendarId] ?? "calendario"}`);
-      console.log("[DEBUG] Evento creado OK — allDay:", form.allDay, "startTime:", form.startTime, "endTime:", form.endTime, "onEventCreated:", !!onEventCreated, "calendarId:", targetCalendarId);
       if (onEventCreated && !form.allDay && form.startTime && form.endTime) {
         const startIso = `${form.date}T${form.startTime}:00`;
         const endIso   = `${form.date}T${form.endTime}:00`;
@@ -363,12 +362,9 @@ export default function CalendarPage() {
   };
 
   const handleEventCreated = async (targetCalendarId: string, startIso: string, endIso: string, title: string) => {
-    console.log("[DEBUG] handleEventCreated — calendarId:", targetCalendarId);
-    console.log("[DEBUG] artistProfiles:", artistProfiles.map((p) => ({ calendar_id: p.calendar_id, artist_config_id: p.artist_config_id, name: p.display_name })));
     const profile = artistProfiles.find((p) => p.calendar_id === targetCalendarId);
     const artistConfigId = profile?.artist_config_id;
-    console.log("[DEBUG] profile encontrado:", profile?.display_name, "→ artist_config_id:", artistConfigId);
-    if (!artistConfigId) { console.warn("[DEBUG] No artistConfigId — email cancelado"); return; }
+    if (!artistConfigId) return;
     await sendCalendarEmail({
       action:     "Nueva cita en calendario",
       artistId:   artistConfigId,
