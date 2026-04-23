@@ -88,8 +88,8 @@ export default function BlogPostPage() {
   const otherPosts = (allPosts ?? []).filter((p) => p.slug !== post.slug).slice(0, 3);
   const waMsg = post.slug.includes("tamura") ? t("tamura.wa") : t("blog.wa.msg");
 
-  // Extract first image from post content for OG/schema; fall back to site banner
   const firstImage =
+    post.cover_image ??
     post.content.match(/<img[^>]+src="([^"]+)"/)?.[1] ??
     "https://tattoolowkey.com/Banner_lowkeytattoo.jpg";
 
