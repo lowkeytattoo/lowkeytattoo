@@ -2,7 +2,7 @@ import { Helmet } from "react-helmet-async";
 import { useI18n } from "@web/i18n/I18nProvider";
 
 const SITE = "https://tattoolowkey.com";
-const BANNER = `${SITE}/Banner_lowkeytattoo.jpg`;
+const BANNER = `${SITE}/lowkey_tattoo_tenerife_banner.png`;
 
 interface SEOHeadProps {
   title: string;
