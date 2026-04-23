@@ -1,10 +1,11 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@shared/lib/supabase";
+import { useAdminAuth } from "@admin/contexts/AdminAuthContext";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { MailOpen, Phone, Mail, Reply, Trash2 } from "lucide-react";
+import { MailOpen, Phone, Mail, Trash2 } from "lucide-react";
 
 function normalizePhone(raw: string): string {
   const trimmed = raw.trim();
@@ -14,18 +15,26 @@ function normalizePhone(raw: string): string {
 
 export default function Messages() {
   const qc = useQueryClient();
+  const { profile } = useAdminAuth();
+  const isOwner = profile?.role === "owner";
 
   const { data: messages, isLoading } = useQuery({
-    queryKey: ["contact-messages"],
+    queryKey: ["contact-messages", profile?.id],
     queryFn: async () => {
-      const { data, error } = await supabase
+      let query = supabase
         .from("web_bookings")
         .select("*")
         .is("preferred_date", null)
         .order("created_at", { ascending: false });
+      // RLS ya filtra en BD; el filtro frontend refuerza y hace la intención explícita
+      if (!isOwner && profile?.artist_config_id) {
+        query = query.eq("artist_config_id", profile.artist_config_id);
+      }
+      const { data, error } = await query;
       if (error) throw error;
       return data ?? [];
     },
+    enabled: !!profile,
   });
 
   const deleteMsg = useMutation({
@@ -63,6 +72,7 @@ export default function Messages() {
       <div>
         <h1 className="text-2xl font-bold text-foreground">Mensajes</h1>
         <p className="text-muted-foreground text-sm mt-1">
+          {!isOwner && "Tus mensajes · "}
           {unread > 0 ? `${unread} sin leer` : "Todo leído"}
         </p>
       </div>

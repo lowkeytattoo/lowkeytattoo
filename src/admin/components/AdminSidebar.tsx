@@ -65,7 +65,7 @@ const allNavItems: NavItem[] = [
   { to: "/admin/messages",  label: "Mensajes",   icon: MessageSquare, messagesBadge: true },
   { to: "/admin/finances",  label: "Finanzas",   icon: TrendingUp },
   { to: "/admin/stock",     label: "Stock",      icon: Package, badge: true },
-  { to: "/admin/blog",      label: "Blog",       icon: FileText },
+  { to: "/admin/blog",      label: "Blog",       icon: FileText, ownerOnly: true },
   { to: "/admin/artists",   label: "Artistas",   icon: UserCog, ownerOnly: true },
 ];
 

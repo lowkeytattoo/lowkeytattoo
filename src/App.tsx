@@ -156,8 +156,22 @@ const App = () => (
                     <Route path="calendar" element={<AdminCalendar />} />
                     <Route path="bookings" element={<AdminWebBookings />} />
                     <Route path="messages" element={<AdminMessages />} />
-                    <Route path="blog" element={<AdminBlog />} />
-                    <Route path="blog/preview/:id" element={<BlogPreview />} />
+                    <Route
+                      path="blog"
+                      element={
+                        <RoleGuard requiredRole="owner">
+                          <AdminBlog />
+                        </RoleGuard>
+                      }
+                    />
+                    <Route
+                      path="blog/preview/:id"
+                      element={
+                        <RoleGuard requiredRole="owner">
+                          <BlogPreview />
+                        </RoleGuard>
+                      }
+                    />
                   </Route>
 
                   <Route path="*" element={<Suspense fallback={null}><NotFound /></Suspense>} />

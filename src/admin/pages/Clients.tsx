@@ -35,6 +35,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { Plus, Search, UserCircle, Pencil, Trash2 } from "lucide-react";
+import { cn } from "@shared/lib/utils";
 import { ArtistAvatar } from "@admin/components/ArtistAvatar";
 import { PhoneInput, formatPhone } from "@admin/components/PhoneInput";
 import type { Client } from "@shared/types/index";
@@ -55,6 +56,7 @@ export default function Clients() {
   const [search, setSearch] = useState("");
   const [debouncedSearch, setDebouncedSearch] = useState("");
   const [filterArtist, setFilterArtist] = useState<string>("all");
+  const [viewMode, setViewMode] = useState<"all" | "mine">("all");
   const [showCreate, setShowCreate] = useState(false);
 
   // Debounce: espera 300ms tras dejar de escribir antes de lanzar la query
@@ -66,9 +68,8 @@ export default function Clients() {
     return () => clearTimeout(timer);
   }, [search]);
 
-  // El artistId efectivo combina control de acceso (artistas) y filtro UI (owner)
   const effectiveArtistId = isOwner
-    ? (filterArtist !== "all" ? filterArtist : undefined)
+    ? (viewMode === "mine" ? profile?.id : (filterArtist !== "all" ? filterArtist : undefined))
     : profile?.id;
 
   const { data, isLoading } = useClientsPaged({
@@ -174,6 +175,30 @@ export default function Clients() {
         </Button>
       </div>
 
+      {/* View mode toggle (owner only) */}
+      {isOwner && (
+        <div className="flex gap-1 bg-muted/40 rounded-lg p-1 w-fit">
+          <button
+            onClick={() => { setViewMode("all"); setPage(0); }}
+            className={cn(
+              "px-3 py-1 rounded-md text-sm font-medium transition-colors",
+              viewMode === "all" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            Todos
+          </button>
+          <button
+            onClick={() => { setViewMode("mine"); setPage(0); setFilterArtist("all"); }}
+            className={cn(
+              "px-3 py-1 rounded-md text-sm font-medium transition-colors",
+              viewMode === "mine" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            {profile?.display_name}
+          </button>
+        </div>
+      )}
+
       {/* Filters */}
       <div className="flex gap-3 flex-wrap items-center">
         <div className="relative flex-1 min-w-0">
@@ -185,7 +210,7 @@ export default function Clients() {
             className="pl-9 bg-background border-border w-full"
           />
         </div>
-        {isOwner && (
+        {isOwner && viewMode === "all" && (
           <Select value={filterArtist} onValueChange={setFilterArtist}>
             <SelectTrigger className="w-36 sm:w-40 bg-background border-border shrink-0">
               <SelectValue placeholder="Todos los artistas" />

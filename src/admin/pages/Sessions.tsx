@@ -104,6 +104,7 @@ export default function Sessions() {
   const [filterTo, setFilterTo] = useState("");
   const [filterArtist, setFilterArtist] = useState("all");
   const [filterType, setFilterType] = useState("all");
+  const [viewMode, setViewMode] = useState<"all" | "mine">("all");
 
   const [showModal, setShowModal] = useState(false);
   const [editingSession, setEditingSession] = useState<SessionRow | null>(null);
@@ -112,8 +113,12 @@ export default function Sessions() {
   const [inviteTime, setInviteTime] = useState("11:00");
   const createCalendarEvent = useCreateCalendarEvent();
 
+  const effectiveArtistId = isOwner
+    ? (viewMode === "mine" ? profile?.id : (filterArtist !== "all" ? filterArtist : undefined))
+    : profile?.id;
+
   const { data: sessions, isLoading } = useSessions({
-    artistId: isOwner ? (filterArtist !== "all" ? filterArtist : undefined) : profile?.id,
+    artistId: effectiveArtistId,
     from: filterFrom || undefined,
     to: filterTo || undefined,
     type: filterType !== "all" ? filterType : undefined,
@@ -234,6 +239,30 @@ export default function Sessions() {
         </Button>
       </div>
 
+      {/* View mode toggle (owner only) */}
+      {isOwner && (
+        <div className="flex gap-1 bg-muted/40 rounded-lg p-1 w-fit">
+          <button
+            onClick={() => setViewMode("all")}
+            className={cn(
+              "px-3 py-1 rounded-md text-sm font-medium transition-colors",
+              viewMode === "all" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            Todas
+          </button>
+          <button
+            onClick={() => { setViewMode("mine"); setFilterArtist("all"); }}
+            className={cn(
+              "px-3 py-1 rounded-md text-sm font-medium transition-colors",
+              viewMode === "mine" ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"
+            )}
+          >
+            {profile?.display_name}
+          </button>
+        </div>
+      )}
+
       {/* Summary bar */}
       <div className="grid grid-cols-3 gap-4">
         {[
@@ -270,7 +299,7 @@ export default function Sessions() {
                 ))}
               </SelectContent>
             </Select>
-            {isOwner && (
+            {isOwner && viewMode === "all" && (
               <Select value={filterArtist} onValueChange={setFilterArtist}>
                 <SelectTrigger className="w-40 bg-background border-border">
                   <SelectValue placeholder="Artista" />
