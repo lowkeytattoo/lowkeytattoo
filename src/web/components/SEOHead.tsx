@@ -54,8 +54,8 @@ export function SEOHead({
       <meta property="og:description" content={description} />
       <meta property="og:url" content={url} />
       <meta property="og:image" content={socialImage} />
-      <meta property="og:image:width" content="1200" />
-      <meta property="og:image:height" content="800" />
+      <meta property="og:image:width" content="1534" />
+      <meta property="og:image:height" content="895" />
       <meta property="og:type" content={ogType} />
       <meta property="og:locale" content={locale === "es" ? "es_ES" : "en_GB"} />
       {altUrl && (
