@@ -91,7 +91,7 @@ export default function BlogPostPage() {
   const firstImage =
     post.cover_image ??
     post.content.match(/<img[^>]+src="([^"]+)"/)?.[1] ??
-    "https://tattoolowkey.com/lowkey_tattoo_tenerife_banner.png";
+    "https://tattoolowkey.com/og_banner.jpg";
 
   const SITE = "https://tattoolowkey.com";
   const schemas = [
@@ -108,7 +108,7 @@ export default function BlogPostPage() {
         "@type": "Organization",
         name: "Lowkey Tattoo",
         url: SITE,
-        logo: { "@type": "ImageObject", url: `${SITE}/lowkey_tattoo_tenerife_banner.png` },
+        logo: { "@type": "ImageObject", url: `${SITE}/og_banner.jpg` },
       },
       mainEntityOfPage: `${SITE}${r.blogPost(post.slug)}`,
     },
