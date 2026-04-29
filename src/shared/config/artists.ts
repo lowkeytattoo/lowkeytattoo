@@ -9,6 +9,9 @@ export interface Artist {
   styles: string[];
   services: ServiceType[];
   hidden?: boolean;
+  nif?: string;
+  phone?: string;
+  hygienicSanitaryCert?: string;
 }
 
 export const PUBLIC_ARTISTS = (artists: Artist[]) => artists.filter((a) => !a.hidden);

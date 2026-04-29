@@ -36,6 +36,8 @@ export interface CalendarEmailData {
 
 /** Envía email al artista y al admin vía Brevo. Falla silencioso. */
 export async function sendCalendarEmail(data: CalendarEmailData): Promise<void> {
+  console.log(`[calendarEmail] llamada → artistId="${data.artistId}" action="${data.action}"`);
+
   if (!BREVO_API_KEY) {
     console.warn("[calendarEmail] VITE_BREVO_API_KEY no configurada — no se envían emails");
     return;
@@ -43,9 +45,13 @@ export async function sendCalendarEmail(data: CalendarEmailData): Promise<void> 
 
   const artist = ARTISTS.find((a) => a.id === data.artistId);
   if (!artist) {
-    console.warn(`[calendarEmail] Artista no encontrado en ARTISTS[]: ${data.artistId}`);
+    console.warn(
+      `[calendarEmail] artistId "${data.artistId}" no encontrado en ARTISTS[].` +
+      ` IDs disponibles: ${ARTISTS.map((a) => a.id).join(", ")}`,
+    );
     return;
   }
+  console.log(`[calendarEmail] artista resuelto → ${artist.name} <${artist.email}>`);
 
   const adminUrl = data.adminUrl ?? `${window.location.origin}/admin/calendar`;
 

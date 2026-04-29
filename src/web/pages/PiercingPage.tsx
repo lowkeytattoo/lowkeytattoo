@@ -7,7 +7,7 @@ import { useBooking } from "@web/contexts/BookingContext";
 import { CONTACT } from "@web/config/contact";
 import { ROUTES } from "@web/config/routes";
 import piercingPablo1 from "@/assets/lowkey_tattoo_tenerife_piercing_pablo.webp";
-import tamuraImg from "@/assets/lowkey_tattoo_tenerife_tamura.webp";
+import tamuraImg from "@/assets/lowkey_tattoo_tenerife_tamura_banner_final.webp";
 
 const WhatsAppIcon = ({ size = 16 }: { size?: number }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">

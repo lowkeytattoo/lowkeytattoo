@@ -49,6 +49,11 @@ export function EventActionPanel({ event, onClose }: Props) {
 
   const artistProfile = artistProfiles.find((p) => p.calendar_id === event._calendarId);
   const artistConfigId = artistProfile?.artist_config_id ?? "";
+  console.log(
+    `[EventActionPanel] _calendarId="${event._calendarId}"` +
+    ` → profile="${artistProfile?.display_name ?? "NO ENCONTRADO"}"` +
+    ` artist_config_id="${artistProfile?.artist_config_id ?? "null"}"`,
+  );
 
   // ── Abrir formulario de edición ────────────────────────────────────────────
   const openEdit = () => {

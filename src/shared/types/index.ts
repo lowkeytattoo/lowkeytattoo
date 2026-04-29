@@ -45,6 +45,11 @@ export interface Database {
         Insert: Omit<BlogPost, "id" | "created_at" | "updated_at">;
         Update: Partial<Omit<BlogPost, "id" | "created_at">>;
       };
+      consent_forms: {
+        Row: ConsentForm;
+        Insert: Omit<ConsentForm, "id" | "created_at">;
+        Update: Partial<Omit<ConsentForm, "id" | "created_at">>;
+      };
     };
   };
 }
@@ -165,6 +170,38 @@ export interface BlogPost {
   date: string;
   created_at: string;
   updated_at: string;
+}
+
+export type ConsentFormType = "tattoo" | "piercing" | "laser";
+
+export interface ConsentFormData {
+  clientDni: string;
+  isMinor: boolean;
+  tutorName?: string;
+  tutorDni?: string;
+  tutorRelation?: string;
+  questionnaire: { q: string; a: boolean }[];
+  additionalInfo: string;
+  artistId: string;
+  artistName: string;
+  artistNif: string;
+  formType: ConsentFormType;
+}
+
+export interface ConsentForm {
+  id: string;
+  client_id: string;
+  session_id: string | null;
+  type: ConsentFormType;
+  version: string;
+  form_data: ConsentFormData;
+  signature_data: string | null;
+  pdf_storage_path: string | null;
+  signed_at: string | null;
+  ip_address: string | null;
+  user_agent: string | null;
+  created_by: string | null;
+  created_at: string;
 }
 
 // ─── Join types (Supabase queries con relaciones) ─────────────────────────────

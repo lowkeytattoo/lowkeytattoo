@@ -37,12 +37,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, Camera, Plus, Star, Upload, Trash2, Pencil, Phone, AlertCircle, Cake, Clock, Link2, UserCircle } from "lucide-react";
+import { ArrowLeft, Camera, Plus, Star, Upload, Trash2, Pencil, Phone, AlertCircle, Cake, Clock, Link2, UserCircle, FileText, Download } from "lucide-react";
 import type { SessionType } from "@shared/types/index";
 import { format } from "date-fns";
 import { formatLocalDate } from "@shared/lib/formatDate";
 import { es } from "date-fns/locale";
 import { useQueryClient } from "@tanstack/react-query";
+import { ARTISTS } from "@shared/config/artists";
+import { ConsentFormModal } from "@admin/components/ConsentFormModal";
+import { useConsentForms, useDownloadConsentPdf, useOpenConsentPdf, useDeleteConsentForm } from "@admin/hooks/useConsentForms";
 
 const MAX_PX = 1920;
 const WEBP_QUALITY = 0.85;
@@ -123,6 +126,33 @@ export default function ClientProfile() {
   const [showLinkDialog, setShowLinkDialog] = useState(false);
 
   const { data: photos } = useClientPhotos(id!);
+  const { data: consentForms } = useConsentForms(id!);
+  const downloadPdf = useDownloadConsentPdf();
+  const openPdf = useOpenConsentPdf();
+  const deleteConsent = useDeleteConsentForm();
+
+  const currentArtist = ARTISTS.find((a) => a.id === profile?.artist_config_id)
+    ?? ARTISTS.find((a) => a.id === "info")!;
+
+  const [showConsentModal, setShowConsentModal] = useState(false);
+  const [viewPdfUrl, setViewPdfUrl] = useState<string | null>(null);
+  const [deleteConsentTarget, setDeleteConsentTarget] = useState<{ id: string; storagePath: string | null } | null>(null);
+
+  const handleViewPdf = async (storagePath: string) => {
+    const url = await openPdf.mutateAsync(storagePath);
+    setViewPdfUrl(url);
+  };
+
+  const handleCloseViewer = () => {
+    if (viewPdfUrl) URL.revokeObjectURL(viewPdfUrl);
+    setViewPdfUrl(null);
+  };
+
+  const CONSENT_TYPE_LABEL: Record<string, string> = {
+    tattoo: "Tatuaje",
+    piercing: "Piercing",
+    laser: "Laser",
+  };
 
   // Session quick-edit state
   const [editingSession, setEditingSession] = useState<{
@@ -506,6 +536,86 @@ export default function ClientProfile() {
         </CardContent>
       </Card>
 
+      {/* Consentimientos */}
+      <Card className="bg-card border-border">
+        <CardHeader className="pb-3 flex flex-row items-center justify-between">
+          <CardTitle className="text-base font-['IBM_Plex_Mono'] uppercase tracking-wider text-muted-foreground">
+            Consentimientos
+          </CardTitle>
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={() => setShowConsentModal(true)}
+            className="gap-2"
+          >
+            <Plus className="w-4 h-4" />
+            Nuevo consentimiento
+          </Button>
+        </CardHeader>
+        <CardContent>
+          {(consentForms ?? []).length === 0 ? (
+            <p className="text-muted-foreground text-sm text-center py-6">Sin consentimientos registrados</p>
+          ) : (
+            <div className="space-y-2">
+              {(consentForms ?? []).map((cf) => (
+                <div key={cf.id} className="flex items-center gap-3 p-3 rounded-lg bg-background border border-border">
+                  <FileText className="w-4 h-4 text-muted-foreground shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="text-xs font-['IBM_Plex_Mono'] shrink-0">
+                        {CONSENT_TYPE_LABEL[cf.type] ?? cf.type}
+                      </Badge>
+                      <span className="text-xs text-muted-foreground font-['IBM_Plex_Mono'] truncate">
+                        {cf.signed_at
+                          ? formatLocalDate(cf.signed_at.split("T")[0], "d MMM yyyy", { locale: es }) +
+                            " · " + cf.signed_at.split("T")[1]?.slice(0, 5)
+                          : "Sin fecha"}
+                      </span>
+                    </div>
+                    <div className="text-xs text-muted-foreground mt-0.5">{cf.form_data.artistName}</div>
+                  </div>
+                  <div className="flex gap-1 shrink-0">
+                    {cf.pdf_storage_path && (
+                      <>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground gap-1"
+                          onClick={() => handleViewPdf(cf.pdf_storage_path!)}
+                          disabled={openPdf.isPending}
+                          title="Ver PDF"
+                        >
+                          <FileText className="w-3.5 h-3.5" />
+                          Ver
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
+                          onClick={() => downloadPdf.mutate(cf.pdf_storage_path!)}
+                          title="Descargar PDF"
+                        >
+                          <Download className="w-3.5 h-3.5" />
+                        </Button>
+                      </>
+                    )}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
+                      onClick={() => setDeleteConsentTarget({ id: cf.id, storagePath: cf.pdf_storage_path })}
+                      title="Eliminar consentimiento"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </Button>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+        </CardContent>
+      </Card>
+
       {/* Photos */}
       <Card className="bg-card border-border">
         <CardHeader className="pb-3 flex flex-row items-center justify-between">
@@ -775,6 +885,72 @@ export default function ClientProfile() {
           </form>
         </DialogContent>
       </Dialog>
+
+      {/* Delete consent AlertDialog */}
+      <AlertDialog open={!!deleteConsentTarget} onOpenChange={(open) => !open && setDeleteConsentTarget(null)}>
+        <AlertDialogContent className="bg-card border-border">
+          <AlertDialogHeader>
+            <AlertDialogTitle>¿Eliminar consentimiento?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Se eliminará el registro y el PDF firmado. Esta acción no se puede deshacer.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={() => {
+                if (deleteConsentTarget) {
+                  deleteConsent.mutate({
+                    id: deleteConsentTarget.id,
+                    storagePath: deleteConsentTarget.storagePath,
+                    clientId: id!,
+                  });
+                }
+                setDeleteConsentTarget(null);
+              }}
+            >
+              Eliminar
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* PDF viewer — overlay propio para evitar restricciones de Dialog */}
+      {viewPdfUrl && (
+        <div className="fixed inset-0 z-50 flex flex-col bg-background">
+          <div className="flex items-center justify-between px-4 py-3 border-b border-border shrink-0 bg-card">
+            <span className="font-['IBM_Plex_Mono'] text-sm uppercase tracking-wider text-muted-foreground">
+              Consentimiento informado
+            </span>
+            <Button variant="ghost" size="sm" onClick={handleCloseViewer} className="gap-1.5">
+              <ArrowLeft className="w-4 h-4" />
+              Volver
+            </Button>
+          </div>
+          <iframe
+            src={viewPdfUrl}
+            className="flex-1 w-full"
+            title="Consentimiento PDF"
+          />
+        </div>
+      )}
+
+      {/* Consent form modal */}
+      {client && (
+        <ConsentFormModal
+          open={showConsentModal}
+          onClose={() => setShowConsentModal(false)}
+          client={{
+            id: client.id,
+            name: client.name,
+            phone: client.phone,
+            email: client.email,
+            birthday: client.birthday,
+          }}
+          artist={currentArtist}
+        />
+      )}
 
       <AlertDialog open={!!deletePhotoTarget} onOpenChange={(open) => !open && setDeletePhotoTarget(null)}>
         <AlertDialogContent className="bg-card border-border">
