@@ -14,7 +14,7 @@ export const translations: Record<Locale, Record<string, string>> = {
 
     // Hero
     "hero.coords": "28.4636° N, 16.2518° W",
-    "hero.h1.1": "Tattoos in Tenerife",
+    "hero.h1.1": "Tattoos in Santa Cruz de Tenerife",
     "hero.h1.2": "",
     "hero.sub.1": "Lowkey Tattoo Studio — Santa Cruz de Tenerife.",
     "hero.sub.2": "Custom designs, lowkey environment, high-end results.",
@@ -27,7 +27,7 @@ export const translations: Record<Locale, Record<string, string>> = {
 
     // Gallery
     "gallery.label": "The Work",
-    "gallery.title": "Tattoos & Piercing in Tenerife",
+    "gallery.title": "Tattoos & Piercing in Santa Cruz de Tenerife",
     "gallery.all": "All",
     "gallery.fineline": "[01] Fine Line",
     "gallery.blackwork": "[02] Blackwork",
@@ -289,7 +289,7 @@ export const translations: Record<Locale, Record<string, string>> = {
 
     // Hero
     "hero.coords": "28.4636° N, 16.2518° O",
-    "hero.h1.1": "Tatuajes en Tenerife",
+    "hero.h1.1": "Tatuajes en Santa Cruz de Tenerife",
     "hero.h1.2": "",
     "hero.sub.1": "Lowkey Tattoo — Santa Cruz de Tenerife.",
     "hero.sub.2": "Diseños personalizados, ambiente discreto, resultados de alta gama.",
@@ -302,7 +302,7 @@ export const translations: Record<Locale, Record<string, string>> = {
 
     // Gallery
     "gallery.label": "Nuestro Trabajo",
-    "gallery.title": "Tatuajes y Piercing en Tenerife",
+    "gallery.title": "Tatuajes y Piercing en Santa Cruz de Tenerife",
     "gallery.all": "Todo",
     "gallery.fineline": "[01] Línea Fina",
     "gallery.blackwork": "[02] Blackwork",

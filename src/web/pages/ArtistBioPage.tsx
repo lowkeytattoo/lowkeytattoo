@@ -135,7 +135,7 @@ export default function ArtistBioPage() {
                     ? `${portraitXS} 400w, ${portraitS} 800w, ${portrait} 1200w`
                     : undefined
                 }
-                alt={artist.name}
+                alt={locale === "es" ? `${artist.name} — tatuador en Lowkey Tattoo, Santa Cruz de Tenerife` : `${artist.name} — tattoo artist at Lowkey Tattoo, Santa Cruz de Tenerife`}
                 className="h-full w-full object-cover object-top"
                 width={600}
                 height={800}
@@ -160,7 +160,7 @@ export default function ArtistBioPage() {
                 >
                   <img
                     src={src}
-                    alt={`${artist.name} — Lowkey Tattoo ${i + 1}`}
+                    alt={locale === "es" ? `${artist.name} — Lowkey Tattoo, estudio de tatuajes en Santa Cruz de Tenerife` : `${artist.name} — Lowkey Tattoo, tattoo studio in Santa Cruz de Tenerife`}
                     className="h-full w-full object-cover"
                     loading="lazy"
                     width={400}
@@ -192,7 +192,7 @@ export default function ArtistBioPage() {
                   <img
                     src={src}
                     srcSet={`${srcXS} 400w, ${srcS} 800w, ${src} 1600w`}
-                    alt={`${artist.name} — tatuaje ${i + 1}`}
+                    alt={locale === "es" ? `${artist.name} — tatuaje en Santa Cruz de Tenerife` : `${artist.name} — tattoo in Santa Cruz de Tenerife`}
                     className="h-full w-full object-cover gallery-image"
                     loading="lazy"
                     width={400}

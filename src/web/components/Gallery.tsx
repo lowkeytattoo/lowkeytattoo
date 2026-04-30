@@ -87,6 +87,12 @@ const CATEGORIES: { id: Category; labelKey: string; bg: string | null; bgS?: str
   { id: "laser",    labelKey: "gallery.cat.laser",    bg: laserImg },
 ];
 
+const CAT_ALT: Record<Category, { es: string; en: string }> = {
+  tattoo:   { es: "Tatuajes en Santa Cruz de Tenerife — Lowkey Tattoo",         en: "Tattoos in Santa Cruz de Tenerife — Lowkey Tattoo" },
+  piercing: { es: "Piercing profesional en Tenerife — Lowkey Tattoo",           en: "Professional Piercing in Tenerife — Lowkey Tattoo" },
+  laser:    { es: "Eliminación láser de tatuajes en Tenerife — Lowkey Tattoo",  en: "Laser Tattoo Removal in Tenerife — Lowkey Tattoo" },
+};
+
 const igUrl = (handle: string) =>
   `https://www.instagram.com/${handle.replace("@", "")}/`;
 
@@ -94,12 +100,14 @@ const igUrl = (handle: string) =>
 const Lightbox = ({
   images,
   index,
+  artistName,
   onClose,
   onPrev,
   onNext,
 }: {
   images: [string, string, string][];
   index: number;
+  artistName: string;
   onClose: () => void;
   onPrev: () => void;
   onNext: () => void;
@@ -154,7 +162,7 @@ const Lightbox = ({
         src={src}
         srcSet={srcS !== src ? `${srcXS} 400w, ${srcS} 800w, ${src} 1600w` : undefined}
         sizes="100vw"
-        alt={`Tatuaje ${index + 1}`}
+        alt={`${artistName} — tatuaje en Santa Cruz de Tenerife`}
         className="max-h-[90vh] max-w-[90vw] object-contain rounded-lg shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       />
@@ -192,6 +200,7 @@ const fadeSlide = {
 const PAGE_SIZE = 6; // 2 rows × 3 cols
 
 export const ArtistWorkRow = ({ artist, index }: { artist: Artist; index: number }) => {
+  const { locale } = useI18n();
   const [photo, photoS, photoXS] = ARTIST_PHOTO[artist.id] ?? [];
   const works = ARTIST_WORKS[artist.id] ?? [];
   const igHref = igUrl(artist.handle);
@@ -227,7 +236,7 @@ export const ArtistWorkRow = ({ artist, index }: { artist: Artist; index: number
           <img
             src={photo ?? works[0]?.[0]}
             srcSet={photoS ? `${photoXS} 400w, ${photoS} 800w, ${photo} 1200w` : undefined}
-            alt={artist.name}
+            alt={locale === "es" ? `${artist.name} — tatuador en Lowkey Tattoo, Santa Cruz de Tenerife` : `${artist.name} — tattoo artist at Lowkey Tattoo, Santa Cruz de Tenerife`}
             className="absolute inset-0 h-full w-full object-cover object-top transition-transform duration-500 group-hover:scale-105"
             loading="lazy"
             width={224}
@@ -266,7 +275,7 @@ export const ArtistWorkRow = ({ artist, index }: { artist: Artist; index: number
                     <img
                       src={src}
                       srcSet={srcS !== src ? `${srcXS} 400w, ${srcS} 800w, ${src} 1600w` : undefined}
-                      alt={`${artist.name} — trabajo ${page * PAGE_SIZE + i + 1}`}
+                      alt={locale === "es" ? `${artist.name} — tatuaje en Santa Cruz de Tenerife` : `${artist.name} — tattoo in Santa Cruz de Tenerife`}
                       className="h-full w-full object-cover gallery-image transition-transform duration-300 group-hover:scale-105"
                       loading="lazy"
                       width={400}
@@ -311,6 +320,7 @@ export const ArtistWorkRow = ({ artist, index }: { artist: Artist; index: number
           <Lightbox
             images={works}
             index={lightboxIndex}
+            artistName={artist.name}
             onClose={closeLightbox}
             onPrev={prevImage}
             onNext={nextImage}
@@ -345,7 +355,7 @@ export const ArtistCard = ({ artist, index }: { artist: Artist; index: number })
           <img
             src={photo ?? works[0]?.[0]}
             srcSet={photoS ? `${photoXS} 400w, ${photoS} 800w, ${photo} 1200w` : undefined}
-            alt={artist.name}
+            alt={locale === "es" ? `${artist.name} — tatuador en Lowkey Tattoo, Santa Cruz de Tenerife` : `${artist.name} — tattoo artist at Lowkey Tattoo, Santa Cruz de Tenerife`}
             className="absolute inset-0 h-full w-full object-cover object-top transition-transform duration-500 group-hover:scale-105"
             loading="lazy"
             width={400}
@@ -458,7 +468,7 @@ const PiercingView = () => {
             <img
               src={src}
               srcSet={`${srcXS} 400w, ${srcS} 800w, ${src} 1600w`}
-              alt={`Piercing en Tenerife — Lowkey Tattoo ${i + 1}`}
+              alt="Piercing profesional en Santa Cruz de Tenerife — Lowkey Tattoo"
               className="h-full w-full object-cover gallery-image rounded-lg"
               loading="lazy"
               width={400}
@@ -473,6 +483,7 @@ const PiercingView = () => {
 };
 
 const LaserArtistCard = ({ artist }: { artist: Artist }) => {
+  const { locale } = useI18n();
   const [photo, photoS, photoXS] = ARTIST_PHOTO[artist.id] ?? [];
   const igHref = igUrl(artist.handle);
 
@@ -495,7 +506,7 @@ const LaserArtistCard = ({ artist }: { artist: Artist }) => {
           <img
             src={photo}
             srcSet={photoS ? `${photoXS} 400w, ${photoS} 800w, ${photo} 1200w` : undefined}
-            alt={artist.name}
+            alt={locale === "es" ? `${artist.name} — eliminación láser de tatuajes en Tenerife, Lowkey Tattoo` : `${artist.name} — laser tattoo removal in Tenerife, Lowkey Tattoo`}
             className="absolute inset-0 h-full w-full object-cover object-top transition-transform duration-500 group-hover:scale-105"
             loading="lazy"
             sizes="(max-width: 480px) 100vw, (max-width: 768px) 50vw, 400px"
@@ -571,7 +582,7 @@ const LaserView = () => {
 
 // ── Main Gallery ─────────────────────────────────────────────────────────────
 const Gallery = () => {
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [active, setActive] = useState<Category | null>(null);
 
   return (
@@ -633,7 +644,7 @@ const Gallery = () => {
                       src={cat.bgXS ?? cat.bg}
                       srcSet={cat.bgS ? `${cat.bgXS} 400w, ${cat.bgS} 800w, ${cat.bg} 1600w` : undefined}
                       sizes="(max-width: 480px) calc(100vw - 48px), (max-width: 640px) calc(50vw - 24px), 340px"
-                      alt={t(cat.labelKey)}
+                      alt={CAT_ALT[cat.id][locale]}
                       className="absolute inset-0 h-full w-full object-cover transition-transform duration-700 group-hover:scale-105 saturate-[0.65] group-hover:saturate-100"
                       loading="lazy"
                       width={400}

@@ -22,7 +22,7 @@ const Hero = () => {
       <div className="absolute inset-0">
         <img
           src={heroImage}
-          alt="Sacred geometry pattern"
+          alt="Estudio de tatuajes en Santa Cruz de Tenerife — Lowkey Tattoo"
           className="w-full h-full object-cover opacity-30"
           loading="eager"
         />
