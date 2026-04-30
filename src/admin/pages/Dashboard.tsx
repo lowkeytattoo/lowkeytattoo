@@ -2,6 +2,7 @@ import { useState, useMemo } from "react";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useAdminAuth } from "@admin/contexts/AdminAuthContext";
+import { ARTISTS, PUBLIC_ARTISTS } from "@shared/config/artists";
 import { useFinancesOverview, useRevenueByMonth } from "@admin/hooks/useFinances";
 import { useSessions } from "@admin/hooks/useSessions";
 import { useLowStockCount } from "@admin/hooks/useStock";
@@ -22,7 +23,9 @@ import { formatLocalDate } from "@shared/lib/formatDate";
 import { es } from "date-fns/locale";
 import { TrendingUp, Users, Calendar, AlertCircle, ExternalLink, Clock, BookOpen, MessageSquare } from "lucide-react";
 import { ArtistAvatar } from "@admin/components/ArtistAvatar";
-import { useCalendarEvents } from "@admin/hooks/useGoogleCalendar";
+import { useCalendarEvents, useAllCalendarEvents } from "@admin/hooks/useGoogleCalendar";
+import { useArtistProfiles } from "@admin/hooks/useArtistProfiles";
+import { cn } from "@/lib/utils";
 
 type Period = "week" | "month" | "quarter";
 const PERIOD_LABELS: Record<Period, string> = { week: "Semana", month: "Mes", quarter: "Trimestre" };
@@ -44,7 +47,11 @@ const CHART_COLORS = [
 export default function Dashboard() {
   const { profile } = useAdminAuth();
   const isOwner = profile?.role === "owner";
-  const artistId = isOwner ? undefined : profile?.id;
+
+  const [viewMode, setViewMode] = useState<"all" | "mine">("all");
+  const effectiveArtistId = isOwner
+    ? (viewMode === "mine" ? profile?.id : undefined)
+    : profile?.id;
 
   const [period, setPeriod] = useState<Period>("month");
   const { dateFrom, dateTo } = useMemo(() => {
@@ -63,8 +70,8 @@ export default function Dashboard() {
     };
   }, [period]);
 
-  const { data: overview } = useFinancesOverview(artistId, dateFrom, dateTo);
-  const { data: revenueResult } = useRevenueByMonth(6, artistId);
+  const { data: overview } = useFinancesOverview(effectiveArtistId, dateFrom, dateTo);
+  const { data: revenueResult } = useRevenueByMonth(6, effectiveArtistId);
 
   const { data: pendingBookingsCount = 0 } = useQuery({
     queryKey: ["bookings-pending-count"],
@@ -93,23 +100,59 @@ export default function Dashboard() {
     },
     refetchInterval: 60_000,
   });
-  const { data: recentSessions } = useSessions({ artistId });
+  const { data: recentSessions } = useSessions({ artistId: effectiveArtistId });
   const { data: lowStockCount } = useLowStockCount();
+  const { data: artistProfiles = [] } = useArtistProfiles();
 
   const calendarId = profile?.calendar_id ?? null;
 
-  const calTimeMin = startOfDay(new Date(new Date().getFullYear(), new Date().getMonth(), 1)).toISOString();
-  const calTimeMax = endOfDay(new Date(new Date().getFullYear(), new Date().getMonth() + 2, 0)).toISOString();
-  const { data: upcomingEvents = [] } = useCalendarEvents(
-    calendarId ? calTimeMin : "",
-    calendarId ? calTimeMax : "",
-    calendarId,
+  const calTimeMin = startOfDay(new Date()).toISOString();
+  const calTimeMax = endOfDay(new Date()).toISOString();
+
+  const CAL_ARTIST_COLORS = ["#a78bfa", "#60a5fa", "#34d399", "#fb923c"];
+  const publicArtistIds = useMemo(
+    () => new Set(PUBLIC_ARTISTS(ARTISTS).map((a) => a.id)),
+    [],
+  );
+  const visibleProfiles = useMemo(
+    () => artistProfiles.filter((p) => p.artist_config_id && publicArtistIds.has(p.artist_config_id)),
+    [artistProfiles, publicArtistIds],
   );
 
-  const calDays = calendarId
+  const calendarColorMap = useMemo(() => {
+    const map = new Map<string, string>();
+    visibleProfiles
+      .filter((p) => p.calendar_id)
+      .forEach((p, i) => map.set(p.calendar_id!, CAL_ARTIST_COLORS[i % CAL_ARTIST_COLORS.length]));
+    return map;
+  }, [visibleProfiles]);
+
+  // "Mine" mode: own calendar only
+  const { data: ownEvents = [] } = useCalendarEvents(
+    calendarId ? calTimeMin : "",
+    calendarId ? calTimeMax : "",
+    viewMode === "mine" || !isOwner ? calendarId : undefined,
+  );
+
+  // "All" mode: every artist's calendar merged
+  const allCalendarIds = isOwner && viewMode === "all"
+    ? visibleProfiles.map((p) => p.calendar_id).filter((id): id is string => !!id)
+    : [];
+  const { events: allEvents } = useAllCalendarEvents(
+    isOwner && viewMode === "all" ? calTimeMin : "",
+    isOwner && viewMode === "all" ? calTimeMax : "",
+    allCalendarIds,
+  );
+
+  const activeEvents = isOwner && viewMode === "all" ? allEvents : ownEvents;
+  const showCalendar = isOwner && viewMode === "all"
+    ? allCalendarIds.length > 0
+    : !!calendarId;
+
+  const calDays = showCalendar
     ? (() => {
-        const dayMap = new Map<string, typeof upcomingEvents>();
-        for (const ev of upcomingEvents) {
+        const dayMap = new Map<string, typeof activeEvents>();
+        for (const ev of activeEvents) {
           const d = ev.start.dateTime ? parseISO(ev.start.dateTime) : ev.start.date ? parseISO(ev.start.date) : null;
           if (!d) continue;
           const key = format(d, "yyyy-MM-dd");
@@ -134,9 +177,14 @@ export default function Dashboard() {
       <div>
         <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
         <p className="text-muted-foreground text-sm mt-1">
-          {isOwner ? "Visión global del estudio" : `Tus estadísticas, ${profile?.display_name}`}
+          {isOwner
+            ? viewMode === "all" ? "Visión global del estudio" : `Tus estadísticas, ${profile?.display_name}`
+            : `Tus estadísticas, ${profile?.display_name}`}
         </p>
       </div>
+
+      {/* Controls row */}
+      <div className="flex flex-wrap items-center gap-3">
 
       {/* Period selector */}
       <div className="flex items-center gap-1 p-1 rounded-md bg-muted/40 border border-border w-fit">
@@ -154,6 +202,36 @@ export default function Dashboard() {
           </button>
         ))}
       </div>
+
+      {/* View mode switch — owners only */}
+      {isOwner && (
+        <div className="flex gap-1 bg-muted/40 rounded-lg p-1 w-fit border border-border">
+          <button
+            onClick={() => setViewMode("all")}
+            className={cn(
+              "px-3 py-1 rounded-md text-sm font-medium transition-colors",
+              viewMode === "all"
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            Todos
+          </button>
+          <button
+            onClick={() => setViewMode("mine")}
+            className={cn(
+              "px-3 py-1 rounded-md text-sm font-medium transition-colors",
+              viewMode === "mine"
+                ? "bg-background text-foreground shadow-sm"
+                : "text-muted-foreground hover:text-foreground",
+            )}
+          >
+            {profile?.display_name}
+          </button>
+        </div>
+      )}
+
+      </div>{/* end controls row */}
 
       {/* KPI Cards — 3 cols mobile, 6 cols desktop */}
       <div className="grid grid-cols-3 lg:grid-cols-6 gap-3">
@@ -342,85 +420,89 @@ export default function Dashboard() {
         </Card>
       )}
 
-      {/* Calendar widget */}
-      {calendarId && (
+      {/* Calendar widget — today only */}
+      {showCalendar && (
         <Card className="bg-card border-border">
           <CardHeader className="pb-2">
-            <div className="flex items-center justify-between gap-2">
-              <CardTitle className="text-base font-['IBM_Plex_Mono'] uppercase tracking-wider text-muted-foreground truncate">
-                Calendario — {format(new Date(), "MMM yyyy", { locale: es })}
+            <div className="flex items-center justify-between gap-2 flex-wrap gap-y-2">
+              <CardTitle className="text-base font-['IBM_Plex_Mono'] uppercase tracking-wider text-muted-foreground capitalize">
+                Hoy — {format(new Date(), "EEEE d 'de' MMMM", { locale: es })}
               </CardTitle>
-              <Link
-                to="/admin/calendar"
-                className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors font-mono shrink-0"
-              >
-                <span className="hidden sm:inline">Ver completo</span>
-                <ExternalLink className="w-3 h-3" />
-              </Link>
+              <div className="flex items-center gap-3 flex-wrap">
+                {/* Artist color legend (all mode only) */}
+                {isOwner && viewMode === "all" && visibleProfiles
+                  .filter((p) => p.calendar_id)
+                  .map((p, i) => (
+                    <span key={p.id} className="flex items-center gap-1.5 text-xs text-muted-foreground font-mono">
+                      <span
+                        className="w-2 h-2 rounded-full shrink-0"
+                        style={{ backgroundColor: CAL_ARTIST_COLORS[i % CAL_ARTIST_COLORS.length] }}
+                      />
+                      {p.display_name}
+                    </span>
+                  ))}
+                <Link
+                  to="/admin/calendar"
+                  className="flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground transition-colors font-mono shrink-0"
+                >
+                  <span className="hidden sm:inline">Ver completo</span>
+                  <ExternalLink className="w-3 h-3" />
+                </Link>
+              </div>
             </div>
           </CardHeader>
           <CardContent>
             {calDays.length === 0 ? (
               <p className="text-sm text-muted-foreground text-center py-6">
-                Sin citas este mes
+                Sin citas hoy
               </p>
             ) : (
-              <div className="space-y-5">
-                {calDays.map(({ day, events }) => (
-                  <div key={day.toISOString()}>
-                    {/* Day label */}
-                    <div className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider text-muted-foreground mb-2 flex items-center gap-2">
-                      <span className="capitalize">
-                        {/* Short date on mobile, full on sm+ */}
-                        <span className="sm:hidden">{format(day, "EEE d MMM", { locale: es })}</span>
-                        <span className="hidden sm:inline">{format(day, "EEEE d 'de' MMMM", { locale: es })}</span>
-                      </span>
-                      <span className="flex-1 h-px bg-border" />
-                      <span>{events.length} {events.length === 1 ? "cita" : "citas"}</span>
-                    </div>
-                    {/* Event cards */}
-                    <div className="flex flex-col gap-2">
-                      {events.map((ev) => {
-                        const timeStart = ev.start.dateTime ? format(parseISO(ev.start.dateTime), "HH:mm") : null;
-                        const timeEnd   = ev.end.dateTime   ? format(parseISO(ev.end.dateTime),   "HH:mm") : null;
-                        const summary = ev.summary ?? "";
-                        const [service, client] = summary.includes(" — ")
-                          ? summary.split(" — ")
-                          : [summary || "Sin título", null];
-                        return (
-                          <div
-                            key={ev.id}
-                            className="rounded-lg border border-border bg-background p-3 flex flex-col gap-1.5"
-                          >
-                            <div className="flex flex-col sm:flex-row sm:gap-4 gap-1.5">
-                              <div className="flex flex-col gap-1 sm:min-w-[130px] sm:max-w-[160px]">
-                                <span className="font-['IBM_Plex_Mono'] text-[10px] uppercase tracking-widest text-muted-foreground">
-                                  {service}
+              <div className="flex flex-col gap-2">
+                {calDays.flatMap(({ events }) =>
+                  events.map((ev) => {
+                    const timeStart = ev.start.dateTime ? format(parseISO(ev.start.dateTime), "HH:mm") : null;
+                    const timeEnd   = ev.end.dateTime   ? format(parseISO(ev.end.dateTime),   "HH:mm") : null;
+                    const summary = ev.summary ?? "";
+                    const [service, client] = summary.includes(" — ")
+                      ? summary.split(" — ")
+                      : [summary || "Sin título", null];
+                    const evCalId = "_calendarId" in ev ? (ev as { _calendarId: string })._calendarId : calendarId ?? "";
+                    const color = calendarColorMap.get(evCalId) ?? "hsl(var(--primary))";
+                    return (
+                      <div
+                        key={ev.id}
+                        className="rounded-lg border border-border bg-background p-3 flex gap-3"
+                        style={{ borderLeftColor: color, borderLeftWidth: 3 }}
+                      >
+                        <div className="flex flex-col gap-1.5 flex-1 min-w-0">
+                          <div className="flex flex-col sm:flex-row sm:gap-4 gap-1">
+                            <div className="flex flex-col gap-0.5 sm:min-w-[130px] sm:max-w-[160px]">
+                              <span className="font-['IBM_Plex_Mono'] text-[10px] uppercase tracking-widest text-muted-foreground">
+                                {service}
+                              </span>
+                              {client && (
+                                <span className="text-sm font-medium text-foreground leading-tight">
+                                  {client}
                                 </span>
-                                {client && (
-                                  <span className="text-sm font-medium text-foreground leading-tight">
-                                    {client}
-                                  </span>
-                                )}
-                              </div>
-                              {ev.description && (
-                                <p className="text-xs text-muted-foreground leading-relaxed whitespace-pre-line sm:border-l sm:border-border sm:pl-4 flex-1">
-                                  {ev.description}
-                                </p>
                               )}
                             </div>
-                            {timeStart && (
-                              <div className="flex items-center gap-1 text-xs text-muted-foreground font-mono mt-auto pt-1 border-t border-border">
-                                <Clock className="w-3 h-3 shrink-0" />
-                                {timeStart}{timeEnd && timeEnd !== timeStart ? ` — ${timeEnd}` : ""}
-                              </div>
+                            {ev.description && (
+                              <p className="text-xs text-muted-foreground leading-relaxed whitespace-pre-line sm:border-l sm:border-border sm:pl-4 flex-1">
+                                {ev.description}
+                              </p>
                             )}
                           </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                ))}
+                          {timeStart && (
+                            <div className="flex items-center gap-1 text-xs text-muted-foreground font-mono pt-1 border-t border-border">
+                              <Clock className="w-3 h-3 shrink-0" />
+                              {timeStart}{timeEnd && timeEnd !== timeStart ? ` — ${timeEnd}` : ""}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })
+                )}
               </div>
             )}
           </CardContent>
