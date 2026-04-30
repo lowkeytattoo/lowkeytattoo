@@ -21,8 +21,8 @@ const Index = () => {
     : "Tattoo Studio Santa Cruz de Tenerife | Lowkey Tattoo";
 
   const description = locale === "es"
-    ? "Estudio de tatuajes y piercing en Santa Cruz de Tenerife. Fine line, blackwork y piercing profesional. Diseños personalizados en Calle Dr. Allart, 50. Reserva tu cita online."
-    : "Tattoo and piercing studio in Santa Cruz de Tenerife. Fine line, blackwork and professional piercing. Custom designs at Calle Dr. Allart, 50. Book your appointment online.";
+    ? "Estudio de tatuajes y piercing en Santa Cruz de Tenerife. Fine line, blackwork y diseños personalizados. Calle Dr. Allart, 50 — reserva tu cita online."
+    : "Tattoo and piercing studio in Santa Cruz de Tenerife. Fine line, blackwork and custom designs. Calle Dr. Allart, 50 — book your appointment online.";
 
   const schemas = [
     {

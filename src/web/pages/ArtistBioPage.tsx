@@ -29,6 +29,8 @@ const ARTIST_PRO_PHOTOS: Record<string, string[]> = {
 const igUrl = (handle: string) =>
   `https://www.instagram.com/${handle.replace("@", "")}/`;
 
+const SITE = "https://tattoolowkey.com";
+
 export default function ArtistBioPage() {
   const { slug } = useParams<{ slug: string }>();
   const { t, locale } = useI18n();
@@ -48,6 +50,29 @@ export default function ArtistBioPage() {
   const title       = t(`artist.${artist.id}.meta.title`);
   const description = t(`artist.${artist.id}.meta.desc`);
 
+  const schemas = [
+    {
+      "@context": "https://schema.org",
+      "@type": "Person",
+      "@id": `${SITE}${r.artist(artist.slug)}#person`,
+      name: artist.name,
+      jobTitle: locale === "es" ? "Tatuador profesional" : "Professional Tattoo Artist",
+      worksFor: { "@id": `${SITE}/#business` },
+      ...(portrait ? { image: `${SITE}${portrait}` } : {}),
+      description,
+      url: igHref,
+      sameAs: [igHref],
+    },
+    {
+      "@context": "https://schema.org",
+      "@type": "BreadcrumbList",
+      itemListElement: [
+        { "@type": "ListItem", position: 1, name: t("service.breadcrumb.home"), item: `${SITE}${r.home}` },
+        { "@type": "ListItem", position: 2, name: artist.name, item: `${SITE}${r.artist(artist.slug)}` },
+      ],
+    },
+  ];
+
   return (
     <div className="min-h-screen bg-background">
       <SEOHead
@@ -55,6 +80,7 @@ export default function ArtistBioPage() {
         description={description}
         canonical={r.artist(artist.slug)}
         alternateCanonical={rAlt.artist(artist.slug)}
+        schema={schemas}
       />
       <Navbar />
 

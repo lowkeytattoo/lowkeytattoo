@@ -123,6 +123,62 @@
     <xhtml:link rel="alternate" hreflang="x-default" href="https://tattoolowkey.com/blog"/>
   </url>
 
+  <!-- ── Artistas / Artists ── -->
+  <url>
+    <loc>https://tattoolowkey.com/artistas/pablo-matos</loc>
+    <lastmod>2026-04-30</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+    <xhtml:link rel="alternate" hreflang="es"        href="https://tattoolowkey.com/artistas/pablo-matos"/>
+    <xhtml:link rel="alternate" hreflang="en"        href="https://tattoolowkey.com/en/artists/pablo-matos"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://tattoolowkey.com/artistas/pablo-matos"/>
+  </url>
+  <url>
+    <loc>https://tattoolowkey.com/en/artists/pablo-matos</loc>
+    <lastmod>2026-04-30</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+    <xhtml:link rel="alternate" hreflang="es"        href="https://tattoolowkey.com/artistas/pablo-matos"/>
+    <xhtml:link rel="alternate" hreflang="en"        href="https://tattoolowkey.com/en/artists/pablo-matos"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://tattoolowkey.com/artistas/pablo-matos"/>
+  </url>
+  <url>
+    <loc>https://tattoolowkey.com/artistas/sergio</loc>
+    <lastmod>2026-04-30</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+    <xhtml:link rel="alternate" hreflang="es"        href="https://tattoolowkey.com/artistas/sergio"/>
+    <xhtml:link rel="alternate" hreflang="en"        href="https://tattoolowkey.com/en/artists/sergio"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://tattoolowkey.com/artistas/sergio"/>
+  </url>
+  <url>
+    <loc>https://tattoolowkey.com/en/artists/sergio</loc>
+    <lastmod>2026-04-30</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+    <xhtml:link rel="alternate" hreflang="es"        href="https://tattoolowkey.com/artistas/sergio"/>
+    <xhtml:link rel="alternate" hreflang="en"        href="https://tattoolowkey.com/en/artists/sergio"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://tattoolowkey.com/artistas/sergio"/>
+  </url>
+  <url>
+    <loc>https://tattoolowkey.com/artistas/fifo</loc>
+    <lastmod>2026-04-30</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+    <xhtml:link rel="alternate" hreflang="es"        href="https://tattoolowkey.com/artistas/fifo"/>
+    <xhtml:link rel="alternate" hreflang="en"        href="https://tattoolowkey.com/en/artists/fifo"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://tattoolowkey.com/artistas/fifo"/>
+  </url>
+  <url>
+    <loc>https://tattoolowkey.com/en/artists/fifo</loc>
+    <lastmod>2026-04-30</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.6</priority>
+    <xhtml:link rel="alternate" hreflang="es"        href="https://tattoolowkey.com/artistas/fifo"/>
+    <xhtml:link rel="alternate" hreflang="en"        href="https://tattoolowkey.com/en/artists/fifo"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://tattoolowkey.com/artistas/fifo"/>
+  </url>
+
   <!-- ── Blog posts (Spanish URLs — English posts share the same slug via /en/blog/:slug) ── -->
   <url>
     <loc>https://tattoolowkey.com/blog/estilos-de-tatuaje-guia-completa</loc>
