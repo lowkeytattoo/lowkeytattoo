@@ -1,4 +1,4 @@
-import { Instagram } from "lucide-react";
+import { Instagram, Facebook } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useI18n } from "@web/i18n/I18nProvider";
 import { ROUTES } from "@web/config/routes";
@@ -20,15 +20,26 @@ const Footer = () => {
             <span className="font-mono text-xs text-muted-foreground tabular-nums">
               {t("hero.coords")}
             </span>
-            <a
-              href={CONTACT.instagram}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="text-muted-foreground hover:text-foreground transition-colors w-fit"
-              aria-label="Instagram @tattoo.lowkey"
-            >
-              <Instagram size={16} />
-            </a>
+            <div className="flex items-center gap-3">
+              <a
+                href={CONTACT.instagram}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-muted-foreground hover:text-foreground transition-colors"
+                aria-label="Instagram @tattoo.lowkey"
+              >
+                <Instagram size={16} />
+              </a>
+              <a
+                href="https://www.facebook.com/people/LowKey-Tattoo-Studio-Tenerife/61583316421740/"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="text-muted-foreground hover:text-foreground transition-colors"
+                aria-label="Facebook LowKey Tattoo Studio Tenerife"
+              >
+                <Facebook size={16} />
+              </a>
+            </div>
           </div>
 
           {/* Servicios */}
