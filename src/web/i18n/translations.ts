@@ -259,6 +259,22 @@ export const translations: Record<Locale, Record<string, string>> = {
     "contact.form.placeholder.name": "Your name",
     "contact.form.placeholder.contact": "+34 600 000 000 or email@example.com",
     "contact.form.placeholder.message": "Tell us about your idea, question or the tattoo you'd like to remove...",
+
+    // Artist bio pages
+    "artist.bio.back": "← Back",
+    "artist.bio.portfolio": "Portfolio",
+    "artist.bio.book": "Book appointment",
+    "artist.bio.viewIg": "View on Instagram",
+    "artist.card.cta": "View profile →",
+    "artist.pablo.bio": "Pablo Matos Rodríguez is a professional tattoo artist with over 16 years of experience. Specialising in blackwork, Maori, Samoan, Japanese and neo-tribal geometric styles, he is known for large-format custom tattoos — particularly full arm and leg sleeves. He adapts every design to the client's anatomy, creating unique, harmonious compositions.",
+    "artist.pablo.meta.title": "Pablo Matos — Tattoo Artist in Tenerife | Lowkey Tattoo",
+    "artist.pablo.meta.desc": "Pablo Matos, professional tattoo artist with 16+ years of experience at Lowkey Tattoo Tenerife. Specialist in blackwork, Maori, Samoan, Japanese and neo-tribal geometric. Full sleeves and custom large-format tattoos.",
+    "artist.sergio.bio": "Sergio is a tattoo artist specialising in a style that fuses blackwork and realism — creating unique tattoos with strong visual impact and depth. Based in Tenerife, he has developed his own artistic identity around contrasts, textures and detail. He works closely with each client to create exclusive tattoos that reflect their personal story.",
+    "artist.sergio.meta.title": "Sergio — Blackwork & Realism Tattoo Artist in Tenerife | Lowkey Tattoo",
+    "artist.sergio.meta.desc": "Sergio, blackwork and realism specialist at Lowkey Tattoo Santa Cruz de Tenerife. Custom tattoos with visual impact, contrast and meticulous detail.",
+    "artist.fifo.bio": "Fifo Punk is an emerging tattoo artist with 2 years of experience whose passion for tattooing was born surrounded by artists. Specialising in Traditional and American Traditional, he is known for patchwork compositions on arms and legs. Currently at his second studio, he continues to develop his style influenced by the history of traditional tattooing — drawing inspiration from surf and skate culture.",
+    "artist.fifo.meta.title": "Fifo — Traditional Tattoo Artist in Tenerife | Lowkey Tattoo",
+    "artist.fifo.meta.desc": "Fifo Punk, Traditional and American Traditional specialist at Lowkey Tattoo Santa Cruz de Tenerife. Patchwork compositions and custom designs with personality.",
   },
   es: {
     // Nav
@@ -518,5 +534,21 @@ export const translations: Record<Locale, Record<string, string>> = {
     "contact.form.placeholder.name": "Tu nombre",
     "contact.form.placeholder.contact": "+34 600 000 000 o tu email",
     "contact.form.placeholder.message": "Cuéntanos tu idea, tu consulta o el tatuaje que quieres eliminar...",
+
+    // Páginas de bio de artistas
+    "artist.bio.back": "← Volver",
+    "artist.bio.portfolio": "Portafolio",
+    "artist.bio.book": "Reservar cita",
+    "artist.bio.viewIg": "Ver en Instagram",
+    "artist.card.cta": "Ver perfil →",
+    "artist.pablo.bio": "Pablo Matos Rodríguez es tatuador profesional con más de 16 años de experiencia. Especializado en blackwork, maorí, samoano, japonés y neotribal geométrico, destaca por la creación de tatuajes personalizados de gran formato, especialmente mangas completas de brazo y pierna. Adapta cada diseño a la anatomía del cliente, respetando las formas naturales del cuerpo para lograr composiciones únicas y armónicas.",
+    "artist.pablo.meta.title": "Pablo Matos — Tatuador en Tenerife | Lowkey Tattoo",
+    "artist.pablo.meta.desc": "Pablo Matos, tatuador profesional con más de 16 años de experiencia en Lowkey Tattoo Tenerife. Especialista en blackwork, maorí, samoano, japonés y neotribal geométrico. Mangas completas y tatuajes de gran formato.",
+    "artist.sergio.bio": "Sergio es tatuador especializado en un estilo que fusiona blackwork y realismo, creando tatuajes únicos que destacan por su fuerza visual y profundidad. Residente en Tenerife, ha desarrollado una identidad artística propia basada en la combinación de contrastes, texturas y detalle. Trabaja mano a mano con cada cliente para crear tatuajes exclusivos que reflejen su identidad y visión.",
+    "artist.sergio.meta.title": "Sergio — Tatuador Blackwork y Realismo en Tenerife | Lowkey Tattoo",
+    "artist.sergio.meta.desc": "Sergio, especialista en blackwork y realismo en Lowkey Tattoo Santa Cruz de Tenerife. Tatuajes personalizados con gran impacto visual, contraste y detalle.",
+    "artist.fifo.bio": "Fifo Punk es tatuador emergente con 2 años de experiencia, cuya pasión por el tatuaje nace de un entorno rodeado de artistas. Especializado en tatuaje tradicional y American Traditional, destaca por composiciones tipo patchwork en brazos y piernas. Actualmente en su segundo estudio, desarrolla un estilo influenciado por la historia del tatuaje tradicional y por el surf y el skate.",
+    "artist.fifo.meta.title": "Fifo — Tatuador Traditional en Tenerife | Lowkey Tattoo",
+    "artist.fifo.meta.desc": "Fifo Punk, especialista en Traditional y American Traditional en Lowkey Tattoo Santa Cruz de Tenerife. Composiciones patchwork y diseños originales con personalidad.",
   },
 };

@@ -20,9 +20,10 @@ import Index from "@web/pages/Index";
 const TatuajesPage  = lazy(() => import("@web/pages/TatuajesPage"));
 const PiercingPage  = lazy(() => import("@web/pages/PiercingPage"));
 const LaserPage     = lazy(() => import("@web/pages/LaserPage"));
-const BlogPage      = lazy(() => import("@web/pages/BlogPage"));
-const BlogPostPage  = lazy(() => import("@web/pages/BlogPostPage"));
-const NotFound      = lazy(() => import("@web/pages/NotFound"));
+const BlogPage       = lazy(() => import("@web/pages/BlogPage"));
+const BlogPostPage   = lazy(() => import("@web/pages/BlogPostPage"));
+const ArtistBioPage  = lazy(() => import("@web/pages/ArtistBioPage"));
+const NotFound       = lazy(() => import("@web/pages/NotFound"));
 const PrivacyPage   = lazy(() => import("@web/pages/PrivacyPage"));
 const LegalPage     = lazy(() => import("@web/pages/LegalPage"));
 
@@ -106,6 +107,7 @@ const App = () => (
                   <Route path="/laser-eliminacion-tatuajes-tenerife" element={<Suspense fallback={null}><LaserPage /></Suspense>} />
                   <Route path="/blog" element={<Suspense fallback={null}><BlogPage /></Suspense>} />
                   <Route path="/blog/:slug" element={<Suspense fallback={null}><BlogPostPage /></Suspense>} />
+                  <Route path="/artistas/:slug" element={<Suspense fallback={null}><ArtistBioPage /></Suspense>} />
                   <Route path="/politica-de-privacidad" element={<Suspense fallback={null}><PrivacyPage /></Suspense>} />
                   <Route path="/aviso-legal" element={<Suspense fallback={null}><LegalPage /></Suspense>} />
 
@@ -116,6 +118,7 @@ const App = () => (
                   <Route path="/en/laser-tattoo-removal-tenerife" element={<Suspense fallback={null}><LaserPage /></Suspense>} />
                   <Route path="/en/blog" element={<Suspense fallback={null}><BlogPage /></Suspense>} />
                   <Route path="/en/blog/:slug" element={<Suspense fallback={null}><BlogPostPage /></Suspense>} />
+                  <Route path="/en/artists/:slug" element={<Suspense fallback={null}><ArtistBioPage /></Suspense>} />
 
                   {/* ── Admin login ─────────────────────────────────── */}
                   <Route

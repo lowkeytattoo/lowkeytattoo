@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from "react";
+import { Link } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowLeft, ChevronLeft, ChevronRight, X } from "lucide-react";
 import { useI18n } from "@web/i18n/I18nProvider";
@@ -58,7 +59,7 @@ import piercingPablo3xs from "@/assets/lowkey_tattoo_tenerife_piercing_pablo_3_4
 type Category = "tattoo" | "piercing" | "laser";
 
 // [full, 800px, 400px] tuples for srcset
-const ARTIST_WORKS: Record<string, [string, string, string][]> = {
+export const ARTIST_WORKS: Record<string, [string, string, string][]> = {
   pablo:  [
     [pablo1, pablo1s, pablo1xs], [pablo2, pablo2s, pablo2xs], [pablo3, pablo3s, pablo3xs],
     [pablo4, pablo4s, pablo4xs], [pablo5, pablo5s, pablo5xs],
@@ -74,7 +75,7 @@ const ARTIST_WORKS: Record<string, [string, string, string][]> = {
   ],
 };
 
-const ARTIST_PHOTO: Record<string, [string, string, string]> = {
+export const ARTIST_PHOTO: Record<string, [string, string, string]> = {
   pablo:  [pabloImg, pabloImgS, pabloImgXS],
   sergio: [sergioImg, sergioImgS, sergioImgXS],
   fifo:   [fifoImg, fifoImgS, fifoImgXS],
@@ -320,55 +321,55 @@ export const ArtistWorkRow = ({ artist, index }: { artist: Artist; index: number
   );
 };
 
-// ── Legacy card (used by LaserView artist section) ───────────────────────────
+// ── Artist card — links to individual bio page ───────────────────────────────
 export const ArtistCard = ({ artist, index }: { artist: Artist; index: number }) => {
+  const { t, locale } = useI18n();
   const [photo, photoS, photoXS] = ARTIST_PHOTO[artist.id] ?? [];
   const works = ARTIST_WORKS[artist.id] ?? [];
-  const igHref = igUrl(artist.handle);
+  const bioUrl = locale === "es" ? `/artistas/${artist.slug}` : `/en/artists/${artist.slug}`;
 
   useEffect(() => { trackArtistView(artist.id, artist.name); }, [artist.id, artist.name]);
 
   return (
-    <motion.a
-      href={igHref}
-      target="_blank"
-      rel="noopener noreferrer"
-      onClick={() => trackIgClick(artist.handle, "gallery")}
+    <motion.div
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.45, delay: index * 0.1, ease: [0.4, 0, 0.2, 1] }}
-      className="group flex flex-col rounded-lg border border-border overflow-hidden bg-card hover:border-muted-foreground transition-colors duration-200"
     >
-      <div className="aspect-[4/3] w-full relative overflow-hidden">
-        <img
-          src={photo ?? works[0]?.[0]}
-          srcSet={photoS ? `${photoXS} 400w, ${photoS} 800w, ${photo} 1200w` : undefined}
-          alt={artist.name}
-          className="absolute inset-0 h-full w-full object-cover object-top transition-transform duration-500 group-hover:scale-105"
-          loading="lazy"
-          width={400}
-          height={300}
-          sizes="(max-width: 480px) 100vw, (max-width: 768px) 50vw, 400px"
-        />
-      </div>
-      <div className="flex flex-col justify-between gap-3 p-5 flex-1 min-w-0">
-        <div>
-          <p className="text-base font-medium text-foreground">{artist.name}</p>
-          <p className="font-mono text-xs text-muted-foreground mt-0.5">{artist.handle}</p>
+      <Link
+        to={bioUrl}
+        className="group flex flex-col rounded-lg border border-border overflow-hidden bg-card hover:border-muted-foreground transition-colors duration-200"
+      >
+        <div className="aspect-[4/3] w-full relative overflow-hidden">
+          <img
+            src={photo ?? works[0]?.[0]}
+            srcSet={photoS ? `${photoXS} 400w, ${photoS} 800w, ${photo} 1200w` : undefined}
+            alt={artist.name}
+            className="absolute inset-0 h-full w-full object-cover object-top transition-transform duration-500 group-hover:scale-105"
+            loading="lazy"
+            width={400}
+            height={300}
+            sizes="(max-width: 480px) 100vw, (max-width: 768px) 50vw, 400px"
+          />
         </div>
-        <div className="flex flex-wrap gap-1.5">
-          {artist.styles.map((s) => (
-            <span key={s} className="rounded-sm bg-muted px-2 py-0.5 text-[11px] font-mono text-muted-foreground uppercase tracking-wider">
-              {s}
-            </span>
-          ))}
+        <div className="flex flex-col justify-between gap-3 p-5 flex-1 min-w-0">
+          <div>
+            <p className="text-base font-medium text-foreground">{artist.name}</p>
+            <p className="font-mono text-xs text-muted-foreground mt-0.5">{artist.handle}</p>
+          </div>
+          <div className="flex flex-wrap gap-1.5">
+            {artist.styles.map((s) => (
+              <span key={s} className="rounded-sm bg-muted px-2 py-0.5 text-[11px] font-mono text-muted-foreground uppercase tracking-wider">
+                {s}
+              </span>
+            ))}
+          </div>
+          <span className="inline-flex items-center gap-2 self-start font-mono text-[11px] text-muted-foreground uppercase tracking-wider group-hover:text-foreground transition-colors duration-200">
+            {t("artist.card.cta")}
+          </span>
         </div>
-        <span className="inline-flex items-center gap-2 self-start font-mono text-[11px] text-muted-foreground uppercase tracking-wider group-hover:text-foreground transition-colors duration-200">
-          <InstagramIcon size={13} />
-          Ver Instagram →
-        </span>
-      </div>
-    </motion.a>
+      </Link>
+    </motion.div>
   );
 };
 

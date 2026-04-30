@@ -2,6 +2,7 @@ import type { ServiceType } from "@shared/types/index";
 
 export interface Artist {
   id: string;
+  slug: string;
   name: string;
   handle: string;
   email: string;
@@ -19,6 +20,7 @@ export const PUBLIC_ARTISTS = (artists: Artist[]) => artists.filter((a) => !a.hi
 export const ARTISTS: Artist[] = [
   {
     id: "pablo",
+    slug: "pablo-matos",
     name: "Pablo Matos",
     handle: "@pablomatostattoo",
     email: "pablo@tattoolowkey.com",
@@ -28,6 +30,7 @@ export const ARTISTS: Artist[] = [
   },
   {
     id: "sergio",
+    slug: "sergio",
     name: "Sergio",
     handle: "@bohemianttt",
     email: "sergio@tattoolowkey.com",
@@ -37,6 +40,7 @@ export const ARTISTS: Artist[] = [
   },
   {
     id: "fifo",
+    slug: "fifo",
     name: "Fifo",
     handle: "@fifo_punk",
     email: "fifo@tattoolowkey.com",
@@ -46,6 +50,7 @@ export const ARTISTS: Artist[] = [
   },
   {
     id: "info",
+    slug: "info",
     name: "Lowkey Tattoo",
     handle: "@lowkeytattootenerife",
     email: "info@tattoolowkey.com",

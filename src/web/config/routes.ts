@@ -8,6 +8,7 @@ export const ROUTES = {
     laser:    "/laser-eliminacion-tatuajes-tenerife",
     blog:     "/blog",
     blogPost: (slug: string) => `/blog/${slug}`,
+    artist:   (slug: string) => `/artistas/${slug}`,
     privacy:  "/politica-de-privacidad",
     legal:    "/aviso-legal",
   },
@@ -18,6 +19,7 @@ export const ROUTES = {
     laser:    "/en/laser-tattoo-removal-tenerife",
     blog:     "/en/blog",
     blogPost: (slug: string) => `/en/blog/${slug}`,
+    artist:   (slug: string) => `/en/artists/${slug}`,
     privacy:  "/politica-de-privacidad",  // legal pages are ES-only
     legal:    "/aviso-legal",
   },
@@ -48,11 +50,13 @@ export function switchLocaleUrl(pathname: string, to: "en" | "es"): string {
     const hit = pairs.find(([es]) => pathname === es);
     if (hit) return hit[1];
     if (pathname.startsWith("/blog/")) return `/en${pathname}`;
+    if (pathname.startsWith("/artistas/")) return `/en/artists/${pathname.slice("/artistas/".length)}`;
     return ROUTES.en.home;
   } else {
     const hit = pairs.find(([, en]) => pathname === en);
     if (hit) return hit[0];
     if (pathname.startsWith("/en/blog/")) return pathname.slice(3); // remove /en prefix
+    if (pathname.startsWith("/en/artists/")) return `/artistas/${pathname.slice("/en/artists/".length)}`;
     return ROUTES.es.home;
   }
 }
