@@ -335,10 +335,11 @@ export const ArtistCard = ({ artist, index }: { artist: Artist; index: number })
       initial={{ opacity: 0, y: 16 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.45, delay: index * 0.1, ease: [0.4, 0, 0.2, 1] }}
+      className="h-full"
     >
       <Link
         to={bioUrl}
-        className="group flex flex-col rounded-lg border border-border overflow-hidden bg-card hover:border-muted-foreground transition-colors duration-200"
+        className="group flex flex-col h-full rounded-lg border border-border overflow-hidden bg-card hover:border-muted-foreground transition-colors duration-200"
       >
         <div className="aspect-[4/3] w-full relative overflow-hidden">
           <img

@@ -5,6 +5,7 @@ import { useClientsPaged, useCreateClient, useUpdateClient, useDeleteClient, use
 import { useArtistProfiles } from "@admin/hooks/useArtistProfiles";
 import { useAdminAuth } from "@admin/contexts/AdminAuthContext";
 import { DatePickerInput } from "@admin/components/DatePickerInput";
+import { BirthdayInput } from "@admin/components/BirthdayInput";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -374,7 +375,7 @@ export default function Clients() {
               </div>
               <div className="space-y-1">
                 <Label className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Nacimiento</Label>
-                <DatePickerInput value={newBirthday} onChange={setNewBirthday} fromYear={1930} toYear={new Date().getFullYear()} />
+                <BirthdayInput value={newBirthday} onChange={setNewBirthday} />
               </div>
             </div>
             <div className="space-y-1">
@@ -432,7 +433,7 @@ export default function Clients() {
               </div>
               <div className="space-y-1">
                 <Label className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Nacimiento</Label>
-                <DatePickerInput value={editBirthday} onChange={setEditBirthday} fromYear={1930} toYear={new Date().getFullYear()} />
+                <BirthdayInput value={editBirthday} onChange={setEditBirthday} />
               </div>
             </div>
             <div className="space-y-1">

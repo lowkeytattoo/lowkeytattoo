@@ -4,6 +4,7 @@ import { useClient, useUpdateClient, useSetCoverPhoto, useClientPhotos, useDelet
 import { useSessions, useCreateSession, useUpdateSession } from "@admin/hooks/useSessions";
 import { useAdminAuth } from "@admin/contexts/AdminAuthContext";
 import { DatePickerInput } from "@admin/components/DatePickerInput";
+import { BirthdayInput } from "@admin/components/BirthdayInput";
 import { PhoneInput, formatPhone } from "@admin/components/PhoneInput";
 import { supabase } from "@shared/lib/supabase";
 import { Button } from "@/components/ui/button";
@@ -348,7 +349,7 @@ export default function ClientProfile() {
               <Textarea placeholder="Notas" value={editNotes} onChange={(e) => setEditNotes(e.target.value)} className="bg-background border-border" rows={2} />
               <div className="grid grid-cols-2 gap-3">
                 <Input placeholder="Alergias" value={editAllergies} onChange={(e) => setEditAllergies(e.target.value)} className="bg-background border-border" />
-                <DatePickerInput value={editBirthday} onChange={setEditBirthday} placeholder="Fecha de nacimiento" fromYear={1930} toYear={new Date().getFullYear()} />
+                <BirthdayInput value={editBirthday} onChange={setEditBirthday} placeholder="Fecha de nacimiento" />
               </div>
               <div className="flex gap-2">
                 <Button onClick={saveEdit} className="cta-button" disabled={updateClient.isPending}>Guardar</Button>
