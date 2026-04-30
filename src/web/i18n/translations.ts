@@ -268,7 +268,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "artist.card.cta": "View profile →",
     "artist.pablo.bio": "Pablo Matos Rodríguez is a professional tattoo artist with over 16 years of experience. Specialising in blackwork, Maori, Samoan, Japanese and neo-tribal geometric styles, he is known for large-format custom tattoos — particularly full arm and leg sleeves. He adapts every design to the client's anatomy, creating unique, harmonious compositions.",
     "artist.pablo.meta.title": "Pablo Matos — Tattoo Artist in Tenerife | Lowkey Tattoo",
-    "artist.pablo.meta.desc": "Pablo Matos — 16+ years tattooing, specialist in blackwork, Maori, Samoan and neo-tribal geometric at Lowkey Tattoo Santa Cruz de Tenerife. Full sleeves and custom large-format work.",
+    "artist.pablo.meta.desc": "Pablo Matos — 16+ years tattooing, specialist in blackwork, Maori and neo-tribal geometric at Lowkey Tattoo Santa Cruz de Tenerife. Custom large-format tattoos.",
     "artist.sergio.bio": "Sergio is a tattoo artist specialising in a style that fuses blackwork and realism — creating unique tattoos with strong visual impact and depth. Based in Tenerife, he has developed his own artistic identity around contrasts, textures and detail. He works closely with each client to create exclusive tattoos that reflect their personal story.",
     "artist.sergio.meta.title": "Sergio — Blackwork & Realism Tattoo Artist in Tenerife | Lowkey Tattoo",
     "artist.sergio.meta.desc": "Sergio, blackwork and realism specialist at Lowkey Tattoo Santa Cruz de Tenerife. Custom tattoos with visual impact, contrast and meticulous detail.",
@@ -433,7 +433,7 @@ export const translations: Record<Locale, Record<string, string>> = {
 
     // Página Piercing
     "piercing.meta.title": "Piercing Profesional en Tenerife | Lowkey Tattoo",
-    "piercing.meta.desc": "Piercing profesional en Santa Cruz de Tenerife. Material estéril, joyas de titanio y acero quirúrgico. Asesoramiento y seguimiento post-piercing. Calle Dr. Allart, 50.",
+    "piercing.meta.desc": "Piercing profesional en Santa Cruz de Tenerife. Material estéril, titanio y acero quirúrgico. Asesoramiento y seguimiento post-piercing. Calle Dr. Allart, 50.",
     "piercing.h1": "Piercing Profesional en Tenerife",
     "piercing.intro": "En Lowkey Tattoo realizamos piercings profesionales en Santa Cruz de Tenerife con material estéril de un solo uso y joyas de titanio implant-grade y acero quirúrgico 316L.",
     "piercing.types.title": "Tipos de piercing disponibles",
@@ -543,7 +543,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "artist.card.cta": "Ver perfil →",
     "artist.pablo.bio": "Pablo Matos Rodríguez es tatuador profesional con más de 16 años de experiencia. Especializado en blackwork, maorí, samoano, japonés y neotribal geométrico, destaca por la creación de tatuajes personalizados de gran formato, especialmente mangas completas de brazo y pierna. Adapta cada diseño a la anatomía del cliente, respetando las formas naturales del cuerpo para lograr composiciones únicas y armónicas.",
     "artist.pablo.meta.title": "Pablo Matos — Tatuador en Tenerife | Lowkey Tattoo",
-    "artist.pablo.meta.desc": "Pablo Matos — tatuador con más de 16 años de experiencia en Lowkey Tattoo Tenerife. Especialista en blackwork, maorí, samoano y neotribal geométrico. Mangas completas y gran formato.",
+    "artist.pablo.meta.desc": "Pablo Matos — tatuador con 16+ años de experiencia en Lowkey Tattoo Tenerife. Especialista en blackwork, maorí y neotribal geométrico. Mangas y tatuajes de gran formato.",
     "artist.sergio.bio": "Sergio es tatuador especializado en un estilo que fusiona blackwork y realismo, creando tatuajes únicos que destacan por su fuerza visual y profundidad. Residente en Tenerife, ha desarrollado una identidad artística propia basada en la combinación de contrastes, texturas y detalle. Trabaja mano a mano con cada cliente para crear tatuajes exclusivos que reflejen su identidad y visión.",
     "artist.sergio.meta.title": "Sergio — Tatuador Blackwork y Realismo en Tenerife | Lowkey Tattoo",
     "artist.sergio.meta.desc": "Sergio, especialista en blackwork y realismo en Lowkey Tattoo Santa Cruz de Tenerife. Tatuajes personalizados con gran impacto visual, contraste y detalle.",
