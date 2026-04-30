@@ -37,7 +37,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, Camera, Plus, Star, Upload, Trash2, Pencil, Phone, AlertCircle, Cake, Clock, Link2, UserCircle, FileText, Download } from "lucide-react";
+import { ArrowLeft, Camera, Plus, Star, Upload, Trash2, Pencil, Phone, AlertCircle, Cake, Clock, Link2, UserCircle, FileText, Download, Mail, MessageCircle } from "lucide-react";
 import type { SessionType } from "@shared/types/index";
 import { format } from "date-fns";
 import { formatLocalDate } from "@shared/lib/formatDate";
@@ -45,7 +45,7 @@ import { es } from "date-fns/locale";
 import { useQueryClient } from "@tanstack/react-query";
 import { ARTISTS } from "@shared/config/artists";
 import { ConsentFormModal } from "@admin/components/ConsentFormModal";
-import { useConsentForms, useDownloadConsentPdf, useOpenConsentPdf, useDeleteConsentForm } from "@admin/hooks/useConsentForms";
+import { useConsentForms, useDownloadConsentPdf, useOpenConsentPdf, useDeleteConsentForm, useShareConsentWhatsApp, useShareConsentGmail } from "@admin/hooks/useConsentForms";
 
 const MAX_PX = 1920;
 const WEBP_QUALITY = 0.85;
@@ -130,6 +130,8 @@ export default function ClientProfile() {
   const downloadPdf = useDownloadConsentPdf();
   const openPdf = useOpenConsentPdf();
   const deleteConsent = useDeleteConsentForm();
+  const shareWhatsApp = useShareConsentWhatsApp();
+  const shareGmail = useShareConsentGmail();
 
   const currentArtist = ARTISTS.find((a) => a.id === profile?.artist_config_id)
     ?? ARTISTS.find((a) => a.id === "info")!;
@@ -597,6 +599,43 @@ export default function ClientProfile() {
                         >
                           <Download className="w-3.5 h-3.5" />
                         </Button>
+                        {client.phone && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 w-7 p-0 text-muted-foreground hover:text-green-500"
+                            title="Enviar por WhatsApp"
+                            disabled={shareWhatsApp.isPending}
+                            onClick={() =>
+                              shareWhatsApp.mutate({
+                                storagePath: cf.pdf_storage_path!,
+                                clientPhone: client.phone!,
+                                clientName: client.name,
+                              })
+                            }
+                          >
+                            <MessageCircle className="w-3.5 h-3.5" />
+                          </Button>
+                        )}
+                        {client.email && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 w-7 p-0 text-muted-foreground hover:text-blue-500"
+                            title="Enviar por Gmail"
+                            disabled={shareGmail.isPending}
+                            onClick={() =>
+                              shareGmail.mutate({
+                                storagePath: cf.pdf_storage_path!,
+                                clientEmail: client.email!,
+                                clientName: client.name,
+                                consentType: CONSENT_TYPE_LABEL[cf.type] ?? cf.type,
+                              })
+                            }
+                          >
+                            <Mail className="w-3.5 h-3.5" />
+                          </Button>
+                        )}
                       </>
                     )}
                     <Button
