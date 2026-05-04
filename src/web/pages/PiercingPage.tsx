@@ -77,6 +77,15 @@ export default function PiercingPage() {
         name: "Tamurathepiercer",
         url: "https://www.instagram.com/tamurathepiercer/",
       },
+      offers: {
+        "@type": "Offer",
+        name: locale === "es"
+          ? "Sesión de piercing — precio según joya y localización"
+          : "Piercing session — price varies by jewellery and location",
+        url: `${SITE}${r.piercing}`,
+        availability: "https://schema.org/InStock",
+        validFrom: TAMURA_START,
+      },
     }] : []),
   ];
 
