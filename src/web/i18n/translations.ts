@@ -292,7 +292,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "hero.h1.1": "Tatuajes en Santa Cruz de Tenerife",
     "hero.h1.2": "",
     "hero.sub.1": "Lowkey Tattoo — Santa Cruz de Tenerife.",
-    "hero.sub.2": "Diseños personalizados, ambiente discreto, resultados de alta gama.",
+    "hero.sub.2": "Diseños personalizados, ambiente discreto, arte duradero.",
 
     // Cookies
     "cookies.title": "Aviso de cookies",
