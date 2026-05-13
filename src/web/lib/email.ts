@@ -27,9 +27,10 @@ const SERVICE_LABELS: Record<string, string> = {
   laser: "Láser",
 };
 
-// Email-safe WhatsApp icon: inline SVG is stripped by Gmail/Outlook,
-// so we use a CSS green circle with the WhatsApp checkmark unicode instead.
-const WA_ICON = `<span style="display:inline-block;width:17px;height:17px;background-color:#25D366;border-radius:50%;text-align:center;line-height:17px;font-size:11px;color:#fff;vertical-align:middle;margin-right:8px;font-family:Arial,sans-serif;font-weight:bold;">✓</span>`;
+// Hosted as /public/wa-icon.svg so it's served from the production domain.
+// <img> with an absolute URL works in Gmail, Apple Mail and most clients
+// (unlike inline <svg> which gets stripped by email security filters).
+const WA_ICON = `<img src="https://tattoolowkey.com/wa-icon.svg" width="16" height="16" alt="WhatsApp" style="display:inline-block;vertical-align:middle;margin-right:8px;" />`;
 
 // ── Base layout ───────────────────────────────────────────────────────────────
 
