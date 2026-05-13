@@ -52,13 +52,33 @@ export default function BlogPostPage() {
         is_first_time: null,
         status: "pending",
       });
-      const { default: emailjs } = await import("@emailjs/browser");
-      const serviceId = import.meta.env.VITE_EMAILJS_SERVICE_ID;
-      const templateId = import.meta.env.VITE_EMAILJS_CONTACT_TEMPLATE_ID;
-      const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
-      if (serviceId && templateId && publicKey) {
-        await emailjs.send(serviceId, templateId, { from_name: cfName, from_contact: cfContact, message: cfMessage }, publicKey);
+
+      const brevoKey = import.meta.env.VITE_BREVO_API_KEY as string;
+      const adminEmail = (import.meta.env.VITE_ADMIN_EMAIL as string) || "info@tattoolowkey.com";
+      if (brevoKey) {
+        const lines = [
+          `Nuevo mensaje de contacto desde el blog.`,
+          ``,
+          `Nombre: ${cfName}`,
+          `Contacto: ${cfContact}`,
+          ``,
+          `Mensaje:`,
+          cfMessage,
+          ``,
+          `Ver en la app: ${window.location.origin}/admin/bookings`,
+        ].join("\n");
+        fetch("https://api.brevo.com/v3/smtp/email", {
+          method: "POST",
+          headers: { "api-key": brevoKey, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            sender: { name: "Lowkey Tattoo Web", email: "info@tattoolowkey.com" },
+            to: [{ email: adminEmail, name: "Admin Lowkey" }],
+            subject: `[Lowkey] Nuevo contacto desde blog — ${cfName}`,
+            textContent: lines,
+          }),
+        }).catch((err) => console.warn("[contact] Brevo error:", err));
       }
+
       setCfSent(true);
       setCfName(""); setCfContact(""); setCfMessage("");
     } finally {

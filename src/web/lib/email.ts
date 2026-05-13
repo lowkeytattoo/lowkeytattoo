@@ -1,7 +1,10 @@
-import emailjs from "@emailjs/browser";
 import { supabase } from "@shared/lib/supabase";
 import { ARTISTS } from "@shared/config/artists";
 import type { ServiceType } from "@shared/types/index";
+
+const BREVO_API_KEY  = import.meta.env.VITE_BREVO_API_KEY as string;
+const ADMIN_EMAIL    = (import.meta.env.VITE_ADMIN_EMAIL as string) || "info@tattoolowkey.com";
+const BREVO_ENDPOINT = "https://api.brevo.com/v3/smtp/email";
 
 export interface BookingData {
   artistName: string;
@@ -17,12 +20,13 @@ export interface BookingData {
   isFirstTime: boolean;
 }
 
-export async function sendBookingRequest(booking: BookingData): Promise<void> {
-  const serviceId = import.meta.env.VITE_EMAILJS_SERVICE_ID;
-  const templateId = import.meta.env.VITE_EMAILJS_TEMPLATE_ID;
-  const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
+const SERVICE_LABELS: Record<string, string> = {
+  tattoo: "Tatuaje",
+  piercing: "Piercing",
+  laser: "Láser",
+};
 
-  // Find artist config id from name
+export async function sendBookingRequest(booking: BookingData): Promise<void> {
   const artist = ARTISTS.find(
     (a) => a.name === booking.artistName || a.email === booking.artistEmail
   );
@@ -32,9 +36,8 @@ export async function sendBookingRequest(booking: BookingData): Promise<void> {
     ? booking.date.split("/").reverse().join("-")
     : null;
 
-  // Save to Supabase web_bookings (best-effort, don't block email)
-  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-  if (supabaseUrl) {
+  // Save to Supabase (best-effort, don't block email)
+  if (import.meta.env.VITE_SUPABASE_URL) {
     supabase
       .from("web_bookings")
       .insert({
@@ -55,24 +58,69 @@ export async function sendBookingRequest(booking: BookingData): Promise<void> {
       });
   }
 
-  if (!serviceId || !templateId || !publicKey) {
-    console.warn("EmailJS not configured — skipping email send");
+  if (!BREVO_API_KEY) {
+    console.warn("[email] VITE_BREVO_API_KEY no configurada — no se envían emails");
     return;
   }
 
-  const params = {
-      artist_name: booking.artistName,
-      artist_email: booking.artistEmail,
-      service_type: booking.serviceType,
-      client_name: booking.clientName,
-      client_phone: booking.clientPhone,
-      client_email: booking.clientEmail,
-      date: booking.date,
-      time: booking.time,
-      description: booking.description,
-      body_zone: booking.bodyZone,
-      is_first_time: booking.isFirstTime ? "Sí" : "No",
-  };
+  const serviceLabel = SERVICE_LABELS[booking.serviceType] ?? booking.serviceType;
+  const subject = `[Lowkey] Nueva solicitud de ${serviceLabel} — ${booking.clientName}`;
 
-  await emailjs.send(serviceId, templateId, params, publicKey);
+  const lines = [
+    `Nueva solicitud de cita recibida desde la web.`,
+    ``,
+    `Servicio: ${serviceLabel}`,
+    `Artista: ${booking.artistName}`,
+    ``,
+    `Cliente: ${booking.clientName}`,
+    `Teléfono: ${booking.clientPhone}`,
+    `Email: ${booking.clientEmail}`,
+    ``,
+    `Fecha solicitada: ${booking.date}`,
+    booking.time ? `Hora: ${booking.time}` : null,
+    `Zona corporal: ${booking.bodyZone}`,
+    `Primera vez: ${booking.isFirstTime ? "Sí" : "No"}`,
+    ``,
+    `Descripción:`,
+    booking.description,
+    ``,
+    `Ver en la app: ${window.location.origin}/admin/bookings`,
+  ].filter((l): l is string => l !== null).join("\n");
+
+  const recipients = [
+    { email: ADMIN_EMAIL, name: "Admin Lowkey" },
+  ];
+
+  // Add artist if different from admin
+  const artistEmail = artist?.email ?? booking.artistEmail;
+  if (artistEmail && artistEmail !== ADMIN_EMAIL) {
+    recipients.push({ email: artistEmail, name: booking.artistName });
+  }
+
+  await Promise.allSettled(
+    recipients.map((to) =>
+      fetch(BREVO_ENDPOINT, {
+        method: "POST",
+        headers: {
+          "api-key": BREVO_API_KEY,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          sender: { name: "Lowkey Tattoo Web", email: "info@tattoolowkey.com" },
+          to: [to],
+          subject,
+          textContent: lines,
+        }),
+      })
+        .then(async (res) => {
+          if (!res.ok) {
+            const err = await res.text();
+            console.warn(`[email] Brevo → ${to.email} falló (${res.status}):`, err);
+          } else {
+            console.log(`[email] Brevo → ${to.email} OK`);
+          }
+        })
+        .catch((err) => console.warn(`[email] Brevo request error → ${to.email}:`, err))
+    )
+  );
 }

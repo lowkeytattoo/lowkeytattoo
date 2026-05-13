@@ -1,10 +1,13 @@
 import { useState, useRef, useEffect } from "react";
 import { motion } from "framer-motion";
 import { MapPin, Clock, Phone, MessageSquare } from "lucide-react";
-import emailjs from "@emailjs/browser";
 import { useI18n } from "@web/i18n/I18nProvider";
 import { CONTACT } from "@web/config/contact";
 // supabase imported dynamically in handleContactSubmit to keep it out of the initial bundle
+
+const BREVO_API_KEY  = import.meta.env.VITE_BREVO_API_KEY as string;
+const ADMIN_EMAIL    = (import.meta.env.VITE_ADMIN_EMAIL as string) || "info@tattoolowkey.com";
+const BREVO_ENDPOINT = "https://api.brevo.com/v3/smtp/email";
 
 const WhatsAppIcon = ({ size = 16 }: { size?: number }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -57,15 +60,29 @@ const StudioInfo = () => {
         status: "pending",
       });
 
-      const serviceId = import.meta.env.VITE_EMAILJS_SERVICE_ID;
-      const templateId = import.meta.env.VITE_EMAILJS_CONTACT_TEMPLATE_ID;
-      const publicKey = import.meta.env.VITE_EMAILJS_PUBLIC_KEY;
-      if (serviceId && templateId && publicKey) {
-        await emailjs.send(serviceId, templateId, {
-          from_name: name,
-          from_contact: contact,
+      if (BREVO_API_KEY) {
+        const lines = [
+          `Nuevo mensaje de contacto desde la web.`,
+          ``,
+          `Nombre: ${name}`,
+          `Contacto: ${contact}`,
+          ``,
+          `Mensaje:`,
           message,
-        }, publicKey);
+          ``,
+          `Ver en la app: ${window.location.origin}/admin/bookings`,
+        ].join("\n");
+
+        fetch(BREVO_ENDPOINT, {
+          method: "POST",
+          headers: { "api-key": BREVO_API_KEY, "Content-Type": "application/json" },
+          body: JSON.stringify({
+            sender: { name: "Lowkey Tattoo Web", email: "info@tattoolowkey.com" },
+            to: [{ email: ADMIN_EMAIL, name: "Admin Lowkey" }],
+            subject: `[Lowkey] Nuevo mensaje de contacto — ${name}`,
+            textContent: lines,
+          }),
+        }).catch((err) => console.warn("[contact] Brevo error:", err));
       }
 
       setSent(true);
