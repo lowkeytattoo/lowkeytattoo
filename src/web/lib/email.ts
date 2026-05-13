@@ -250,6 +250,7 @@ export async function sendBookingRequest(booking: BookingData): Promise<void> {
   }
 
   const sends: Promise<void>[] = [
+    // Emails to admin + artist
     ...internalRecipients.map((to) =>
       sendBrevoEmail(
         to,
@@ -259,6 +260,7 @@ export async function sendBookingRequest(booking: BookingData): Promise<void> {
     ),
   ];
 
+  // Confirmation email to client
   if (booking.clientEmail) {
     sends.push(
       sendBrevoEmail(
@@ -266,6 +268,33 @@ export async function sendBookingRequest(booking: BookingData): Promise<void> {
         `Tu solicitud en Lowkey Tattoo — ${serviceLabel}`,
         clientConfirmationHtml(booking, serviceLabel),
       ).catch((err) => console.warn("[email] error → client:", err))
+    );
+  }
+
+  // WhatsApp notification to artist via Edge Function (phone number stays server-side)
+  const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+  const supabaseKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+  if (artist?.id && supabaseUrl && supabaseKey) {
+    sends.push(
+      fetch(`${supabaseUrl}/functions/v1/notify-booking`, {
+        method: "POST",
+        headers: {
+          "apikey": supabaseKey,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          artist_id:    artist.id,
+          service:      serviceLabel,
+          client_name:  booking.clientName,
+          client_phone: booking.clientPhone,
+          date:         booking.date,
+          description:  booking.description,
+        }),
+      })
+        .then(async (res) => {
+          if (!res.ok) console.warn("[email] WhatsApp notify falló:", await res.text());
+        })
+        .catch((err) => console.warn("[email] WhatsApp notify error:", err))
     );
   }
 
