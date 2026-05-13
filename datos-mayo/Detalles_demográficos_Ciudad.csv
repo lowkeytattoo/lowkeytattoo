@@ -1,0 +1,20 @@
+# ----------------------------------------
+# Detalles demográficos: Ciudad
+# Cuenta: Lowkey Tattoo
+# Propiedad: tattoolowkey.com
+# ----------------------------------------
+# 
+# Todos los usuarios
+# Fecha de inicio: 20260415
+# Fecha de finalización: 20260512
+Ciudad,Usuarios activos,Usuarios nuevos,Sesiones con interacción,Porcentaje de interacciones,Sesiones con interacción por usuario activo,Tiempo de interacción medio por usuario activo,Número de eventos,Eventos clave,Tasa de evento clave de usuarios,Total de ingresos
+Las Palmas de Gran Canaria,8,6,10,0.6666666666666666,1.25,80.375,144,0,0,0
+(not set),7,4,28,0.8,4,277.14285714285717,513,0,0,0
+Santa Cruz de Tenerife,6,4,12,0.75,2,131,214,0,0,0
+Barcelona,4,3,37,0.6379310344827587,9.25,1607,1180,0,0,0
+Madrid,2,1,2,1,1,109.5,15,0,0,0
+San Cristobal de La Laguna,2,2,2,1,1,48.5,21,0,0,0
+Valencia,2,1,1,0.2,0.5,4,31,0,0,0
+Arrecife,1,1,0,0,0,0,3,0,0,0
+Sonnewalde,1,1,0,0,0,0,3,0,0,0
+Zaragoza,1,0,0,0,0,0,5,0,0,0
