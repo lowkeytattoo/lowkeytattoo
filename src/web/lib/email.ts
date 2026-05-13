@@ -280,6 +280,7 @@ export async function sendBookingRequest(booking: BookingData): Promise<void> {
         method: "POST",
         headers: {
           "apikey": supabaseKey,
+          "Authorization": `Bearer ${supabaseKey}`,
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
