@@ -1,4 +1,3 @@
-import { motion } from "framer-motion";
 // Served from /public for stable URL — preloaded in index.html
 const heroImage = "/hero-sacred.webp";
 import { useI18n } from "@web/i18n/I18nProvider";
@@ -31,12 +30,7 @@ const Hero = () => {
 
       {/* Content */}
       <div className="relative z-10 max-w-7xl mx-auto px-6 w-full py-8">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, ease: [0.4, 0, 0.2, 1] }}
-          className="max-w-xl"
-        >
+        <div className="max-w-xl animate-in fade-in slide-in-from-bottom-5 duration-700">
           <p className="font-mono text-xs text-muted-foreground tracking-[0.15em] uppercase mb-4">
             {t("hero.coords")}
           </p>
@@ -66,7 +60,7 @@ const Hero = () => {
               WhatsApp
             </a>
           </div>
-        </motion.div>
+        </div>
       </div>
     </section>
   );

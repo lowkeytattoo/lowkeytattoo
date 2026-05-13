@@ -1,13 +1,17 @@
+import { lazy, Suspense } from "react";
 import Navbar from "@web/components/Navbar";
 import Hero from "@web/components/Hero";
-import Gallery from "@web/components/Gallery";
-import ArtistsSection from "@web/components/ArtistsSection";
-import InstagramFeed from "@web/components/InstagramFeed";
-import StudioInfo from "@web/components/StudioInfo";
-import Footer from "@web/components/Footer";
 import { SEOHead } from "@web/components/SEOHead";
 import { useI18n } from "@web/i18n/I18nProvider";
 import { ROUTES } from "@web/config/routes";
+
+// Below-fold components — split into a separate chunk so they don't block
+// the initial JS parse/execution that drives TBT and LCP.
+const Gallery       = lazy(() => import("@web/components/Gallery"));
+const ArtistsSection = lazy(() => import("@web/components/ArtistsSection"));
+const InstagramFeed  = lazy(() => import("@web/components/InstagramFeed"));
+const StudioInfo     = lazy(() => import("@web/components/StudioInfo"));
+const Footer         = lazy(() => import("@web/components/Footer"));
 
 const SITE = "https://tattoolowkey.com";
 
@@ -55,11 +59,13 @@ const Index = () => {
       <SEOHead title={title} description={description} canonical={r.home} alternateCanonical={alt.home} schema={schemas} />
       <Navbar />
       <Hero />
-      <Gallery />
-      <ArtistsSection />
-      <InstagramFeed />
-      <StudioInfo />
-      <Footer />
+      <Suspense fallback={null}>
+        <Gallery />
+        <ArtistsSection />
+        <InstagramFeed />
+        <StudioInfo />
+        <Footer />
+      </Suspense>
     </div>
   );
 };
