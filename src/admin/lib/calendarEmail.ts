@@ -5,6 +5,10 @@ const BREVO_API_KEY  = import.meta.env.VITE_BREVO_API_KEY as string;
 const ADMIN_EMAIL    = (import.meta.env.VITE_ADMIN_EMAIL as string) || "info@tattoolowkey.com";
 const BREVO_ENDPOINT = "https://api.brevo.com/v3/smtp/email";
 
+// ── Supabase Edge Function (WhatsApp) ─────────────────────────────────────────
+const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
+const SUPABASE_KEY = import.meta.env.VITE_SUPABASE_ANON_KEY as string;
+
 // ── Tipos ─────────────────────────────────────────────────────────────────────
 
 export type CalendarEmailAction =
@@ -86,9 +90,42 @@ export async function sendCalendarEmail(data: CalendarEmailData): Promise<void> 
     return true;
   });
 
-  await Promise.allSettled(
-    recipients.map((to) => sendBrevoEmail(to, subject, lines)),
-  );
+  await Promise.allSettled([
+    ...recipients.map((to) => sendBrevoEmail(to, subject, lines)),
+    sendWhatsAppNotify(data),
+  ]);
+}
+
+// ── WhatsApp vía Edge Function notify-booking ────────────────────────────────
+
+async function sendWhatsAppNotify(data: CalendarEmailData): Promise<void> {
+  if (!SUPABASE_URL || !SUPABASE_KEY) return;
+
+  const serviceLabel = [data.action, data.sessionType].filter(Boolean).join(" — ");
+  const dateLabel    = [data.eventDate, data.eventTime].filter(Boolean).join(" · ");
+
+  try {
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/notify-booking`, {
+      method: "POST",
+      headers: {
+        "apikey":        SUPABASE_KEY,
+        "Authorization": `Bearer ${SUPABASE_KEY}`,
+        "Content-Type":  "application/json",
+      },
+      body: JSON.stringify({
+        artist_id:    data.artistId,
+        service:      serviceLabel,
+        client_name:  data.clientName,
+        client_phone: data.clientPhone,
+        date:         dateLabel,
+        description:  data.notes,
+      }),
+    });
+    if (!res.ok) console.warn("[calendarEmail] WhatsApp notify falló:", await res.text());
+    else         console.log("[calendarEmail] WhatsApp notify OK");
+  } catch (err) {
+    console.warn("[calendarEmail] WhatsApp notify error:", err);
+  }
 }
 
 // ── Canal de envío ────────────────────────────────────────────────────────────
