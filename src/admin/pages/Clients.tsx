@@ -152,7 +152,7 @@ export default function Clients() {
         notes: newNotes || null,
         allergies: newAllergies || null,
         birthday: newBirthday || null,
-        primary_artist_id: newArtist || null,
+        primary_artist_id: isOwner ? (newArtist || null) : (profile?.id ?? null),
       });
       setShowCreate(false);
       setNewName(""); setNewPhone(""); setNewEmail("");
