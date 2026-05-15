@@ -61,6 +61,7 @@ function useSessionForm() {
   const [clientId, setClientId] = useState("");
   const [artistId, setArtistId] = useState("");
   const [date, setDate] = useState(format(new Date(), "yyyy-MM-dd"));
+  const [time, setTime] = useState("");
   const [type, setType] = useState("tattoo");
   const [price, setPrice] = useState("");
   const [deposit, setDeposit] = useState("");
@@ -72,7 +73,7 @@ function useSessionForm() {
 
   const reset = () => {
     setClientId(""); setArtistId(""); setDate(format(new Date(), "yyyy-MM-dd"));
-    setType("tattoo"); setPrice(""); setDeposit(""); setDuration(""); setZone("");
+    setTime(""); setType("tattoo"); setPrice(""); setDeposit(""); setDuration(""); setZone("");
     setStyle(""); setNotes(""); setPaid(false);
   };
 
@@ -80,6 +81,7 @@ function useSessionForm() {
     setClientId(s.client_id);
     setArtistId(s.artist_id ?? "");
     setDate(s.date);
+    setTime(s.start_time ?? "");
     setType(s.type);
     setPrice(s.price != null ? String(s.price) : "");
     setDeposit(s.deposit != null ? String(s.deposit) : "");
@@ -90,8 +92,8 @@ function useSessionForm() {
     setPaid(s.paid);
   };
 
-  return { clientId, setClientId, artistId, setArtistId, date, setDate, type, setType,
-    price, setPrice, deposit, setDeposit, duration, setDuration, zone, setZone,
+  return { clientId, setClientId, artistId, setArtistId, date, setDate, time, setTime,
+    type, setType, price, setPrice, deposit, setDeposit, duration, setDuration, zone, setZone,
     style, setStyle, notes, setNotes, paid, setPaid, reset, fill };
 }
 
@@ -155,7 +157,7 @@ export default function Sessions() {
     form.fill(s);
     setEditingSession(s);
     setSendInvite(false);
-    setInviteTime("11:00");
+    setInviteTime(s.start_time ?? "11:00");
     setShowModal(true);
   };
 
@@ -171,6 +173,7 @@ export default function Sessions() {
       client_id: form.clientId,
       artist_id: form.artistId || null,
       date: form.date,
+      start_time: form.time || null,
       type: form.type as Session["type"],
       price: form.price ? parseFloat(form.price) : null,
       deposit: form.deposit ? parseFloat(form.deposit) : 0,
@@ -554,7 +557,7 @@ export default function Sessions() {
               )}
             </div>
 
-            <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-[1fr_auto_1fr] gap-3">
               <div className="space-y-1">
                 <Label className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Fecha *</Label>
                 <Popover>
@@ -582,6 +585,15 @@ export default function Sessions() {
                     />
                   </PopoverContent>
                 </Popover>
+              </div>
+              <div className="space-y-1">
+                <Label className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Hora</Label>
+                <Input
+                  type="time"
+                  value={form.time}
+                  onChange={(e) => form.setTime(e.target.value)}
+                  className="bg-background border-border w-28"
+                />
               </div>
               <div className="space-y-1">
                 <Label className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Tipo</Label>
@@ -714,7 +726,10 @@ export default function Sessions() {
                       type="button"
                       role="switch"
                       aria-checked={sendInvite}
-                      onClick={() => setSendInvite((v) => !v)}
+                      onClick={() => setSendInvite((v) => {
+                        if (!v && form.time) setInviteTime(form.time);
+                        return !v;
+                      })}
                       className={`relative inline-flex h-5 w-9 shrink-0 rounded-full border-2 border-transparent transition-colors ${sendInvite ? "bg-primary" : "bg-muted"}`}
                     >
                       <span className={`inline-block h-4 w-4 rounded-full bg-background shadow transition-transform ${sendInvite ? "translate-x-4" : "translate-x-0"}`} />

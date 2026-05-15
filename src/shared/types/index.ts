@@ -85,6 +85,7 @@ export interface Session {
   client_id: string;
   artist_id: string | null;
   date: string;
+  start_time: string | null;
   type: SessionType;
   price: number | null;
   deposit: number;

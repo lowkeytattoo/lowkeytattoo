@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { useRef, useState, useEffect } from "react";
 import SignatureCanvas from "react-signature-canvas";
 import jsPDF from "jspdf";
 import { format } from "date-fns";
@@ -324,9 +324,14 @@ type Step = typeof STEPS[number];
 
 export function ConsentFormModal({ open, onClose, client, artist }: Props) {
   const sigRef = useRef<SignatureCanvas>(null);
+  const scrollRef = useRef<HTMLDivElement>(null);
   const createConsent = useCreateConsentForm();
 
   const [step, setStep] = useState<Step>("tipo");
+
+  useEffect(() => {
+    scrollRef.current?.scrollTo({ top: 0 });
+  }, [step]);
   const [formType, setFormType] = useState<ConsentFormType | null>(null);
   const [clientDni, setClientDni] = useState("");
   const [isMinor, setIsMinor] = useState(false);
@@ -465,7 +470,7 @@ export function ConsentFormModal({ open, onClose, client, artist }: Props) {
         </DialogHeader>
 
         {/* Contenido scrollable */}
-        <div className="flex-1 overflow-y-auto px-5 pb-2">
+        <div ref={scrollRef} className="flex-1 overflow-y-auto px-5 pb-2">
 
           {/* PASO 1 — Tipo */}
           {step === "tipo" && (

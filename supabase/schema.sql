@@ -46,6 +46,7 @@ CREATE TABLE sessions (
   client_id UUID REFERENCES clients(id) ON DELETE CASCADE,
   artist_id UUID REFERENCES profiles(id),
   date DATE NOT NULL,
+  start_time TEXT,
   type TEXT CHECK (type IN ('tattoo', 'piercing', 'laser', 'retoque')) DEFAULT 'tattoo',
   price DECIMAL(10,2),
   deposit DECIMAL(10,2) DEFAULT 0,
