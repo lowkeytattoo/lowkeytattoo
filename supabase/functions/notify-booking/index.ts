@@ -40,7 +40,7 @@ serve(async (req) => {
   }
 
   try {
-    const { artist_id, service, client_name, client_phone, date, description } = await req.json();
+    const { artist_id, service, client_name, client_phone, date, body_zone, description } = await req.json();
 
     const lines = [
       `🔔 Nueva solicitud de ${service ?? "cita"}`,
@@ -48,6 +48,7 @@ serve(async (req) => {
       `👤 ${client_name ?? "Sin nombre"}`,
       `📅 ${date ?? "Fecha no especificada"}`,
       client_phone ? `📞 ${client_phone}` : null,
+      body_zone    ? `📍 ${body_zone}` : null,
       description  ? `📝 ${description.slice(0, 120)}${description.length > 120 ? "…" : ""}` : null,
       ``,
       `Ver en la app: https://tattoolowkey.com/admin/bookings`,

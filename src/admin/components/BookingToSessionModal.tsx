@@ -200,6 +200,7 @@ export function BookingToSessionModal({ open, onClose, booking }: Props) {
         eventDate:   formatEventDate(new Date(startIso)),
         eventTime:   formatEventTime(startIso, endIso),
         duration:    formatDuration(startIso, endIso),
+        bodyZone:    values.body_zone ?? booking.body_zone ?? undefined,
         notes:       values.notes,
         isFirstTime: booking.is_first_time ?? false,
         adminUrl:    `${window.location.origin}/admin/clients/${clientId}`,

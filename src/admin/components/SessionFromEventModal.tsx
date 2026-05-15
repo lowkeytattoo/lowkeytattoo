@@ -205,6 +205,7 @@ export function SessionFromEventModal({ open, onClose, event }: Props) {
           eventDate:   formatEventDate(new Date(startIso)),
           eventTime:   formatEventTime(startIso, endIso),
           duration:    formatDuration(startIso, endIso),
+          bodyZone:    values.body_zone ?? undefined,
           notes:       values.notes,
           adminUrl:    `${window.location.origin}/admin/clients/${clientId}`,
         });

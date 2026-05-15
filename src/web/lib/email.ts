@@ -289,6 +289,7 @@ export async function sendBookingRequest(booking: BookingData): Promise<void> {
           client_name:  booking.clientName,
           client_phone: booking.clientPhone,
           date:         booking.date,
+          body_zone:    booking.bodyZone || undefined,
           description:  booking.description,
         }),
       })

@@ -29,6 +29,7 @@ export interface CalendarEmailData {
   eventDate: string;       // "martes, 22 de abril de 2026"
   eventTime: string;       // "15:00 – 17:00"
   duration?: string;       // "2h 30min"
+  bodyZone?: string;
   notes?: string;
   oldDate?: string;        // solo para "Cita modificada"
   oldTime?: string;
@@ -125,6 +126,7 @@ async function sendWhatsAppNotify(data: CalendarEmailData): Promise<void> {
         client_name:  data.clientName,
         client_phone: data.clientPhone,
         date:         dateLabel,
+        body_zone:    data.bodyZone || undefined,
         description:  data.notes,
       }),
     });
