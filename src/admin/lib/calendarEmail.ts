@@ -38,9 +38,17 @@ export interface CalendarEmailData {
 
 // ── Función principal ─────────────────────────────────────────────────────────
 
-/** Envía email al artista y al admin vía Brevo. Falla silencioso. */
+/** Envía email al artista y al admin vía Brevo, y WhatsApp al artista + admin vía CallMeBot. */
 export async function sendCalendarEmail(data: CalendarEmailData): Promise<void> {
   console.log(`[calendarEmail] llamada → artistId="${data.artistId}" action="${data.action}"`);
+
+  // WhatsApp se lanza siempre, independientemente de Brevo.
+  // La Edge Function decide a quién enviar: siempre admin + artista específico.
+  if (data.artistId) {
+    sendWhatsAppNotify(data).catch((err) =>
+      console.warn("[calendarEmail] WhatsApp notify error:", err),
+    );
+  }
 
   if (!BREVO_API_KEY) {
     console.warn("[calendarEmail] VITE_BREVO_API_KEY no configurada — no se envían emails");
@@ -90,10 +98,9 @@ export async function sendCalendarEmail(data: CalendarEmailData): Promise<void> 
     return true;
   });
 
-  await Promise.allSettled([
-    ...recipients.map((to) => sendBrevoEmail(to, subject, lines)),
-    sendWhatsAppNotify(data),
-  ]);
+  await Promise.allSettled(
+    recipients.map((to) => sendBrevoEmail(to, subject, lines)),
+  );
 }
 
 // ── WhatsApp vía Edge Function notify-booking ────────────────────────────────
