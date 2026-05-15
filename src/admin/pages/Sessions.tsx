@@ -383,6 +383,7 @@ export default function Sessions() {
                 <span className="font-medium text-sm truncate">{s.client?.name ?? "—"}</span>
                 <span className="text-xs font-['IBM_Plex_Mono'] text-muted-foreground shrink-0">
                   {formatLocalDate(s.date, "d MMM yyyy", { locale: es })}
+                  {s.start_time && <span className="ml-1.5">{s.start_time}</span>}
                 </span>
               </div>
               {/* Row 2: type · zone · artist */}
@@ -471,6 +472,7 @@ export default function Sessions() {
                 <TableRow key={s.id} className="border-border group">
                   <TableCell className="text-xs font-['IBM_Plex_Mono'] whitespace-nowrap">
                     {formatLocalDate(s.date, "d MMM yyyy", { locale: es })}
+                    {s.start_time && <span className="ml-1.5 text-muted-foreground">{s.start_time}</span>}
                   </TableCell>
                   <TableCell className="text-sm max-w-[100px] truncate">{s.client?.name ?? "—"}</TableCell>
                   {isOwner && (
