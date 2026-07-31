@@ -15,6 +15,11 @@ import sergio2 from "@/assets/sergio/lowkey_tattoo_tenerife_sergio_2.webp";
 import sergio3 from "@/assets/sergio/lowkey_tattoo_tenerife_sergio_3.webp";
 import sergio4 from "@/assets/sergio/lowkey_tattoo_tenerife_sergio_4.webp";
 import sergio5 from "@/assets/sergio/lowkey_tattoo_tenerife_sergio_5.webp";
+import sergio6 from "@/assets/sergio/lowkey_tattoo_tenerife_sergio_6.webp";
+import sergio7 from "@/assets/sergio/lowkey_tattoo_tenerife_sergio_7.webp";
+import sergio8 from "@/assets/sergio/lowkey_tattoo_tenerife_sergio_8.webp";
+import sergio9 from "@/assets/sergio/lowkey_tattoo_tenerife_sergio_9.webp";
+import sergio10 from "@/assets/sergio/lowkey_tattoo_tenerife_sergio_10.webp";
 import fifo1 from "@/assets/fifo/lowkey_tattoo_tenerife_fifo_1.webp";
 import fifo2 from "@/assets/fifo/lowkey_tattoo_tenerife_fifo_2.webp";
 import fifo3 from "@/assets/fifo/lowkey_tattoo_tenerife_fifo_3.webp";
@@ -55,6 +60,12 @@ import piercingPablo2xs from "@/assets/lowkey_tattoo_tenerife_piercing_pablo_2_4
 import piercingPablo3 from "@/assets/lowkey_tattoo_tenerife_piercing_pablo_3.webp";
 import piercingPablo3s from "@/assets/lowkey_tattoo_tenerife_piercing_pablo_3_800.webp";
 import piercingPablo3xs from "@/assets/lowkey_tattoo_tenerife_piercing_pablo_3_400.webp";
+import piercingPablo4 from "@/assets/lowkey_tattoo_tenerife_piercing_pablo_4.webp";
+import piercingPablo4s from "@/assets/lowkey_tattoo_tenerife_piercing_pablo_4_800.webp";
+import piercingPablo4xs from "@/assets/lowkey_tattoo_tenerife_piercing_pablo_4_400.webp";
+import piercingPablo5 from "@/assets/lowkey_tattoo_tenerife_piercing_pablo_5.webp";
+import piercingPablo5s from "@/assets/lowkey_tattoo_tenerife_piercing_pablo_5_800.webp";
+import piercingPablo5xs from "@/assets/lowkey_tattoo_tenerife_piercing_pablo_5_400.webp";
 
 type Category = "tattoo" | "piercing" | "laser";
 
@@ -68,6 +79,8 @@ export const ARTIST_WORKS: Record<string, [string, string, string][]> = {
   sergio: [
     [sergio1, sergio1, sergio1], [sergio2, sergio2, sergio2], [sergio3, sergio3, sergio3],
     [sergio4, sergio4, sergio4], [sergio5, sergio5, sergio5],
+    [sergio6, sergio6, sergio6], [sergio7, sergio7, sergio7], [sergio8, sergio8, sergio8],
+    [sergio9, sergio9, sergio9], [sergio10, sergio10, sergio10],
   ],
   fifo: [
     [fifo1, fifo1, fifo1], [fifo2, fifo2, fifo2], [fifo3, fifo3, fifo3],
@@ -457,6 +470,8 @@ const PiercingView = () => {
           [piercingPablo1, piercingPablo1s, piercingPablo1xs],
           [piercingPablo2, piercingPablo2s, piercingPablo2xs],
           [piercingPablo3, piercingPablo3s, piercingPablo3xs],
+          [piercingPablo4, piercingPablo4s, piercingPablo4xs],
+          [piercingPablo5, piercingPablo5s, piercingPablo5xs],
         ] as [string, string, string][]).map(([src, srcS, srcXS], i) => (
           <motion.div
             key={i}
