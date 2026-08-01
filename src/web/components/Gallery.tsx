@@ -266,8 +266,8 @@ export const ArtistWorkRow = ({ artist, index }: { artist: Artist; index: number
           </div>
         </a>
 
-        {/* Work images — 2 rows, paginated */}
-        <div className="flex flex-col gap-2 flex-1 min-w-0">
+        {/* Work images — 2 rows, paginated via full-height side arrows */}
+        <div className="relative flex-1 min-w-0">
           <div className="grid grid-cols-3 gap-2 md:gap-3">
             <AnimatePresence mode="wait">
               <motion.div
@@ -301,29 +301,24 @@ export const ArtistWorkRow = ({ artist, index }: { artist: Artist; index: number
             </AnimatePresence>
           </div>
 
-          {/* Pagination arrows — only shown when there are multiple pages */}
-          {totalPages > 1 && (
-            <div className="flex items-center justify-end gap-2 pt-0.5">
-              <span className="font-mono text-[10px] text-muted-foreground mr-1">
-                {page + 1} / {totalPages}
-              </span>
-              <button
-                onClick={() => setPage((p) => p - 1)}
-                disabled={page === 0}
-                className="p-1.5 rounded border border-border text-muted-foreground hover:text-foreground hover:border-muted-foreground transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                aria-label="Página anterior"
-              >
-                <ChevronLeft size={14} />
-              </button>
-              <button
-                onClick={() => setPage((p) => p + 1)}
-                disabled={page >= totalPages - 1}
-                className="p-1.5 rounded border border-border text-muted-foreground hover:text-foreground hover:border-muted-foreground transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
-                aria-label="Página siguiente"
-              >
-                <ChevronRight size={14} />
-              </button>
-            </div>
+          {/* Side arrows — full-height click zones, only shown when there are multiple pages */}
+          {totalPages > 1 && page > 0 && (
+            <button
+              onClick={() => setPage((p) => p - 1)}
+              className="absolute inset-y-0 left-0 z-10 flex w-10 md:w-14 items-center justify-center rounded-l-lg bg-gradient-to-r from-background/80 via-background/30 to-transparent text-foreground/80 hover:text-foreground hover:from-background/90 transition-colors"
+              aria-label="Página anterior"
+            >
+              <ChevronLeft size={28} strokeWidth={1.75} />
+            </button>
+          )}
+          {totalPages > 1 && page < totalPages - 1 && (
+            <button
+              onClick={() => setPage((p) => p + 1)}
+              className="absolute inset-y-0 right-0 z-10 flex w-10 md:w-14 items-center justify-center rounded-r-lg bg-gradient-to-l from-background/80 via-background/30 to-transparent text-foreground/80 hover:text-foreground hover:from-background/90 transition-colors"
+              aria-label="Página siguiente"
+            >
+              <ChevronRight size={28} strokeWidth={1.75} />
+            </button>
           )}
         </div>
       </motion.div>
