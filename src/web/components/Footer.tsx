@@ -70,7 +70,7 @@ const Footer = () => {
         <div className="border-t border-border pt-6 flex flex-col sm:flex-row items-center justify-between gap-3">
           <p className="font-mono text-xs text-muted-foreground">
             © {new Date().getFullYear()} {t("footer.copy")} · {t("footer.madeby")}{" "}
-            <a href="https://arpweb.vercel.app" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">
+            <a href="https://arpwebcanarias.com" target="_blank" rel="noopener noreferrer" className="hover:text-foreground transition-colors">
               ARP Web
             </a>
           </p>
