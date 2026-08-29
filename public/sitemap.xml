@@ -6,7 +6,7 @@
   <!-- Home -->
   <url>
     <loc>https://tattoolowkey.com/</loc>
-    <lastmod>2026-07-31</lastmod>
+    <lastmod>2026-08-29</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
     <xhtml:link rel="alternate" hreflang="es" href="https://tattoolowkey.com/"/>
@@ -22,7 +22,7 @@
   <!-- Tatuajes -->
   <url>
     <loc>https://tattoolowkey.com/tatuajes-santa-cruz-tenerife</loc>
-    <lastmod>2026-07-31</lastmod>
+    <lastmod>2026-08-29</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.9</priority>
     <xhtml:link rel="alternate" hreflang="es" href="https://tattoolowkey.com/tatuajes-santa-cruz-tenerife"/>
@@ -38,7 +38,7 @@
   <!-- Piercing -->
   <url>
     <loc>https://tattoolowkey.com/piercing-tenerife</loc>
-    <lastmod>2026-07-31</lastmod>
+    <lastmod>2026-08-29</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="es" href="https://tattoolowkey.com/piercing-tenerife"/>
@@ -49,7 +49,7 @@
   <!-- Láser -->
   <url>
     <loc>https://tattoolowkey.com/laser-eliminacion-tatuajes-tenerife</loc>
-    <lastmod>2026-07-31</lastmod>
+    <lastmod>2026-08-29</lastmod>
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
     <xhtml:link rel="alternate" hreflang="es" href="https://tattoolowkey.com/laser-eliminacion-tatuajes-tenerife"/>
@@ -60,7 +60,7 @@
   <!-- Blog índice -->
   <url>
     <loc>https://tattoolowkey.com/blog</loc>
-    <lastmod>2026-07-31</lastmod>
+    <lastmod>2026-08-29</lastmod>
     <changefreq>weekly</changefreq>
     <priority>0.7</priority>
     <xhtml:link rel="alternate" hreflang="es" href="https://tattoolowkey.com/blog"/>
@@ -68,12 +68,21 @@
     <xhtml:link rel="alternate" hreflang="x-default" href="https://tattoolowkey.com/blog"/>
   </url>
 
-  <!-- Blog posts (6 publicados · generado 2026-07-31) -->
+  <!-- Blog posts (7 publicados · generado 2026-08-29) -->
+  <url>
+    <loc>https://tattoolowkey.com/blog/tatuajes-pequenos-santa-cruz-de-tenerife</loc>
+    <lastmod>2026-08-29</lastmod>
+    <changefreq>yearly</changefreq>
+    <priority>0.7</priority>
+    <xhtml:link rel="alternate" hreflang="es" href="https://tattoolowkey.com/blog/tatuajes-pequenos-santa-cruz-de-tenerife"/>
+    <xhtml:link rel="alternate" hreflang="en" href="https://tattoolowkey.com/blog/tatuajes-pequenos-santa-cruz-de-tenerife"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="https://tattoolowkey.com/blog/tatuajes-pequenos-santa-cruz-de-tenerife"/>
+  </url>
   <url>
     <loc>https://tattoolowkey.com/blog/tatuaje-de-cabeza-guia-cuidados-tenerife</loc>
     <lastmod>2026-07-31</lastmod>
     <changefreq>yearly</changefreq>
-    <priority>0.7</priority>
+    <priority>0.6</priority>
     <xhtml:link rel="alternate" hreflang="es" href="https://tattoolowkey.com/blog/tatuaje-de-cabeza-guia-cuidados-tenerife"/>
     <xhtml:link rel="alternate" hreflang="en" href="https://tattoolowkey.com/blog/tatuaje-de-cabeza-guia-cuidados-tenerife"/>
     <xhtml:link rel="alternate" hreflang="x-default" href="https://tattoolowkey.com/blog/tatuaje-de-cabeza-guia-cuidados-tenerife"/>
