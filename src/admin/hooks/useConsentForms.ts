@@ -137,7 +137,7 @@ export function useShareConsentGmail() {
         `Gracias por confiar en nosotros.`,
         `Lowkey Tattoo Tenerife`,
         `Calle Dr. Allart, 50 · 38003 Santa Cruz de Tenerife`,
-        `+34 674 11 61 89 · tattoolowkey.com`,
+        `+34 685 31 49 86 · tattoolowkey.com`,
       ].join("\n");
       const url =
         `https://mail.google.com/mail/?view=cm&fs=1` +

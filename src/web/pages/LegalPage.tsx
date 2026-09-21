@@ -59,8 +59,8 @@ export default function LegalPage() {
             </li>
             <li>
               <strong className="text-foreground">Teléfono:</strong>{" "}
-              <a href="tel:+34674116189" className="hover:text-foreground transition-colors">
-                +34 674 116 189
+              <a href="tel:+34685314986" className="hover:text-foreground transition-colors">
+                +34 685 314 986
               </a>
             </li>
             <li>
