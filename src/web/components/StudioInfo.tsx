@@ -3,6 +3,7 @@ import { motion } from "framer-motion";
 import { MapPin, Clock, Phone, MessageSquare } from "lucide-react";
 import { useI18n } from "@web/i18n/I18nProvider";
 import { CONTACT } from "@web/config/contact";
+import { trackContactSubmit } from "@web/lib/analytics";
 // supabase imported dynamically in handleContactSubmit to keep it out of the initial bundle
 
 const BREVO_API_KEY  = import.meta.env.VITE_BREVO_API_KEY as string;
@@ -85,6 +86,7 @@ const StudioInfo = () => {
         }).catch((err) => console.warn("[contact] Brevo error:", err));
       }
 
+      trackContactSubmit();
       setSent(true);
       setName(""); setContact(""); setMessage("");
     } finally {

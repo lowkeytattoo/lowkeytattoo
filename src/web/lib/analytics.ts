@@ -55,9 +55,35 @@ function fbq(...args: any[]): void {
   window.fbq(...args);
 }
 
+// ── Internal traffic (owner / staff) ──────────────────────────────────────────
+// Anyone who has opened the admin panel on a device is flagged, and GA4 is
+// disabled there on every page so their own visits don't pollute the data.
+const INTERNAL_KEY = "lowkey-internal";
+
+function isInternalTraffic(): boolean {
+  if (typeof window === "undefined") return false;
+  if (window.location.pathname.startsWith("/admin")) return true;
+  try {
+    return localStorage.getItem(INTERNAL_KEY) === "1";
+  } catch {
+    return false;
+  }
+}
+
+/** Flag this device as internal traffic (called from the admin panel). */
+export function markInternalTraffic(): void {
+  try { localStorage.setItem(INTERNAL_KEY, "1"); } catch { /* noop */ }
+  // Official GA4 opt-out flag; stops hits even if gtag.js is already loaded.
+  if (GA4_ID) (window as unknown as Record<string, unknown>)[`ga-disable-${GA4_ID}`] = true;
+}
+
 // ── Platform bootstraps (called after consent) ────────────────────────────────
 function initGA4(): void {
   if (!GA4_ID || typeof window === "undefined") return;
+  if (isInternalTraffic()) {
+    markInternalTraffic();
+    return;
+  }
 
   if (!document.querySelector('script[src*="googletagmanager.com/gtag/js"]')) {
     const s = document.createElement("script");
@@ -153,10 +179,15 @@ export function trackCtaClick(location: "hero" | "navbar" | "mobile_menu"): void
   if (hasConsent()) fbq("track", "Contact");
 }
 
-/** Booking modal opened. */
+/**
+ * Booking modal opened — fired by every "Solicitar cita" button on the site.
+ * `cita_click` is the key event imported into Google Ads.
+ */
 export function trackBookingOpen(): void {
-  if (!GA4_ID) return;
+  if (!GA4_ID || isInternalTraffic()) return;
+  const page = window.location.pathname;
   gtag("event", "booking_open", { event_category: "booking", send_to: GA4_ID });
+  gtag("event", "cita_click", { page, send_to: GA4_ID });
 }
 
 /** User completes a step inside the booking modal. */
@@ -190,4 +221,43 @@ export function trackArtistView(artistId: string, artistName: string): void {
 export function trackIgClick(handle: string, location: "gallery" | "feed" | "footer"): void {
   if (!GA4_ID) return;
   gtag("event", "ig_click", { event_category: "social", ig_handle: handle, click_location: location, send_to: GA4_ID });
+}
+
+/** Contact form in the studio section submitted. */
+export function trackContactSubmit(): void {
+  if (!GA4_ID) return;
+  gtag("event", "contact_submit", { event_category: "lead", send_to: GA4_ID });
+  fbq("track", "Lead");
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Contact link tracking — WhatsApp and phone
+// ─────────────────────────────────────────────────────────────────────────────
+
+let contactTrackingStarted = false;
+
+/**
+ * One delegated listener that catches every WhatsApp (wa.me) and tel: link on
+ * the site, including links inside blog posts. Events only reach GA4 once the
+ * user has accepted cookies (gtag.js isn't loaded before that).
+ */
+export function initContactTracking(): void {
+  if (contactTrackingStarted || typeof document === "undefined") return;
+  contactTrackingStarted = true;
+
+  document.addEventListener("click", (e) => {
+    if (!GA4_ID || isInternalTraffic()) return;
+    const a = (e.target as Element | null)?.closest?.("a");
+    if (!a) return;
+    const href = a.getAttribute("href") ?? "";
+    const page = window.location.pathname;
+
+    if (href.includes("wa.me")) {
+      gtag("event", "whatsapp_click", { page, link_text: a.innerText.trim().slice(0, 100), send_to: GA4_ID });
+      fbq("track", "Contact");
+    } else if (href.startsWith("tel:")) {
+      gtag("event", "phone_click", { page, send_to: GA4_ID });
+      fbq("track", "Contact");
+    }
+  }, { capture: true });
 }

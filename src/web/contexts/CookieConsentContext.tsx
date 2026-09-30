@@ -1,5 +1,5 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react";
-import { grantConsent, denyConsent, restoreConsent } from "@web/lib/analytics";
+import { grantConsent, denyConsent, restoreConsent, initContactTracking } from "@web/lib/analytics";
 
 type ConsentState = "pending" | "granted" | "denied";
 
@@ -15,6 +15,7 @@ export const CookieConsentProvider = ({ children }: { children: ReactNode }) => 
   const [consentState, setConsentState] = useState<ConsentState>("pending");
 
   useEffect(() => {
+    initContactTracking();
     const stored = restoreConsent();
     if (stored === "granted") setConsentState("granted");
     else if (stored === "denied") setConsentState("denied");

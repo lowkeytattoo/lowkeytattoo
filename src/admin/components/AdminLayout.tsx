@@ -1,7 +1,12 @@
+import { useEffect } from "react";
 import { Outlet } from "react-router-dom";
 import { AdminSidebar } from "@admin/components/AdminSidebar";
+import { markInternalTraffic } from "@web/lib/analytics";
 
 export const AdminLayout = () => {
+  // Staff devices are excluded from GA4 on the public site too
+  useEffect(() => { markInternalTraffic(); }, []);
+
   return (
     <div className="flex h-screen bg-background overflow-hidden">
       <AdminSidebar />
