@@ -66,6 +66,37 @@ import piercingPablo4xs from "@/assets/lowkey_tattoo_tenerife_piercing_pablo_4_4
 import piercingPablo5 from "@/assets/lowkey_tattoo_tenerife_piercing_pablo_5.webp";
 import piercingPablo5s from "@/assets/lowkey_tattoo_tenerife_piercing_pablo_5_800.webp";
 import piercingPablo5xs from "@/assets/lowkey_tattoo_tenerife_piercing_pablo_5_400.webp";
+import pablo8 from "@/assets/lowkey_tattoo_tenerife_pablo_8.webp";
+import pablo8s from "@/assets/lowkey_tattoo_tenerife_pablo_8_800.webp";
+import pablo8xs from "@/assets/lowkey_tattoo_tenerife_pablo_8_400.webp";
+import pablo9 from "@/assets/lowkey_tattoo_tenerife_pablo_9.webp";
+import pablo9s from "@/assets/lowkey_tattoo_tenerife_pablo_9_800.webp";
+import pablo9xs from "@/assets/lowkey_tattoo_tenerife_pablo_9_400.webp";
+import pablo10 from "@/assets/lowkey_tattoo_tenerife_pablo_10.webp";
+import pablo10s from "@/assets/lowkey_tattoo_tenerife_pablo_10_800.webp";
+import pablo10xs from "@/assets/lowkey_tattoo_tenerife_pablo_10_400.webp";
+import pablo11 from "@/assets/lowkey_tattoo_tenerife_pablo_11.webp";
+import pablo11s from "@/assets/lowkey_tattoo_tenerife_pablo_11_800.webp";
+import pablo11xs from "@/assets/lowkey_tattoo_tenerife_pablo_11_400.webp";
+import pablo12 from "@/assets/lowkey_tattoo_tenerife_pablo_12.webp";
+import pablo12s from "@/assets/lowkey_tattoo_tenerife_pablo_12_800.webp";
+import pablo12xs from "@/assets/lowkey_tattoo_tenerife_pablo_12_400.webp";
+import piercingPablo6 from "@/assets/lowkey_tattoo_tenerife_piercing_pablo_6.webp";
+import piercingPablo6s from "@/assets/lowkey_tattoo_tenerife_piercing_pablo_6_800.webp";
+import piercingPablo6xs from "@/assets/lowkey_tattoo_tenerife_piercing_pablo_6_400.webp";
+import piercingPablo7 from "@/assets/lowkey_tattoo_tenerife_piercing_pablo_7.webp";
+import piercingPablo7s from "@/assets/lowkey_tattoo_tenerife_piercing_pablo_7_800.webp";
+import piercingPablo7xs from "@/assets/lowkey_tattoo_tenerife_piercing_pablo_7_400.webp";
+import pabloPro1 from "@/assets/pro/lowkey_tattoo_tenerife_pablo_pro_1.webp";
+import laserPablo1 from "@/assets/lowkey_tattoo_tenerife_laser_pablo_1.webp";
+import laserPablo1s from "@/assets/lowkey_tattoo_tenerife_laser_pablo_1_800.webp";
+import laserPablo1xs from "@/assets/lowkey_tattoo_tenerife_laser_pablo_1_400.webp";
+import laserPablo2 from "@/assets/lowkey_tattoo_tenerife_laser_pablo_2.webp";
+import laserPablo2s from "@/assets/lowkey_tattoo_tenerife_laser_pablo_2_800.webp";
+import laserPablo2xs from "@/assets/lowkey_tattoo_tenerife_laser_pablo_2_400.webp";
+import laserPablo3 from "@/assets/lowkey_tattoo_tenerife_laser_pablo_3.webp";
+import laserPablo3s from "@/assets/lowkey_tattoo_tenerife_laser_pablo_3_800.webp";
+import laserPablo3xs from "@/assets/lowkey_tattoo_tenerife_laser_pablo_3_400.webp";
 
 type Category = "tattoo" | "piercing" | "laser";
 
@@ -75,6 +106,9 @@ export const ARTIST_WORKS: Record<string, [string, string, string][]> = {
     [pablo1, pablo1s, pablo1xs], [pablo2, pablo2s, pablo2xs], [pablo3, pablo3s, pablo3xs],
     [pablo4, pablo4s, pablo4xs], [pablo5, pablo5s, pablo5xs],
     [pablo6, pablo6, pablo6], [pablo7, pablo7, pablo7],
+    [pablo11, pablo11s, pablo11xs], [pablo12, pablo12s, pablo12xs], [pablo8, pablo8s, pablo8xs],
+    [pablo9, pablo9s, pablo9xs], [pablo10, pablo10s, pablo10xs],
+    [pabloPro1, pabloPro1, pabloPro1],
   ],
   sergio: [
     [sergio1, sergio1, sergio1], [sergio2, sergio2, sergio2], [sergio3, sergio3, sergio3],
@@ -86,6 +120,52 @@ export const ARTIST_WORKS: Record<string, [string, string, string][]> = {
     [fifo1, fifo1, fifo1], [fifo2, fifo2, fifo2], [fifo3, fifo3, fifo3],
     [fifo4, fifo4, fifo4], [fifo5, fifo5, fifo5],
   ],
+};
+
+export const PIERCING_WORKS: [string, string, string][] = [
+  [piercingPablo1, piercingPablo1s, piercingPablo1xs],
+  [piercingPablo2, piercingPablo2s, piercingPablo2xs],
+  [piercingPablo3, piercingPablo3s, piercingPablo3xs],
+  [piercingPablo4, piercingPablo4s, piercingPablo4xs],
+  [piercingPablo5, piercingPablo5s, piercingPablo5xs],
+  [piercingPablo6, piercingPablo6s, piercingPablo6xs],
+  [piercingPablo7, piercingPablo7s, piercingPablo7xs],
+];
+
+// Before / after laser removal results (Pablo)
+export const LASER_WORKS: [string, string, string][] = [
+  [laserPablo1, laserPablo1s, laserPablo1xs],
+  [laserPablo2, laserPablo2s, laserPablo2xs],
+  [laserPablo3, laserPablo3s, laserPablo3xs],
+];
+
+export const LaserResultsGrid = () => {
+  const { locale } = useI18n();
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4">
+      {LASER_WORKS.map(([src, srcS, srcXS], i) => (
+        <motion.div
+          key={i}
+          initial={{ opacity: 0, y: 10 }}
+          whileInView={{ opacity: 1, y: 0 }}
+          viewport={{ once: true }}
+          transition={{ duration: 0.4, delay: i * 0.1 }}
+          className="aspect-[4/3] overflow-hidden rounded-lg bg-black"
+        >
+          <img
+            src={src}
+            srcSet={`${srcXS} 400w, ${srcS} 800w, ${src} 1600w`}
+            alt={locale === "es" ? "Antes y después de eliminación láser de tatuaje en Santa Cruz de Tenerife — Lowkey Tattoo" : "Before and after laser tattoo removal in Santa Cruz de Tenerife — Lowkey Tattoo"}
+            className="h-full w-full object-contain"
+            loading="lazy"
+            width={400}
+            height={300}
+            sizes="(max-width: 640px) 100vw, 360px"
+          />
+        </motion.div>
+      ))}
+    </div>
+  );
 };
 
 export const ARTIST_PHOTO: Record<string, [string, string, string]> = {
@@ -461,13 +541,7 @@ const PiercingView = () => {
         <CategoryCTAs waMessage={t("gallery.piercing.wa")} />
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 md:gap-4">
-        {([
-          [piercingPablo1, piercingPablo1s, piercingPablo1xs],
-          [piercingPablo2, piercingPablo2s, piercingPablo2xs],
-          [piercingPablo3, piercingPablo3s, piercingPablo3xs],
-          [piercingPablo4, piercingPablo4s, piercingPablo4xs],
-          [piercingPablo5, piercingPablo5s, piercingPablo5xs],
-        ] as [string, string, string][]).map(([src, srcS, srcXS], i) => (
+        {PIERCING_WORKS.map(([src, srcS, srcXS], i) => (
           <motion.div
             key={i}
             initial={{ opacity: 0, y: 10 }}
@@ -577,6 +651,9 @@ const LaserView = () => {
         </a>
       </motion.div>
 
+      {/* Before / after results */}
+      <LaserResultsGrid />
+
       {/* Artist cards */}
       <div className="flex flex-col sm:flex-row gap-4 justify-center">
         {laserArtists.map((artist) => (
@@ -594,6 +671,13 @@ const LaserView = () => {
 const Gallery = () => {
   const { t, locale } = useI18n();
   const [active, setActive] = useState<Category | null>(null);
+
+  // Navbar logo click while on home → back to the category cards
+  useEffect(() => {
+    const reset = () => setActive(null);
+    window.addEventListener("lowkey:home", reset);
+    return () => window.removeEventListener("lowkey:home", reset);
+  }, []);
 
   return (
     <section id="gallery" className="pt-8 pb-10 md:pt-10 md:pb-14">

@@ -7,6 +7,7 @@ import { useBooking } from "@web/contexts/BookingContext";
 import { CONTACT } from "@web/config/contact";
 import { ROUTES } from "@web/config/routes";
 import laserImg from "@/assets/laser_lowkey.webp";
+import { LaserResultsGrid } from "@web/components/Gallery";
 
 const WhatsAppIcon = ({ size = 16 }: { size?: number }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -95,6 +96,12 @@ export default function LaserPage() {
             <h2 className="text-2xl font-medium text-foreground mb-6">{t("laser.how.title")}</h2>
             <p className="text-muted-foreground mb-4 leading-relaxed">{t("laser.how.p1")}</p>
             <p className="text-muted-foreground leading-relaxed">{t("laser.how.p2")}</p>
+          </section>
+
+          {/* Resultados antes / después */}
+          <section className="mb-16">
+            <h2 className="text-2xl font-medium text-foreground mb-6">{t("laser.results.title")}</h2>
+            <LaserResultsGrid />
           </section>
 
           {/* Proceso */}

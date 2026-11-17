@@ -32,7 +32,18 @@ const Navbar = () => {
   return (
     <nav className="fixed top-0 left-0 right-0 z-50 nav-blur bg-background/80 border-b border-border">
       <div className="max-w-7xl mx-auto px-6 h-16 flex items-center justify-between">
-        <Link to={r.home} className="font-gothic text-foreground text-2xl md:text-3xl tracking-normal leading-none">
+        <Link
+          to={r.home}
+          onClick={() => {
+            setOpen(false);
+            setServicesOpen(false);
+            // Already on home: the link does nothing, so reset gallery and scroll to top
+            if (pathname === r.home) {
+              window.dispatchEvent(new Event("lowkey:home"));
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }
+          }}
+          className="font-gothic text-foreground text-2xl md:text-3xl tracking-normal leading-none">
           Lowkey Tattoo
         </Link>
 
