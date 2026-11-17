@@ -104,7 +104,7 @@ const LEGAL_TEXT: Record<ConsentFormType, string> = {
 };
 
 const RGPD_TEXT =
-  "Los datos personales seran tratados por LOWKEY TATTOO TENERIFE conforme al RGPD (UE) 2016/679 y LOPD-GDD 3/2018, con finalidad de gestion del consentimiento informado e historial clinico. Conservacion: 5 anios. Puede ejercer sus derechos en info@tattoolowkey.com.";
+  "Los datos personales seran tratados por Lowkey Tattoo conforme al RGPD (UE) 2016/679 y LOPD-GDD 3/2018, con finalidad de gestion del consentimiento informado e historial clinico. Conservacion: 5 anios. Puede ejercer sus derechos de acceso, rectificacion, supresion, oposicion, limitacion y portabilidad en info@tattoolowkey.com, y reclamar ante la AEPD (www.aepd.es).";
 
 // ─── Generacion del PDF ──────────────────────────────────────────────────────
 
@@ -300,7 +300,7 @@ function buildPdf(p: PdfParams): Blob {
     pdf.setPage(i);
     pdf.setFontSize(7).setTextColor(170, 170, 170);
     pdf.text(
-      `LOWKEY TATTOO TENERIFE  ·  Versión 1.0  ·  Generado: ${format(p.signedAt, "dd/MM/yyyy HH:mm:ss")}`,
+      `Lowkey Tattoo  ·  Versión 1.0  ·  Generado: ${format(p.signedAt, "dd/MM/yyyy HH:mm:ss")}`,
       ml, H - 8
     );
     pdf.text(`${i} / ${pageCount}`, W - mr - 8, H - 8);
@@ -633,7 +633,7 @@ export function ConsentFormModal({ open, onClose, client, artist }: Props) {
                   {LEGAL_TEXT[formType]}
                 </p>
                 <div className="pt-1 border-t border-border text-xs text-muted-foreground leading-relaxed">
-                  <strong>Protección de datos:</strong> Sus datos serán tratados por LOW TATTOO TENERIFE conforme al RGPD (UE) 2016/679 y LOPD-GDD 3/2018, con la finalidad exclusiva de gestionar el historial clínico y el consentimiento informado. Conservación: 5 años desde la última prestación de servicios. Puede ejercer sus derechos de acceso, rectificación, supresión u oposición en info@tattoolowkey.com.
+                  <strong>Protección de datos:</strong> Sus datos serán tratados por Lowkey Tattoo conforme al RGPD (UE) 2016/679 y LOPD-GDD 3/2018, con la finalidad exclusiva de gestionar el historial clínico y el consentimiento informado. Conservación: 5 años desde la última prestación de servicios. Puede ejercer sus derechos de acceso, rectificación, supresión, oposición, limitación y portabilidad en info@tattoolowkey.com, y reclamar ante la AEPD (www.aepd.es).
                 </div>
               </div>
 

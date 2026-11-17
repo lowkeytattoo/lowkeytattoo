@@ -53,6 +53,7 @@ const CookieTable = ({ rows }: { rows: CookieRow[] }) => (
 
 const TECHNICAL: CookieRow[] = [
   { name: "lowkey-consent", owner: "Lowkey Tattoo (propia)", purpose: "Guarda tus preferencias de cookies. Almacenamiento local del navegador.", duration: "12 meses" },
+  { name: "lowkey-lang", owner: "Lowkey Tattoo (propia)", purpose: "Recuerda el idioma (español / inglés) que has elegido.", duration: "12 meses" },
   { name: "lowkey-internal", owner: "Lowkey Tattoo (propia)", purpose: "Solo en dispositivos del personal: excluye sus visitas de las estadísticas.", duration: "Persistente" },
   { name: "sb-*-auth-token", owner: "Lowkey Tattoo (propia, vía Supabase)", purpose: "Solo en el área privada del personal: mantiene la sesión iniciada.", duration: "Hasta cerrar sesión" },
 ];

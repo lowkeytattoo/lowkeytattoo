@@ -135,8 +135,9 @@ export default function PrivacyPage() {
           <ul className="list-disc pl-5 space-y-1">
             <li>Solo se recogen en el estudio, en el momento del servicio, y nunca a través de la web.</li>
             <li>
-              Solo pueden consultarlos los titulares del estudio y los profesionales autorizados, desde
-              un área privada con usuario y contraseña.
+              Solo pueden consultarlos los titulares del estudio y el profesional que te atiende, desde
+              un área privada con usuario y contraseña. Cada artista solo accede a las fichas de sus
+              propios clientes.
             </li>
             <li>
               Se guardan en almacenamiento privado con control de acceso, en servidores ubicados en la
@@ -151,13 +152,14 @@ export default function PrivacyPage() {
           <p>Conservamos tus datos solo durante el tiempo mínimo necesario o exigido por la ley:</p>
           <ul className="list-disc pl-5 space-y-2">
             <li>
-              <B>Solicitudes de cita o contacto que no llegan a convertirse en servicio:</B> el tiempo
-              necesario para atenderlas. Después se suprimen.
+              <B>Solicitudes de cita y mensajes de contacto enviados por la web:</B> se eliminan
+              automáticamente a los 12 meses. Si te conviertes en cliente, tus datos pasan a tu ficha
+              de cliente (punto siguiente).
             </li>
             <li>
               <B>Datos de clientes y documentos de consentimiento informado:</B> mientras dure la
-              relación y, después, durante el plazo mínimo que exija la normativa sanitaria aplicable
-              y el necesario para atender posibles responsabilidades legales.
+              relación y, después, 5 años desde el último servicio, plazo necesario para cumplir la
+              normativa sanitaria aplicable y atender posibles responsabilidades legales.
             </li>
             <li>
               <B>Datos de facturación:</B> durante los plazos que fija la normativa fiscal y mercantil.
