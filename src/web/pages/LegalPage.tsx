@@ -47,6 +47,12 @@ export default function LegalPage() {
           </p>
           <ul className="list-none space-y-1.5">
             <li>
+              <strong className="text-foreground">Titular:</strong> Pablo Matos Rodríguez
+            </li>
+            <li>
+              <strong className="text-foreground">NIF:</strong> 54050691R
+            </li>
+            <li>
               <strong className="text-foreground">Nombre comercial:</strong> Lowkey Tattoo
             </li>
             <li>

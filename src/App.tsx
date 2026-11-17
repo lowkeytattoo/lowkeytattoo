@@ -42,6 +42,7 @@ const AdminWebBookings  = lazy(() => import("@admin/pages/WebBookings"));
 const AdminMessages     = lazy(() => import("@admin/pages/Messages"));
 const AdminBlog         = lazy(() => import("@admin/pages/BlogAdmin"));
 const BlogPreview       = lazy(() => import("@admin/pages/BlogPreview"));
+const AdminInternalDocs = lazy(() => import("@admin/pages/InternalDocs"));
 
 // Catches "Failed to fetch dynamically imported module" after a new deploy
 // and forces a hard reload so the browser picks up the new chunk hashes.
@@ -166,6 +167,14 @@ const App = () => (
                       element={
                         <RoleGuard requiredRole="owner">
                           <AdminBlog />
+                        </RoleGuard>
+                      }
+                    />
+                    <Route
+                      path="rgpd"
+                      element={
+                        <RoleGuard requiredRole="owner">
+                          <AdminInternalDocs />
                         </RoleGuard>
                       }
                     />

@@ -10,6 +10,7 @@ import {
   UserCog,
   BookOpen,
   FileText,
+  ShieldCheck,
   MessageSquare,
   LogOut,
   MoreVertical,
@@ -67,6 +68,7 @@ const allNavItems: NavItem[] = [
   { to: "/admin/stock",     label: "Stock",      icon: Package, badge: true },
   { to: "/admin/blog",      label: "Blog",       icon: FileText, ownerOnly: true },
   { to: "/admin/artists",   label: "Artistas",   icon: UserCog, ownerOnly: true },
+  { to: "/admin/rgpd",      label: "RGPD",       icon: ShieldCheck, ownerOnly: true },
 ];
 
 // Items shown in the mobile bottom bar — dashboard is center (index 2)
