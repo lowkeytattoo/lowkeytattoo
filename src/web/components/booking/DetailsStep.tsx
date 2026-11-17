@@ -3,6 +3,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { useI18n } from "@web/i18n/I18nProvider";
 import { cn } from "@shared/lib/utils";
+import { PrivacyNotice } from "@web/components/PrivacyNotice";
 import type { ServiceType } from "@shared/types/index";
 
 const detailsSchema = z.object({
@@ -172,6 +173,8 @@ export const DetailsStep = ({ serviceType, defaultValues, onSubmit, onBack, isSu
           </button>
         </div>
       </div>
+
+      <PrivacyNotice purpose="booking" />
 
       <div className="flex gap-3">
         <button

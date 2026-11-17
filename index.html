@@ -505,12 +505,9 @@
   </head>
 
   <body>
-    <!-- ══ META PIXEL noscript fallback ════════════════════════════════════ -->
-    <!-- JS init happens in analytics.ts after consent.                      -->
-    <noscript>
-      <img height="1" width="1" style="display:none"
-        src="https://www.facebook.com/tr?id=1221231726756946&ev=PageView&noscript=1" />
-    </noscript>
+    <!-- Meta Pixel: no <noscript> fallback on purpose — without JS the user can't
+         consent, so it would fire before consent (LSSI art. 22.2). JS init
+         happens in analytics.ts only after the user accepts "Publicidad". -->
     <div id="root"></div>
     <script type="module" src="/src/main.tsx"></script>
     <!-- Elfsight platform.js is injected lazily by InstagramFeed.tsx via IntersectionObserver -->

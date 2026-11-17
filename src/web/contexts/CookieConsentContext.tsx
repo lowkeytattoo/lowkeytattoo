@@ -1,39 +1,66 @@
 import { createContext, useContext, useState, useEffect, useCallback, type ReactNode } from "react";
-import { grantConsent, denyConsent, restoreConsent, initContactTracking } from "@web/lib/analytics";
-
-type ConsentState = "pending" | "granted" | "denied";
+import {
+  restoreConsent,
+  saveConsent,
+  initContactTracking,
+  NO_CONSENT,
+  ALL_CONSENT,
+  type ConsentCategory,
+  type ConsentChoices,
+} from "@web/lib/analytics";
 
 interface CookieConsentContextValue {
-  consentState: ConsentState;
-  accept: () => void;
-  decline: () => void;
+  /** Banner must be shown (never decided, or consent expired). */
+  pending: boolean;
+  /** Effective choices (all false until the user decides). */
+  consent: ConsentChoices;
+  settingsOpen: boolean;
+  acceptAll: () => void;
+  rejectAll: () => void;
+  save: (choices: ConsentChoices) => void;
+  /** Grant a single category, keeping the rest as they are (e.g. "Load map"). */
+  acceptCategory: (category: ConsentCategory) => void;
+  openSettings: () => void;
+  closeSettings: () => void;
 }
 
 const CookieConsentContext = createContext<CookieConsentContextValue | null>(null);
 
 export const CookieConsentProvider = ({ children }: { children: ReactNode }) => {
-  const [consentState, setConsentState] = useState<ConsentState>("pending");
+  const [pending, setPending] = useState(true);
+  const [consent, setConsent] = useState<ConsentChoices>(NO_CONSENT);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   useEffect(() => {
     initContactTracking();
     const stored = restoreConsent();
-    if (stored === "granted") setConsentState("granted");
-    else if (stored === "denied") setConsentState("denied");
-    // else remains "pending" → banner shows
+    if (stored) {
+      setConsent(stored);
+      setPending(false);
+    }
   }, []);
 
-  const accept = useCallback(() => {
-    grantConsent();
-    setConsentState("granted");
+  const save = useCallback((choices: ConsentChoices) => {
+    const reloading = saveConsent(choices);
+    if (reloading) return;
+    setConsent(choices);
+    setPending(false);
+    setSettingsOpen(false);
   }, []);
 
-  const decline = useCallback(() => {
-    denyConsent();
-    setConsentState("denied");
-  }, []);
+  const acceptAll = useCallback(() => save(ALL_CONSENT), [save]);
+  const rejectAll = useCallback(() => save(NO_CONSENT), [save]);
+  const acceptCategory = useCallback(
+    (category: ConsentCategory) => save({ ...consent, [category]: true }),
+    [consent, save],
+  );
+  const openSettings = useCallback(() => setSettingsOpen(true), []);
+  const closeSettings = useCallback(() => setSettingsOpen(false), []);
 
   return (
-    <CookieConsentContext.Provider value={{ consentState, accept, decline }}>
+    <CookieConsentContext.Provider
+      value={{ pending, consent, settingsOpen, acceptAll, rejectAll, save, acceptCategory, openSettings, closeSettings }}
+    >
       {children}
     </CookieConsentContext.Provider>
   );

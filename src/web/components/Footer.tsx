@@ -3,10 +3,12 @@ import { Link } from "react-router-dom";
 import { useI18n } from "@web/i18n/I18nProvider";
 import { ROUTES } from "@web/config/routes";
 import { CONTACT } from "@web/config/contact";
+import { useCookieConsent } from "@web/contexts/CookieConsentContext";
 
 const Footer = () => {
   const { t, locale } = useI18n();
   const r = ROUTES[locale];
+  const { openSettings } = useCookieConsent();
 
   return (
     <footer id="contact" className="border-t border-border pt-10 pb-8">
@@ -74,13 +76,19 @@ const Footer = () => {
               ARP Web
             </a>
           </p>
-          <div className="flex items-center gap-4">
+          <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
             <Link to="/politica-de-privacidad" className="font-mono text-[10px] text-muted-foreground hover:text-foreground transition-colors uppercase tracking-wider">
               {t("footer.privacy")}
             </Link>
             <Link to="/aviso-legal" className="font-mono text-[10px] text-muted-foreground hover:text-foreground transition-colors uppercase tracking-wider">
               {t("footer.legal")}
             </Link>
+            <Link to="/politica-de-cookies" className="font-mono text-[10px] text-muted-foreground hover:text-foreground transition-colors uppercase tracking-wider">
+              {t("footer.cookies")}
+            </Link>
+            <button type="button" onClick={openSettings} className="font-mono text-[10px] text-muted-foreground hover:text-foreground transition-colors uppercase tracking-wider">
+              {t("footer.cookieSettings")}
+            </button>
           </div>
         </div>
       </div>

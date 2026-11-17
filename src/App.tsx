@@ -26,6 +26,7 @@ const ArtistBioPage  = lazy(() => import("@web/pages/ArtistBioPage"));
 const NotFound       = lazy(() => import("@web/pages/NotFound"));
 const PrivacyPage   = lazy(() => import("@web/pages/PrivacyPage"));
 const LegalPage     = lazy(() => import("@web/pages/LegalPage"));
+const CookiesPage   = lazy(() => import("@web/pages/CookiesPage"));
 
 // Admin pages — lazy loaded (behind auth, excluded from public bundle)
 const AdminLogin        = lazy(() => import("@admin/pages/Login"));
@@ -110,6 +111,7 @@ const App = () => (
                   <Route path="/artistas/:slug" element={<Suspense fallback={null}><ArtistBioPage /></Suspense>} />
                   <Route path="/politica-de-privacidad" element={<Suspense fallback={null}><PrivacyPage /></Suspense>} />
                   <Route path="/aviso-legal" element={<Suspense fallback={null}><LegalPage /></Suspense>} />
+                  <Route path="/politica-de-cookies" element={<Suspense fallback={null}><CookiesPage /></Suspense>} />
 
                   {/* ── English routes — same components, URL-derived locale ── */}
                   <Route path="/en" element={<Index />} />

@@ -5,6 +5,7 @@ import { CONTACT } from "@web/config/contact";
 import Navbar from "@web/components/Navbar";
 import Footer from "@web/components/Footer";
 import { SEOHead } from "@web/components/SEOHead";
+import { PrivacyNotice } from "@web/components/PrivacyNotice";
 import { useI18n } from "@web/i18n/I18nProvider";
 import { ROUTES } from "@web/config/routes";
 import { useBlogPost, usePublishedBlogPosts } from "@admin/hooks/useBlogPosts";
@@ -53,31 +54,10 @@ export default function BlogPostPage() {
         status: "pending",
       });
 
-      const brevoKey = import.meta.env.VITE_BREVO_API_KEY as string;
-      const adminEmail = (import.meta.env.VITE_ADMIN_EMAIL as string) || "info@tattoolowkey.com";
-      if (brevoKey) {
-        const lines = [
-          `Nuevo mensaje de contacto desde el blog.`,
-          ``,
-          `Nombre: ${cfName}`,
-          `Contacto: ${cfContact}`,
-          ``,
-          `Mensaje:`,
-          cfMessage,
-          ``,
-          `Ver en la app: ${window.location.origin}/admin/bookings`,
-        ].join("\n");
-        fetch("https://api.brevo.com/v3/smtp/email", {
-          method: "POST",
-          headers: { "api-key": brevoKey, "Content-Type": "application/json" },
-          body: JSON.stringify({
-            sender: { name: "Lowkey Tattoo Web", email: "info@tattoolowkey.com" },
-            to: [{ email: adminEmail, name: "Admin Lowkey" }],
-            subject: `[Lowkey] Nuevo contacto desde blog — ${cfName}`,
-            textContent: lines,
-          }),
-        }).catch((err) => console.warn("[contact] Brevo error:", err));
-      }
+      const { callEdgeFunction } = await import("@web/lib/email");
+      void callEdgeFunction("send-web-emails", {
+        kind: "contact", source: "blog", name: cfName, contact: cfContact, message: cfMessage,
+      });
 
       setCfSent(true);
       setCfName(""); setCfContact(""); setCfMessage("");
@@ -271,6 +251,9 @@ export default function BlogPostPage() {
                         placeholder={t("contact.form.placeholder.message")}
                         className="bg-background border border-border rounded-sm px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-ring resize-none"
                       />
+                    </div>
+                    <div className="sm:col-span-2">
+                      <PrivacyNotice purpose="contact" />
                     </div>
                     <div className="sm:col-span-2">
                       <button

@@ -4,11 +4,9 @@ import { MapPin, Clock, Phone, MessageSquare } from "lucide-react";
 import { useI18n } from "@web/i18n/I18nProvider";
 import { CONTACT } from "@web/config/contact";
 import { trackContactSubmit } from "@web/lib/analytics";
+import { useCookieConsent } from "@web/contexts/CookieConsentContext";
+import { PrivacyNotice } from "@web/components/PrivacyNotice";
 // supabase imported dynamically in handleContactSubmit to keep it out of the initial bundle
-
-const BREVO_API_KEY  = import.meta.env.VITE_BREVO_API_KEY as string;
-const ADMIN_EMAIL    = (import.meta.env.VITE_ADMIN_EMAIL as string) || "info@tattoolowkey.com";
-const BREVO_ENDPOINT = "https://api.brevo.com/v3/smtp/email";
 
 const WhatsAppIcon = ({ size = 16 }: { size?: number }) => (
   <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
@@ -21,6 +19,7 @@ const openDays = new Set(["monday", "tuesday", "wednesday", "thursday", "friday"
 
 const StudioInfo = () => {
   const { t } = useI18n();
+  const { consent, openSettings, acceptCategory } = useCookieConsent();
 
   const [name, setName] = useState("");
   const [contact, setContact] = useState("");
@@ -32,6 +31,7 @@ const StudioInfo = () => {
   const mapRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    if (!consent.external) return;
     const el = mapRef.current;
     if (!el) return;
     const observer = new IntersectionObserver(
@@ -40,7 +40,7 @@ const StudioInfo = () => {
     );
     observer.observe(el);
     return () => observer.disconnect();
-  }, []);
+  }, [consent.external]);
 
   const handleContactSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -48,6 +48,7 @@ const StudioInfo = () => {
     try {
       const { supabase } = await import("@shared/lib/supabase");
       const isEmail = contact.includes("@");
+      // Awaited: the email function checks this row exists before sending.
       await supabase.from("web_bookings").insert({
         client_name: name,
         client_email: isEmail ? contact : null,
@@ -61,30 +62,8 @@ const StudioInfo = () => {
         status: "pending",
       });
 
-      if (BREVO_API_KEY) {
-        const lines = [
-          `Nuevo mensaje de contacto desde la web.`,
-          ``,
-          `Nombre: ${name}`,
-          `Contacto: ${contact}`,
-          ``,
-          `Mensaje:`,
-          message,
-          ``,
-          `Ver en la app: ${window.location.origin}/admin/bookings`,
-        ].join("\n");
-
-        fetch(BREVO_ENDPOINT, {
-          method: "POST",
-          headers: { "api-key": BREVO_API_KEY, "Content-Type": "application/json" },
-          body: JSON.stringify({
-            sender: { name: "Lowkey Tattoo Web", email: "info@tattoolowkey.com" },
-            to: [{ email: ADMIN_EMAIL, name: "Admin Lowkey" }],
-            subject: `[Lowkey] Nuevo mensaje de contacto — ${name}`,
-            textContent: lines,
-          }),
-        }).catch((err) => console.warn("[contact] Brevo error:", err));
-      }
+      const { callEdgeFunction } = await import("@web/lib/email");
+      void callEdgeFunction("send-web-emails", { kind: "contact", name, contact, message });
 
       trackContactSubmit();
       setSent(true);
@@ -178,8 +157,41 @@ const StudioInfo = () => {
             className="relative rounded-lg overflow-hidden h-[400px] lg:h-auto"
             style={{ minHeight: "400px" }}
           >
+            {/* No consent for third-party content → no Google request at all */}
+            {!consent.external && (
+              <div className="absolute inset-0 bg-card rounded-lg flex flex-col items-center justify-center gap-4 p-8 text-center">
+                <MapPin size={28} className="text-muted-foreground/60" />
+                <p className="text-sm text-muted-foreground max-w-xs leading-relaxed">
+                  {t("studio.map.blocked")}
+                </p>
+                <div className="flex flex-wrap items-center justify-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => acceptCategory("external")}
+                    className="cta-button rounded-sm text-xs tracking-[0.1em] uppercase"
+                  >
+                    {t("studio.map.load")}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={openSettings}
+                    className="font-mono text-xs text-muted-foreground hover:text-foreground underline underline-offset-4"
+                  >
+                    {t("cookies.settings")}
+                  </button>
+                </div>
+                <a
+                  href="https://maps.google.com/maps?q=Calle+Doctor+Allart+50,+38003+Santa+Cruz+de+Tenerife"
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="font-mono text-xs text-muted-foreground hover:text-foreground"
+                >
+                  {t("studio.map.open")} ↗
+                </a>
+              </div>
+            )}
             {/* Skeleton — visible until iframe fires onLoad */}
-            {!mapReady && (
+            {consent.external && !mapReady && (
               <div className="absolute inset-0 bg-card rounded-lg flex flex-col items-center justify-center gap-4 z-10">
                 <div className="relative">
                   <MapPin size={28} className="text-muted-foreground/40" />
@@ -191,7 +203,7 @@ const StudioInfo = () => {
                 </div>
               </div>
             )}
-            {mapLoaded && (
+            {consent.external && mapLoaded && (
               <iframe
                 title="Lowkey Tattoo Location"
                 src="https://maps.google.com/maps?q=Calle+Doctor+Allart+50,+38003+Santa+Cruz+de+Tenerife,+Spain&z=17&output=embed"
@@ -259,6 +271,9 @@ const StudioInfo = () => {
                   placeholder={t("contact.form.placeholder.message")}
                   className="bg-background border border-border rounded-sm px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-ring resize-none"
                 />
+              </div>
+              <div className="sm:col-span-2">
+                <PrivacyNotice purpose="contact" />
               </div>
               <div className="sm:col-span-2">
                 <button

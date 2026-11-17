@@ -1,9 +1,8 @@
 import { ARTISTS } from "@shared/config/artists";
+import { supabase } from "@shared/lib/supabase";
 
-// ── Brevo REST API — 300 emails/día gratis ────────────────────────────────────
-const BREVO_API_KEY  = import.meta.env.VITE_BREVO_API_KEY as string;
-const ADMIN_EMAIL    = (import.meta.env.VITE_ADMIN_EMAIL as string) || "info@tattoolowkey.com";
-const BREVO_ENDPOINT = "https://api.brevo.com/v3/smtp/email";
+// Emails go through the `send-web-emails` Edge Function (kind "internal"),
+// authenticated with the staff member's session — the Brevo key stays server-side.
 
 // ── Supabase Edge Function (WhatsApp) ─────────────────────────────────────────
 const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
@@ -51,11 +50,6 @@ export async function sendCalendarEmail(data: CalendarEmailData): Promise<void> 
     );
   }
 
-  if (!BREVO_API_KEY) {
-    console.warn("[calendarEmail] VITE_BREVO_API_KEY no configurada — no se envían emails");
-    return;
-  }
-
   const artist = ARTISTS.find((a) => a.id === data.artistId);
   if (!artist) {
     console.warn(
@@ -87,21 +81,7 @@ export async function sendCalendarEmail(data: CalendarEmailData): Promise<void> 
 
   const subject = `[Lowkey] ${data.action} — ${data.eventTitle} · ${data.eventDate}`;
 
-  const allRecipients = [
-    { email: ADMIN_EMAIL, name: "Admin Lowkey" },
-    { email: artist.email, name: artist.name },
-  ];
-  // Dedup: si el artista ES el admin, no duplicar el email
-  const seen = new Set<string>();
-  const recipients = allRecipients.filter(({ email }) => {
-    if (seen.has(email)) return false;
-    seen.add(email);
-    return true;
-  });
-
-  await Promise.allSettled(
-    recipients.map((to) => sendBrevoEmail(to, subject, lines)),
-  );
+  await sendInternalEmail(artist.id, subject, lines);
 }
 
 // ── WhatsApp vía Edge Function notify-booking ────────────────────────────────
@@ -139,33 +119,27 @@ async function sendWhatsAppNotify(data: CalendarEmailData): Promise<void> {
 
 // ── Canal de envío ────────────────────────────────────────────────────────────
 
-async function sendBrevoEmail(
-  to: { email: string; name: string },
-  subject: string,
-  textContent: string,
-): Promise<void> {
+async function sendInternalEmail(artistId: string, subject: string, text: string): Promise<void> {
+  if (!SUPABASE_URL || !SUPABASE_KEY) return;
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) {
+    console.warn("[calendarEmail] sin sesión — no se envía email");
+    return;
+  }
   try {
-    const res = await fetch(BREVO_ENDPOINT, {
+    const res = await fetch(`${SUPABASE_URL}/functions/v1/send-web-emails`, {
       method: "POST",
       headers: {
-        "api-key": BREVO_API_KEY,
-        "Content-Type": "application/json",
+        apikey:          SUPABASE_KEY,
+        Authorization:   `Bearer ${session.access_token}`,
+        "Content-Type":  "application/json",
       },
-      body: JSON.stringify({
-        sender:      { name: "Lowkey Tattoo App", email: "info@tattoolowkey.com" },
-        to:          [to],
-        subject,
-        textContent,
-      }),
+      body: JSON.stringify({ kind: "internal", artist_id: artistId, subject, text }),
     });
-    if (!res.ok) {
-      const err = await res.text();
-      console.warn(`[calendarEmail] Brevo → ${to.email} falló (${res.status}):`, err);
-    } else {
-      console.log(`[calendarEmail] Brevo → ${to.email} OK`);
-    }
+    if (!res.ok) console.warn("[calendarEmail] email falló:", await res.text());
+    else         console.log("[calendarEmail] email OK");
   } catch (err) {
-    console.warn(`[calendarEmail] Brevo request error → ${to.email}:`, err);
+    console.warn("[calendarEmail] email error:", err);
   }
 }
 

@@ -35,7 +35,7 @@ export default function LegalPage() {
           </p>
           <h1 className="text-2xl font-semibold text-foreground mb-2">Aviso Legal</h1>
           <p className="text-xs text-muted-foreground font-mono">
-            Última actualización: abril de 2026
+            Última actualización: noviembre de 2026
           </p>
         </header>
 
@@ -61,6 +61,12 @@ export default function LegalPage() {
               <strong className="text-foreground">Teléfono:</strong>{" "}
               <a href="tel:+34685314986" className="hover:text-foreground transition-colors">
                 +34 685 314 986
+              </a>
+            </li>
+            <li>
+              <strong className="text-foreground">Email:</strong>{" "}
+              <a href="mailto:info@tattoolowkey.com" className="hover:text-foreground transition-colors">
+                info@tattoolowkey.com
               </a>
             </li>
             <li>
@@ -128,26 +134,36 @@ export default function LegalPage() {
           <p>
             El tratamiento de los datos personales que el usuario facilite a través del sitio web se
             rige por la{" "}
-            <Link to="/politica-de-privacidad" className="hover:text-foreground transition-colors">
+            <Link to="/politica-de-privacidad" className="underline underline-offset-2 hover:text-foreground transition-colors">
               Política de Privacidad
             </Link>
-            , que el usuario debe leer y aceptar antes de facilitar sus datos.
+            . El uso de cookies se explica en la{" "}
+            <Link to="/politica-de-cookies" className="underline underline-offset-2 hover:text-foreground transition-colors">
+              Política de Cookies
+            </Link>
+            .
           </p>
         </Section>
 
         <Section title="6. Ley Aplicable y Jurisdicción">
           <p>
             El presente aviso legal se rige por la legislación española. Para cualquier controversia
-            derivada del acceso o uso de este sitio web, las partes se someten a la jurisdicción de
-            los Juzgados y Tribunales de{" "}
-            <strong className="text-foreground">Santa Cruz de Tenerife</strong>, con renuncia
-            expresa a cualquier otro fuero que pudiera corresponderles.
+            derivada del acceso o uso de este sitio web, serán competentes los Juzgados y Tribunales
+            que correspondan conforme a la ley. Si el usuario tiene la condición de consumidor, lo
+            serán los de su domicilio.
+          </p>
+          <p>
+            Los consumidores también pueden acudir al sistema arbitral de consumo o a otros medios
+            extrajudiciales de resolución de conflictos.
           </p>
         </Section>
 
         <div className="mt-10 pt-6 border-t border-border text-xs text-muted-foreground font-mono">
           <Link to="/politica-de-privacidad" className="hover:text-foreground transition-colors mr-6">
             Política de Privacidad
+          </Link>
+          <Link to="/politica-de-cookies" className="hover:text-foreground transition-colors mr-6">
+            Política de Cookies
           </Link>
           <Link to="/" className="hover:text-foreground transition-colors">
             Volver al inicio
