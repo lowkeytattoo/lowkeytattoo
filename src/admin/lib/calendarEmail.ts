@@ -62,24 +62,22 @@ export async function sendCalendarEmail(data: CalendarEmailData): Promise<void> 
 
   const adminUrl = data.adminUrl ?? `${window.location.origin}/admin/calendar`;
 
+  // RGPD: these emails reach inboxes that may be forwarded to personal Gmail,
+  // so they never carry client data (name, phone, email), the event title
+  // (it contains the client name), body zone or notes. Details stay in the panel.
   const lines = [
     `Acción: ${data.action}`,
     `Artista: ${artist.name}`,
-    data.clientName  ? `Cliente: ${data.clientName}`  : null,
-    data.clientPhone ? `Teléfono: ${data.clientPhone}` : null,
-    data.clientEmail ? `Email cliente: ${data.clientEmail}` : null,
     data.sessionType ? `Servicio: ${data.sessionType}` : null,
     `Fecha: ${data.eventDate}`,
     `Hora: ${data.eventTime}`,
     data.duration    ? `Duración: ${data.duration}` : null,
     data.oldDate     ? `Fecha anterior: ${data.oldDate}${data.oldTime ? ` ${data.oldTime}` : ""}` : null,
-    data.notes       ? `Notas: ${data.notes}` : null,
-    data.isFirstTime !== undefined ? `Primera vez: ${data.isFirstTime ? "Sí" : "No"}` : null,
     "",
-    `Ver en la app: ${adminUrl}`,
+    `Ver en el panel (requiere iniciar sesión): ${adminUrl}`,
   ].filter((l): l is string => l !== null).join("\n");
 
-  const subject = `[Lowkey] ${data.action} — ${data.eventTitle} · ${data.eventDate}`;
+  const subject = `[Lowkey] ${data.action}${data.sessionType ? ` — ${data.sessionType}` : ""} · ${artist.name} · ${data.eventDate}`;
 
   await sendInternalEmail(artist.id, subject, lines);
 }
@@ -88,26 +86,27 @@ export async function sendCalendarEmail(data: CalendarEmailData): Promise<void> 
 
 async function sendWhatsAppNotify(data: CalendarEmailData): Promise<void> {
   if (!SUPABASE_URL || !SUPABASE_KEY) return;
+  const { data: { session } } = await supabase.auth.getSession();
+  if (!session) return;
 
-  const serviceLabel = [data.action, data.sessionType].filter(Boolean).join(" — ");
-  const dateLabel    = [data.eventDate, data.eventTime].filter(Boolean).join(" · ");
+  const dateLabel = [data.eventDate, data.eventTime].filter(Boolean).join(" · ");
 
   try {
+    // RGPD: CallMeBot only receives action, service, artist and date — no client data.
+    // Authenticated with the staff session: the function rejects anonymous calls.
     const res = await fetch(`${SUPABASE_URL}/functions/v1/notify-booking`, {
       method: "POST",
       headers: {
         "apikey":        SUPABASE_KEY,
-        "Authorization": `Bearer ${SUPABASE_KEY}`,
+        "Authorization": `Bearer ${session.access_token}`,
         "Content-Type":  "application/json",
       },
       body: JSON.stringify({
-        artist_id:    data.artistId,
-        service:      serviceLabel,
-        client_name:  data.clientName,
-        client_phone: data.clientPhone,
-        date:         dateLabel,
-        body_zone:    data.bodyZone || undefined,
-        description:  data.notes,
+        kind:      "calendar",
+        artist_id: data.artistId,
+        action:    data.action,
+        service:   data.sessionType,
+        date:      dateLabel,
       }),
     });
     if (!res.ok) console.warn("[calendarEmail] WhatsApp notify falló:", await res.text());

@@ -48,8 +48,11 @@ const StudioInfo = () => {
     try {
       const { supabase } = await import("@shared/lib/supabase");
       const isEmail = contact.includes("@");
+      // Only the id goes to the email function; the notice carries no message data.
+      const id = crypto.randomUUID();
       // Awaited: the email function checks this row exists before sending.
       await supabase.from("web_bookings").insert({
+        id,
         client_name: name,
         client_email: isEmail ? contact : null,
         client_phone: isEmail ? null : contact,
@@ -63,7 +66,7 @@ const StudioInfo = () => {
       });
 
       const { callEdgeFunction } = await import("@web/lib/email");
-      void callEdgeFunction("send-web-emails", { kind: "contact", name, contact, message });
+      void callEdgeFunction("send-web-emails", { kind: "contact", id });
 
       trackContactSubmit();
       setSent(true);

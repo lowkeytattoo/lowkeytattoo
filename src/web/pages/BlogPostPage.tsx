@@ -41,7 +41,10 @@ export default function BlogPostPage() {
     try {
       const { supabase } = await import("@shared/lib/supabase");
       const isEmail = cfContact.includes("@");
+      // Only the id goes to the email function; the notice carries no message data.
+      const id = crypto.randomUUID();
       await supabase.from("web_bookings").insert({
+        id,
         client_name: cfName,
         client_email: isEmail ? cfContact : null,
         client_phone: isEmail ? null : cfContact,
@@ -55,9 +58,7 @@ export default function BlogPostPage() {
       });
 
       const { callEdgeFunction } = await import("@web/lib/email");
-      void callEdgeFunction("send-web-emails", {
-        kind: "contact", source: "blog", name: cfName, contact: cfContact, message: cfMessage,
-      });
+      void callEdgeFunction("send-web-emails", { kind: "contact", source: "blog", id });
 
       setCfSent(true);
       setCfName(""); setCfContact(""); setCfMessage("");

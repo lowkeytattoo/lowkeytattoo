@@ -57,7 +57,65 @@ async function sendEmailAlert(subject: string, text: string): Promise<void> {
   }
 }
 
+// ── RGPD ──────────────────────────────────────────────────────────────────────
+//
+// CallMeBot is a free third-party relay without a data processing agreement,
+// so messages NEVER carry client data (name, phone, email, body zone,
+// description, notes): only what happened, service, artist, date/time and a
+// REF to open it in the panel (tickets INT-01 / C05).
+//
+// Anti-abuse: the public web only sends the id of a row it just inserted; the
+// rest is read from the database. Calendar notices require a staff session.
+
+const SERVICE_LABELS: Record<string, string> = {
+  tattoo: "Tatuaje",
+  piercing: "Piercing",
+  laser: "Láser",
+};
+
+const KNOWN_ARTISTS = new Set(["pablo", "sergio", "fifo"]);
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+const refOf = (id: string) => id.replace(/-/g, "").slice(0, 8).toUpperCase();
+const clip  = (v: unknown, max: number) => String(v ?? "").replace(/[\r\n]+/g, " ").slice(0, max);
+const cap   = (v: string) => v.charAt(0).toUpperCase() + v.slice(1);
+
+/** Public booking: reads the row (inserted < 10 min ago) by id with the service role. */
+async function recentBooking(id: unknown): Promise<Record<string, any> | null> {
+  const url = Deno.env.get("SUPABASE_URL");
+  const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  if (!url || !key || typeof id !== "string" || !UUID_RE.test(id)) return null;
+  const since = new Date(Date.now() - 10 * 60 * 1000).toISOString();
+  const qs = new URLSearchParams({
+    select: "id,artist_config_id,service_type,preferred_date,preferred_time",
+    id: `eq.${id}`,
+    created_at: `gte.${since}`,
+    limit: "1",
+  });
+  const res = await fetch(`${url}/rest/v1/web_bookings?${qs}`, {
+    headers: { apikey: key, Authorization: `Bearer ${key}` },
+  });
+  if (!res.ok) return null;
+  const rows = await res.json();
+  return Array.isArray(rows) && rows.length > 0 ? rows[0] : null;
+}
+
+/** True only for a real logged-in user (staff), not the public anon key. */
+async function isStaffRequest(req: Request): Promise<boolean> {
+  const url = Deno.env.get("SUPABASE_URL");
+  const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+  const auth = req.headers.get("Authorization") ?? "";
+  if (!url || !key || !auth.startsWith("Bearer ")) return false;
+  const res = await fetch(`${url}/auth/v1/user`, { headers: { apikey: key, Authorization: auth } });
+  if (!res.ok) return false;
+  const user = await res.json();
+  return typeof user?.id === "string";
+}
+
 // ── Handler ───────────────────────────────────────────────────────────────────
+//
+//   { kind: "booking",  booking_id }                         — public web form (anon key)
+//   { kind: "calendar", artist_id, action, service?, date? } — admin panel (staff JWT)
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -69,24 +127,44 @@ serve(async (req) => {
   }
 
   try {
-    const { artist_id, service, client_name, client_phone, date, body_zone, description } = await req.json();
+    const body = await req.json();
+    let artist_id: string | null = null;
+    let lines: string;
+    let label: string;
 
-    const artistLabel = artist_id
-      ? artist_id.charAt(0).toUpperCase() + artist_id.slice(1)
-      : null;
-
-    const lines = [
-      `🔔 Nueva solicitud de ${service ?? "cita"}`,
-      artistLabel ? `🎨 Para: ${artistLabel}` : null,
-      ``,
-      `👤 ${client_name ?? "Sin nombre"}`,
-      `📅 ${date ?? "Fecha no especificada"}`,
-      client_phone ? `📞 ${client_phone}` : null,
-      body_zone    ? `📍 ${body_zone}` : null,
-      description  ? `📝 ${description.slice(0, 120)}${description.length > 120 ? "…" : ""}` : null,
-      ``,
-      `Ver en la app: https://tattoolowkey.com/admin/bookings`,
-    ].filter(Boolean).join("\n");
+    if (body.kind === "booking") {
+      const row = await recentBooking(body.booking_id);
+      if (!row) return json({ error: "Not found" }, 403);
+      artist_id = KNOWN_ARTISTS.has(String(row.artist_config_id)) ? String(row.artist_config_id) : null;
+      const service = SERVICE_LABELS[String(row.service_type)] ?? "cita";
+      const ref = refOf(row.id);
+      const date = row.preferred_date
+        ? String(row.preferred_date).split("-").reverse().join("/") + (row.preferred_time ? ` ${clip(row.preferred_time, 20)}` : "")
+        : null;
+      label = `solicitud web REF ${ref}`;
+      lines = [
+        `🔔 Nueva solicitud de ${service}${artist_id ? ` para ${cap(artist_id)}` : ""} · REF ${ref}`,
+        date ? `📅 Fecha pedida: ${date}` : null,
+        ``,
+        `Ver en el panel: https://tattoolowkey.com/admin/bookings?ref=${ref}`,
+      ].filter((l) => l !== null).join("\n");
+    } else if (body.kind === "calendar") {
+      if (!(await isStaffRequest(req))) return json({ error: "Unauthorized" }, 401);
+      artist_id = KNOWN_ARTISTS.has(String(body.artist_id)) ? String(body.artist_id) : null;
+      if (!artist_id) return json({ error: "Unknown artist" }, 400);
+      const action  = clip(body.action, 60) || "Aviso de agenda";
+      const service = clip(body.service, 40);
+      const date    = clip(body.date, 80);
+      label = `${action} (${cap(artist_id)})`;
+      lines = [
+        `🔔 ${action}${service ? ` — ${service}` : ""} · ${cap(artist_id)}`,
+        date ? `📅 ${date}` : null,
+        ``,
+        `Ver en el panel: https://tattoolowkey.com/admin/calendar`,
+      ].filter((l) => l !== null).join("\n");
+    } else {
+      return json({ error: "Unknown kind" }, 400);
+    }
 
     const sends: Promise<boolean>[] = [];
 
@@ -108,7 +186,7 @@ serve(async (req) => {
       if (artPhone && artApiKey && artPhone !== adminPhone) {
         sends.push(sendWhatsApp(artPhone, artApiKey, lines, artist_id));
       } else if (!artPhone || !artApiKey) {
-        console.warn(`[notify-booking] ${artist_id.toUpperCase()}_WA_PHONE / _WA_KEY not set — skipping artist WA`);
+        console.warn(`[notify-booking] ${key}_WA_PHONE / _WA_KEY not set — skipping artist WA`);
       }
     }
 
@@ -116,14 +194,14 @@ serve(async (req) => {
     const anyFailed = results.some((r) => r.status === "fulfilled" && r.value === false);
 
     if (anyFailed) {
-      const summary = `Fallo silencioso en CallMeBot.\n\nSolicitud: ${client_name ?? "?"} — ${service ?? "cita"}\nFecha: ${date ?? "?"}\nArtista: ${artist_id ?? "?"}\n\nRevisa los logs de la Edge Function en Supabase Dashboard.`;
+      const summary = `Fallo silencioso en CallMeBot.\n\nAviso: ${label}\n\nRevisa los logs de la Edge Function en Supabase Dashboard.`;
       await sendEmailAlert("[Lowkey] ⚠️ WhatsApp no entregado — revisa CallMeBot", summary);
     }
 
     return json({ ok: true });
   } catch (err) {
     console.error("[notify-booking] Unexpected error:", err);
-    return json({ error: String(err) }, 500);
+    return json({ error: "Internal error" }, 500);
   }
 });
 

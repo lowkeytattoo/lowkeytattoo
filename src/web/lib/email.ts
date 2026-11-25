@@ -19,12 +19,6 @@ export interface BookingData {
   isFirstTime: boolean;
 }
 
-const SERVICE_LABELS: Record<string, string> = {
-  tattoo: "Tatuaje",
-  piercing: "Piercing",
-  laser: "Láser",
-};
-
 /** POST to a Supabase Edge Function with the public anon key. */
 export async function callEdgeFunction(name: string, body: unknown): Promise<void> {
   const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
@@ -59,13 +53,19 @@ export async function sendBookingRequest(booking: BookingData): Promise<void> {
     ? booking.date.split("/").reverse().join("-")
     : null;
 
-  // Awaited: the email function checks this row exists before sending.
+  // The id is generated here (anon can insert but not read back) and is the
+  // only thing sent to the Edge Functions: they read the row server-side and
+  // send internal notices WITHOUT client data (RGPD, tickets WEB-02 / INT-01).
+  const id = crypto.randomUUID();
+
+  // Awaited: the functions check this row exists before sending.
   const { error } = await supabase.from("web_bookings").insert({
+    id,
     artist_config_id: artist?.id ?? null,
     service_type: booking.serviceType,
-    client_name: booking.clientName || null,
-    client_phone: booking.clientPhone || null,
-    client_email: booking.clientEmail || null,
+    client_name: booking.clientName?.trim() || null,
+    client_phone: booking.clientPhone?.trim() || null,
+    client_email: booking.clientEmail?.trim() || null,
     preferred_date: isoDate,
     preferred_time: booking.time || null,
     description: booking.description || null,
@@ -73,40 +73,15 @@ export async function sendBookingRequest(booking: BookingData): Promise<void> {
     is_first_time: booking.isFirstTime,
     status: "pending",
   });
-  if (error) console.warn("Could not save booking to Supabase:", error.message);
-
-  const serviceLabel = SERVICE_LABELS[booking.serviceType] ?? booking.serviceType;
-
-  const sends: Promise<void>[] = [
-    // Emails to admin + artist + client confirmation
-    callEdgeFunction("send-web-emails", {
-      kind:          "booking",
-      artist_id:     artist?.id,
-      service_type:  booking.serviceType,
-      client_name:   booking.clientName,
-      client_phone:  booking.clientPhone,
-      client_email:  booking.clientEmail,
-      date:          booking.date,
-      body_zone:     booking.bodyZone,
-      is_first_time: booking.isFirstTime,
-      description:   booking.description,
-    }),
-  ];
-
-  // WhatsApp notification to artist (phone number stays server-side)
-  if (artist?.id) {
-    sends.push(
-      callEdgeFunction("notify-booking", {
-        artist_id:    artist.id,
-        service:      serviceLabel,
-        client_name:  booking.clientName,
-        client_phone: booking.clientPhone,
-        date:         booking.date,
-        body_zone:    booking.bodyZone || undefined,
-        description:  booking.description,
-      })
-    );
+  if (error) {
+    console.warn("Could not save booking to Supabase:", error.message);
+    return;
   }
 
-  await Promise.allSettled(sends);
+  await Promise.allSettled([
+    // Internal notice to admin + artist, and confirmation to the client
+    callEdgeFunction("send-web-emails", { kind: "booking", id }),
+    // WhatsApp notice to admin + artist (service, artist, date and REF only)
+    callEdgeFunction("notify-booking", { kind: "booking", booking_id: id }),
+  ]);
 }

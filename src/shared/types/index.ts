@@ -37,7 +37,7 @@ export interface Database {
       };
       web_bookings: {
         Row: WebBooking;
-        Insert: Omit<WebBooking, "id" | "created_at">;
+        Insert: Omit<WebBooking, "id" | "created_at"> & { id?: string };
         Update: Partial<Omit<WebBooking, "id" | "created_at">>;
       };
       blog_posts: {

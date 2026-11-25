@@ -1,4 +1,6 @@
 import { useState } from "react";
+import { useSearchParams } from "react-router-dom";
+import { refOf } from "@shared/lib/ref";
 import { BookingToSessionModal } from "@admin/components/BookingToSessionModal";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@shared/lib/supabase";
@@ -316,9 +318,14 @@ export default function WebBookings() {
     setConvertBooking(null);
   };
 
-  const filteredBookings = isOwner
+  // ?ref=XXXX opens a single request from an internal notice
+  const [searchParams, setSearchParams] = useSearchParams();
+  const refFilter = searchParams.get("ref")?.trim().toUpperCase() || null;
+
+  const filteredBookings = (isOwner
     ? (bookings ?? [])
-    : (bookings ?? []).filter((b) => b.artist_config_id === profile?.artist_config_id);
+    : (bookings ?? []).filter((b) => b.artist_config_id === profile?.artist_config_id)
+  ).filter((b) => !refFilter || refOf(b.id) === refFilter);
 
   return (
     <div className="space-y-5">
@@ -328,6 +335,22 @@ export default function WebBookings() {
           {filteredBookings.filter((b) => b.status === "pending").length} pendientes
         </p>
       </div>
+
+      {refFilter && (
+        <div className="flex items-center justify-between gap-3 rounded-md border border-border bg-muted/40 px-3 py-2 text-sm">
+          <span>
+            Mostrando la solicitud <span className="font-['IBM_Plex_Mono']">REF {refFilter}</span>
+            {filteredBookings.length === 0 && " — no encontrada (puede estar asignada a otro artista o eliminada)"}
+          </span>
+          <button
+            type="button"
+            className="text-xs underline text-muted-foreground hover:text-foreground"
+            onClick={() => setSearchParams({})}
+          >
+            Ver todas
+          </button>
+        </div>
+      )}
 
       {/* Mobile: card list */}
       <div className="sm:hidden rounded-lg border border-border overflow-hidden bg-card divide-y divide-border">
@@ -342,6 +365,7 @@ export default function WebBookings() {
               <div className="flex items-center justify-between gap-2">
                 <div className="flex items-center gap-2 min-w-0">
                   <span className="text-sm font-medium truncate">{b.client_name ?? "—"}</span>
+                  <span className="text-[10px] font-['IBM_Plex_Mono'] text-muted-foreground shrink-0">REF {refOf(b.id)}</span>
                   {isOwner && <ArtistAvatar name={getArtistName(b.artist_config_id)} size="xs" />}
                 </div>
                 <div className="flex items-center gap-1.5 shrink-0">
@@ -452,6 +476,7 @@ export default function WebBookings() {
                 <TableRow key={b.id} className="border-border">
                   <TableCell className="text-xs font-['IBM_Plex_Mono'] text-muted-foreground whitespace-nowrap">
                     {format(new Date(b.created_at), "d MMM yyyy", { locale: es })}
+                    <div className="text-[10px]">REF {refOf(b.id)}</div>
                   </TableCell>
                   <TableCell>
                     <div className="text-sm font-medium leading-tight">{b.client_name ?? "—"}</div>

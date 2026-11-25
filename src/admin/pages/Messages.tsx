@@ -1,4 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { useSearchParams } from "react-router-dom";
+import { refOf } from "@shared/lib/ref";
 import { supabase } from "@shared/lib/supabase";
 import { useAdminAuth } from "@admin/contexts/AdminAuthContext";
 import { Badge } from "@/components/ui/badge";
@@ -17,6 +19,9 @@ export default function Messages() {
   const qc = useQueryClient();
   const { profile } = useAdminAuth();
   const isOwner = profile?.role === "owner";
+  // ?ref=XXXX opens a single message from an internal notice
+  const [searchParams, setSearchParams] = useSearchParams();
+  const refFilter = searchParams.get("ref")?.trim().toUpperCase() || null;
 
   const { data: messages, isLoading } = useQuery({
     queryKey: ["contact-messages", profile?.id],
@@ -66,6 +71,7 @@ export default function Messages() {
   });
 
   const unread = (messages ?? []).filter((m) => m.status === "pending").length;
+  const shown = (messages ?? []).filter((m) => !refFilter || refOf(m.id) === refFilter);
 
   return (
     <div className="space-y-5">
@@ -77,15 +83,31 @@ export default function Messages() {
         </p>
       </div>
 
+      {refFilter && (
+        <div className="flex items-center justify-between gap-3 rounded-md border border-border bg-muted/40 px-3 py-2 text-sm">
+          <span>
+            Mostrando el mensaje <span className="font-mono">REF {refFilter}</span>
+            {!isLoading && shown.length === 0 && " — no encontrado (puede estar asignado a otro artista o eliminado)"}
+          </span>
+          <button
+            type="button"
+            className="text-xs underline text-muted-foreground hover:text-foreground"
+            onClick={() => setSearchParams({})}
+          >
+            Ver todos
+          </button>
+        </div>
+      )}
+
       {isLoading ? (
         <div className="text-muted-foreground text-sm">Cargando...</div>
-      ) : (messages ?? []).length === 0 ? (
+      ) : shown.length === 0 ? (
         <div className="rounded-lg border border-border bg-card p-12 text-center text-muted-foreground text-sm">
           Sin mensajes todavía
         </div>
       ) : (
         <div className="space-y-3">
-          {(messages ?? []).map((m) => {
+          {shown.map((m) => {
             const isUnread = m.status === "pending";
             const isEmail = (m.client_email ?? "").length > 0;
             return (
@@ -102,6 +124,7 @@ export default function Messages() {
                       <span className="font-medium text-sm text-foreground">
                         {m.client_name ?? "—"}
                       </span>
+                      <span className="text-[10px] font-mono text-muted-foreground">REF {refOf(m.id)}</span>
                       {isUnread && (
                         <Badge className="text-[10px] font-mono px-1.5 py-0">
                           Nuevo

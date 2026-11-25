@@ -10,10 +10,18 @@
 //   internal — admin panel calendar notices → admin + artist; requires a
 //              logged-in staff session (user JWT), never the anon key.
 //
-// Anti-abuse: public kinds only send if a matching row was inserted in
-// `web_bookings` during the last 10 minutes (checked with the service role),
-// and recipients always come from the server-side map below, so it can't be
-// used as an open relay.
+// Anti-abuse: public kinds receive only the id of a row inserted in
+// `web_bookings` during the last 10 minutes; everything else is read from the
+// database with the service role. Recipients always come from the server-side
+// map below, so it can't be used as an open relay.
+//
+// RGPD (minimisation, tickets WEB-02 / C01): internal notices to the admin and
+// artist inboxes (which may be forwarded to personal Gmail) never include
+// client data — only service, artist, requested date and a REF. Details are
+// only visible in the panel after login.
+//
+// If Brevo rejects an email, a WhatsApp alert is sent to the admin
+// (ADMIN_WA_PHONE / ADMIN_WA_KEY) so failures are no longer silent.
 //
 // Secrets (Supabase Dashboard → Project Settings → Edge Functions):
 //   BREVO_API_KEY   xkeysib-...       (the NEW, rotated key)
@@ -71,24 +79,31 @@ function clip(v: unknown, max: number): string {
 
 const isEmail = (v: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v);
 
-async function recentRowExists(name: string, field: "client_email" | "client_phone", value: string): Promise<boolean> {
+/** Short, human-readable reference shown in notices and in the panel. */
+function refOf(id: string): string {
+  return id.replace(/-/g, "").slice(0, 8).toUpperCase();
+}
+
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+/** Loads a web_bookings row inserted during the last 10 minutes, by id. */
+async function recentRow(id: unknown): Promise<Record<string, any> | null> {
   const url = Deno.env.get("SUPABASE_URL");
   const key = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
-  if (!url || !key) return false;
+  if (!url || !key || typeof id !== "string" || !UUID_RE.test(id)) return null;
   const since = new Date(Date.now() - 10 * 60 * 1000).toISOString();
   const qs = new URLSearchParams({
-    select: "id",
-    client_name: `eq.${name}`,
-    [field]: `eq.${value}`,
+    select: "*",
+    id: `eq.${id}`,
     created_at: `gte.${since}`,
     limit: "1",
   });
   const res = await fetch(`${url}/rest/v1/web_bookings?${qs}`, {
     headers: { apikey: key, Authorization: `Bearer ${key}` },
   });
-  if (!res.ok) return false;
+  if (!res.ok) return null;
   const rows = await res.json();
-  return Array.isArray(rows) && rows.length > 0;
+  return Array.isArray(rows) && rows.length > 0 ? rows[0] : null;
 }
 
 /** True only for a real logged-in user (staff), not the public anon key. */
@@ -103,18 +118,46 @@ async function isStaffRequest(req: Request): Promise<boolean> {
   return typeof user?.id === "string";
 }
 
-async function sendBrevo(payload: Record<string, unknown>): Promise<void> {
+/** Returns true when Brevo accepted the email. */
+async function sendBrevo(payload: Record<string, unknown>): Promise<boolean> {
   const apiKey = Deno.env.get("BREVO_API_KEY");
   if (!apiKey) {
     console.warn("[send-web-emails] BREVO_API_KEY not set");
-    return;
+    return false;
   }
-  const res = await fetch("https://api.brevo.com/v3/smtp/email", {
-    method: "POST",
-    headers: { "api-key": apiKey, "Content-Type": "application/json" },
-    body: JSON.stringify(payload),
-  });
-  if (!res.ok) console.warn("[send-web-emails] Brevo failed:", res.status, await res.text());
+  try {
+    const res = await fetch("https://api.brevo.com/v3/smtp/email", {
+      method: "POST",
+      headers: { "api-key": apiKey, "Content-Type": "application/json" },
+      body: JSON.stringify(payload),
+    });
+    if (res.ok) return true;
+    console.warn("[send-web-emails] Brevo failed:", res.status, await res.text());
+  } catch (err) {
+    console.warn("[send-web-emails] Brevo error:", err);
+  }
+  return false;
+}
+
+/** WhatsApp alert to the admin when an email could not be sent (no client data). */
+async function alertEmailFailure(what: string): Promise<void> {
+  const phone = Deno.env.get("ADMIN_WA_PHONE");
+  const key   = Deno.env.get("ADMIN_WA_KEY");
+  if (!phone || !key) return;
+  const text = `⚠️ Email no enviado (${what}). Revisa Brevo y los logs de send-web-emails en Supabase.`;
+  try {
+    await fetch(`https://api.callmebot.com/whatsapp.php?phone=${encodeURIComponent(phone)}&text=${encodeURIComponent(text)}&apikey=${key}`);
+  } catch (err) {
+    console.warn("[send-web-emails] alert error:", err);
+  }
+}
+
+/** Runs the sends and alerts the admin once if any of them failed. */
+async function sendAll(sends: Promise<boolean>[], what: string): Promise<void> {
+  const results = await Promise.allSettled(sends);
+  if (results.some((r) => r.status !== "fulfilled" || r.value === false)) {
+    await alertEmailFailure(what);
+  }
 }
 
 // ── Templates (ported from src/web/lib/email.ts, now HTML-escaped) ────────────
@@ -179,6 +222,7 @@ function waBtn(href: string, label = "WhatsApp"): string {
 }
 
 interface Booking {
+  ref: string;
   artistName: string;
   serviceLabel: string;
   clientName: string;
@@ -190,33 +234,22 @@ interface Booking {
   description: string;
 }
 
-function internalHtml(b: Booking): string {
-  const digits = b.clientPhone.replace(/\D/g, "");
-  const clientWaUrl = `https://wa.me/${digits.startsWith("34") || digits.length > 9 ? digits : "34" + digits}`;
+// Internal notice: NO client data (name, phone, email, body zone, description).
+function internalHtml(title: string, rows: [string, string][], panelUrl: string): string {
   return baseHtml(`
-    <p style="margin:0 0 2px;font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:#aaa;">Nueva solicitud</p>
-    <h1 style="margin:0 0 28px;font-size:20px;font-weight:500;color:#111;">${esc(b.serviceLabel)} — ${esc(b.clientName)}</h1>
+    <p style="margin:0 0 2px;font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:0.2em;text-transform:uppercase;color:#aaa;">Aviso interno</p>
+    <h1 style="margin:0 0 20px;font-size:20px;font-weight:500;color:#111;">${esc(title)}</h1>
     <table width="100%" cellpadding="0" cellspacing="0" style="border-collapse:collapse;">
-      ${row("Artista", b.artistName)}
-      ${row("Cliente", b.clientName)}
-      ${row("Teléfono", b.clientPhone)}
-      ${row("Email", b.clientEmail)}
-      ${row("Fecha", b.date)}
-      ${row("Zona", b.bodyZone)}
-      ${row("Primera vez", b.isFirstTime ? "Sí" : "No")}
+      ${rows.map(([l, v]) => row(l, v)).join("")}
     </table>
-    <div style="margin-top:20px;padding:16px 18px;background-color:#f8f8f8;border-left:3px solid #ddd;border-radius:0 4px 4px 0;">
-      <p style="margin:0 0 6px;font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:0.15em;text-transform:uppercase;color:#aaa;">Descripción</p>
-      <p style="margin:0;font-size:14px;color:#444;line-height:1.65;">${esc(b.description)}</p>
-    </div>
+    <p style="margin:20px 0 0;font-size:14px;color:#555;line-height:1.65;">
+      Los datos del cliente solo se pueden consultar en el panel, con tu usuario.
+    </p>
     <div style="margin-top:28px;text-align:center;">
-      ${waBtn(clientWaUrl, "WhatsApp cliente")}
-      <div style="margin-top:10px;">
-        <a href="https://tattoolowkey.com/admin/bookings"
-           style="display:inline-block;padding:11px 22px;border:1px solid #333;border-radius:2px;font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:0.12em;text-transform:uppercase;color:#111;text-decoration:none;white-space:nowrap;">
-          Ver cita
-        </a>
-      </div>
+      <a href="${esc(panelUrl)}"
+         style="display:inline-block;padding:11px 22px;border:1px solid #333;border-radius:2px;font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:0.12em;text-transform:uppercase;color:#111;text-decoration:none;white-space:nowrap;">
+        Ver en el panel
+      </a>
     </div>
   `);
 }
@@ -247,7 +280,8 @@ function clientHtml(b: Booking): string {
       </div>
     </div>
     <p style="margin:28px 0 0;font-size:11px;color:#aaa;line-height:1.6;">
-      Responsable: Lowkey Tattoo. Tratamos tus datos para gestionar tu solicitud de cita.
+      Referencia de tu solicitud: ${esc(b.ref)}.<br>
+      Responsable: Pablo Matos Rodríguez (Lowkey Tattoo). Tratamos tus datos para gestionar tu solicitud de cita.
       Puedes ejercer tus derechos de acceso, rectificación, supresión, oposición, limitación y portabilidad en info@tattoolowkey.com.
       Más información en https://tattoolowkey.com/politica-de-privacidad
     </p>
@@ -267,73 +301,75 @@ serve(async (req) => {
 
     // ── Contact form ──────────────────────────────────────────────────────────
     if (body.kind === "contact") {
-      const name    = clip(body.name, 120).trim();
-      const contact = clip(body.contact, 160).trim();
-      const message = clip(body.message, 4000);
-      if (!name || !contact) return json({ error: "Missing fields" }, 400);
+      const r = await recentRow(body.id);
+      if (!r) return json({ error: "Not found" }, 403);
+      const ref = refOf(r.id);
+      const fromBlog = body.source === "blog";
+      const panelUrl = `https://tattoolowkey.com/admin/messages?ref=${ref}`;
 
-      const field = contact.includes("@") ? "client_email" : "client_phone";
-      if (!(await recentRowExists(name, field, contact))) return json({ error: "Not found" }, 403);
-
-      await sendBrevo({
-        sender: { ...sender, name: "Lowkey Tattoo Web" },
-        to: [{ email: adminEmail, name: "Admin Lowkey" }],
-        subject: body.source === "blog"
-          ? `[Lowkey] Nuevo contacto desde blog — ${name}`
-          : `[Lowkey] Nuevo mensaje de contacto — ${name}`,
-        textContent: [
-          body.source === "blog" ? "Nuevo mensaje de contacto desde el blog." : "Nuevo mensaje de contacto desde la web.",
-          "",
-          `Nombre: ${name}`,
-          `Contacto: ${contact}`,
-          "",
-          "Mensaje:",
-          message,
-          "",
-          "Ver en la app: https://tattoolowkey.com/admin/bookings",
-        ].join("\n"),
-      });
+      await sendAll([
+        sendBrevo({
+          sender: { ...sender, name: "Lowkey Tattoo Web" },
+          to: [{ email: adminEmail, name: "Admin Lowkey" }],
+          subject: `[Lowkey] Nuevo mensaje de contacto${fromBlog ? " (blog)" : ""} · REF ${ref}`,
+          textContent: [
+            `Hay un nuevo mensaje de contacto desde ${fromBlog ? "el blog" : "la web"}.`,
+            `REF ${ref}`,
+            "",
+            "Consúltalo en el panel (requiere iniciar sesión):",
+            panelUrl,
+          ].join("\n"),
+        }),
+      ], `contacto REF ${ref}`);
       return json({ ok: true });
     }
 
     // ── Booking request ───────────────────────────────────────────────────────
     if (body.kind === "booking") {
-      const artist = ARTISTS[String(body.artist_id ?? "")] ?? ARTISTS.info;
+      const r = await recentRow(body.id);
+      if (!r) return json({ error: "Not found" }, 403);
+      const artist = ARTISTS[String(r.artist_config_id ?? "")] ?? ARTISTS.info;
       const b: Booking = {
+        ref:          refOf(r.id),
         artistName:   artist.name,
-        serviceLabel: SERVICE_LABELS[String(body.service_type)] ?? "Cita",
-        clientName:   clip(body.client_name, 120).trim(),
-        clientPhone:  clip(body.client_phone, 40).trim(),
-        clientEmail:  clip(body.client_email, 160).trim(),
-        date:         clip(body.date, 40),
-        bodyZone:     clip(body.body_zone, 60),
-        isFirstTime:  Boolean(body.is_first_time),
-        description:  clip(body.description, 4000),
+        serviceLabel: SERVICE_LABELS[String(r.service_type)] ?? "Cita",
+        clientName:   clip(r.client_name, 120).trim(),
+        clientPhone:  clip(r.client_phone, 40).trim(),
+        clientEmail:  clip(r.client_email, 160).trim(),
+        date:         r.preferred_date
+          ? String(r.preferred_date).split("-").reverse().join("/") + (r.preferred_time ? ` ${clip(r.preferred_time, 20)}` : "")
+          : "Sin fecha",
+        bodyZone:     clip(r.body_zone, 60),
+        isFirstTime:  Boolean(r.is_first_time),
+        description:  "",
       };
-      if (!b.clientName || !isEmail(b.clientEmail)) return json({ error: "Missing fields" }, 400);
-      if (!(await recentRowExists(b.clientName, "client_email", b.clientEmail))) {
-        return json({ error: "Not found" }, 403);
-      }
+      const panelUrl = `https://tattoolowkey.com/admin/bookings?ref=${b.ref}`;
 
       const internal = [{ email: adminEmail, name: "Admin Lowkey" }];
       if (artist.email !== adminEmail) internal.push({ email: artist.email, name: artist.name });
 
-      await Promise.allSettled([
-        ...internal.map((to) =>
-          sendBrevo({
-            sender,
-            to: [to],
-            subject: `[Lowkey] Nueva solicitud de ${b.serviceLabel} — ${b.clientName}`,
-            htmlContent: internalHtml(b),
-          })
-        ),
+      const sends = internal.map((to) =>
         sendBrevo({
           sender,
-          to: [{ email: b.clientEmail, name: b.clientName }],
+          to: [to],
+          subject: `[Lowkey] Nueva solicitud de ${b.serviceLabel} para ${artist.name} · REF ${b.ref}`,
+          htmlContent: internalHtml(
+            `Nueva solicitud de ${b.serviceLabel}`,
+            [["Artista", artist.name], ["Fecha pedida", b.date], ["Referencia", b.ref]],
+            panelUrl,
+          ),
+        })
+      );
+      // Confirmation to the client (their own data), only with a valid email.
+      if (isEmail(b.clientEmail)) {
+        sends.push(sendBrevo({
+          sender,
+          to: [{ email: b.clientEmail, name: b.clientName || undefined }],
           subject: `Tu solicitud en Lowkey Tattoo — ${b.serviceLabel}`,
           htmlContent: clientHtml(b),
-        }),
-      ]);
+        }));
+      }
+      await sendAll(sends, `solicitud REF ${b.ref}`);
       return json({ ok: true });
     }
 
@@ -344,7 +380,7 @@ serve(async (req) => {
       if (!artist) return json({ error: "Unknown artist" }, 400);
       const recipients = [{ email: adminEmail, name: "Admin Lowkey" }];
       if (artist.email !== adminEmail) recipients.push({ email: artist.email, name: artist.name });
-      await Promise.allSettled(
+      await sendAll(
         recipients.map((to) =>
           sendBrevo({
             sender: { ...sender, name: "Lowkey Tattoo App" },
@@ -353,6 +389,7 @@ serve(async (req) => {
             textContent: clip(body.text, 8000),
           })
         ),
+        "aviso de agenda",
       );
       return json({ ok: true });
     }
