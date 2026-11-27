@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { supabase } from "@shared/lib/supabase";
+import { logAccess } from "@admin/hooks/useCompliance";
 import type { ConsentForm, ConsentFormInsert } from "@shared/types/index";
 
 export function useConsentForms(clientId: string) {
@@ -140,6 +141,7 @@ export function useOpenConsentPdf() {
         .from("consent-documents")
         .download(storagePath);
       if (error) throw error;
+      void logAccess(storagePath, "view"); // registro de actividad (orientativo)
       return URL.createObjectURL(data);
     },
   });
@@ -152,6 +154,7 @@ export function useDownloadConsentPdf() {
         .from("consent-documents")
         .download(storagePath);
       if (error) throw error;
+      void logAccess(storagePath, "download"); // registro de actividad (orientativo)
       const url = URL.createObjectURL(data);
       const a = document.createElement("a");
       a.href = url;

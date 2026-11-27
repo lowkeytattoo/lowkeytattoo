@@ -1,5 +1,5 @@
 import { useState, useRef } from "react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, Link } from "react-router-dom";
 import { useClient, useUpdateClient, useSetCoverPhoto, useClientPhotos, useDeleteClientPhoto } from "@admin/hooks/useClients";
 import { useSessions, useCreateSession, useUpdateSession } from "@admin/hooks/useSessions";
 import { useAdminAuth } from "@admin/contexts/AdminAuthContext";
@@ -591,6 +591,14 @@ export default function ClientProfile() {
         <CardHeader className="pb-3 flex flex-row items-center justify-between">
           <CardTitle className="text-base font-['IBM_Plex_Mono'] uppercase tracking-wider text-muted-foreground">
             Consentimientos
+            {isOwner && (
+              <Link
+                to={`/admin/rgpd/actividad?client=${id}`}
+                className="ml-3 normal-case tracking-normal text-xs underline text-muted-foreground hover:text-foreground"
+              >
+                Ver actividad
+              </Link>
+            )}
           </CardTitle>
           <Button
             variant="ghost"

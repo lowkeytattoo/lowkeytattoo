@@ -3,7 +3,9 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { format } from "date-fns";
 import { es } from "date-fns/locale";
-import { ShieldCheck, Upload, FileDown, Trash2 } from "lucide-react";
+import { ShieldCheck, Upload, FileDown, Trash2, History, CalendarCheck } from "lucide-react";
+import { Link } from "react-router-dom";
+import { AnnualReviewBanner } from "@admin/components/AnnualReviewBanner";
 import { supabase } from "@shared/lib/supabase";
 import { Button } from "@/components/ui/button";
 import {
@@ -101,6 +103,7 @@ export default function InternalDocs() {
 
   return (
     <div className="space-y-5">
+      <AnnualReviewBanner />
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
           <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
@@ -110,6 +113,14 @@ export default function InternalDocs() {
             Documentación interna de protección de datos y compromisos firmados. Solo la ven los
             dueños. No compartas los enlaces: caducan al minuto.
           </p>
+        </div>
+        <div className="flex gap-2 flex-wrap">
+          <Button variant="outline" size="sm" asChild>
+            <Link to="/admin/rgpd/actividad"><History className="w-4 h-4 mr-1" /> Registro de actividad</Link>
+          </Button>
+          <Button variant="outline" size="sm" asChild>
+            <Link to="/admin/rgpd/revision"><CalendarCheck className="w-4 h-4 mr-1" /> Revisión anual</Link>
+          </Button>
         </div>
         <div>
           <input

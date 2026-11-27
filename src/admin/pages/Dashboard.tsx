@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { AnnualReviewBanner } from "@admin/components/AnnualReviewBanner";
 import { Link } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { useAdminAuth } from "@admin/contexts/AdminAuthContext";
@@ -174,6 +175,7 @@ export default function Dashboard() {
 
   return (
     <div className="space-y-5">
+      <AnnualReviewBanner />
       <div>
         <h1 className="text-2xl font-bold text-foreground">Dashboard</h1>
         <p className="text-muted-foreground text-sm mt-1">

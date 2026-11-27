@@ -35,6 +35,8 @@ const CookiesPageEn = lazy(() => import("@web/pages/CookiesPageEn"));
 const AdminLogin        = lazy(() => import("@admin/pages/Login"));
 const AdminDashboard    = lazy(() => import("@admin/pages/Dashboard"));
 const AdminClients      = lazy(() => import("@admin/pages/Clients"));
+const AdminActivityLog   = lazy(() => import("@admin/pages/ActivityLog"));
+const AdminAnnualReview  = lazy(() => import("@admin/pages/AnnualReview"));
 const AdminClientProfile = lazy(() => import("@admin/pages/ClientProfile"));
 const AdminSessions     = lazy(() => import("@admin/pages/Sessions"));
 const AdminFinances     = lazy(() => import("@admin/pages/Finances"));
@@ -181,6 +183,22 @@ const App = () => (
                       element={
                         <RoleGuard requiredRole="owner">
                           <AdminInternalDocs />
+                        </RoleGuard>
+                      }
+                    />
+                    <Route
+                      path="rgpd/actividad"
+                      element={
+                        <RoleGuard requiredRole="owner">
+                          <AdminActivityLog />
+                        </RoleGuard>
+                      }
+                    />
+                    <Route
+                      path="rgpd/revision"
+                      element={
+                        <RoleGuard requiredRole="owner">
+                          <AdminAnnualReview />
                         </RoleGuard>
                       }
                     />
