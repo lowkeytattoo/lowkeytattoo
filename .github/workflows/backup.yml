@@ -111,6 +111,21 @@ jobs:
         run: |
           set -euo pipefail
           aws --version
+          # ── Diagnóstico sin mostrar secretos: longitudes, espacios y qué combinación funciona
+          echo "Longitud Access key ID: ${#AWS_ACCESS_KEY_ID} (esperado 32) · Secret: ${#AWS_SECRET_ACCESS_KEY} (esperado 64)"
+          case "$AWS_ACCESS_KEY_ID$AWS_SECRET_ACCESS_KEY" in *[[:space:]]*) echo "⚠️ Las claves contienen espacios o saltos de línea";; esac
+          OK_EP=""; OK_REGION=""
+          for ep in "$S3_ENDPOINT" "https://${SUPABASE_PROJECT_REF}.supabase.co/storage/v1/s3"; do
+            for rg in "$AWS_DEFAULT_REGION" us-east-1; do
+              if aws s3api list-buckets --endpoint-url "$ep" --region "$rg" > /dev/null 2>&1; then
+                echo "✅ Funciona: $ep · región $rg"; OK_EP="$ep"; OK_REGION="$rg"; break 2
+              else
+                echo "✗ No funciona: $ep · región $rg"
+              fi
+            done
+          done
+          [ -n "$OK_EP" ] || { echo "Ninguna combinación funciona: revisa las claves S3 de Supabase"; exit 1; }
+          S3_ENDPOINT="$OK_EP"; export AWS_DEFAULT_REGION="$OK_REGION"
           aws s3api list-buckets --endpoint-url "$S3_ENDPOINT" --query 'Buckets[].Name' --output text \
             | tr '\t' '\n' | sed '/^$/d' > "$WORK/buckets.txt"
           [ -s "$WORK/buckets.txt" ] || { echo "No se ha podido listar ningún bucket"; exit 1; }
