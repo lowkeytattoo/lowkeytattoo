@@ -80,7 +80,9 @@ Si además falta la fila del consentimiento en la base de datos, búscala en `db
    fichas de cliente y sus PDFs de consentimiento.
 5. **Reaplica las supresiones**: si desde la fecha de la copia se borraron datos por una
    solicitud de supresión o un consentimiento anulado, vuelve a borrarlos antes de usar el
-   proyecto (consulta el registro de derechos y `consent_deletion_log`).
+   proyecto. Consulta el registro de derechos, `consent_deletion_log` (consentimientos anulados
+   borrados) y `audit_events` con `action = 'purge'` o `'delete'` posteriores a la fecha de la
+   copia (panel → RGPD → Registro de actividad).
 6. Para pasar a producción: cambia `VITE_SUPABASE_URL` y `VITE_SUPABASE_ANON_KEY` en Vercel,
    vuelve a desplegar las Edge Functions y sus secretos, y vuelve a programar los trabajos
    de `pg_cron` si no se han restaurado.
