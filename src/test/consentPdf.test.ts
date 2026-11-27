@@ -55,7 +55,7 @@ async function render(type: ConsentFormType, minor: boolean) {
   return { blob, text };
 }
 
-describe("PDF del consentimiento (plantilla 2.0)", () => {
+describe("PDF del consentimiento (plantilla 2.1)", () => {
   it("tatuaje adulto: normativa, aplicador, firmas y sin representante", async () => {
     const { blob, text } = await render("tattoo", false);
     expect(blob.size).toBeGreaterThan(5000);
@@ -64,7 +64,7 @@ describe("PDF del consentimiento (plantilla 2.0)", () => {
     expect(text).toContain("11111111H");
     expect(text).toContain("FIRMA DEL APLICADOR");
     expect(text).not.toContain("FIRMA DEL REPRESENTANTE");
-    expect(text).toContain("Plantilla v2.0");
+    expect(text).toContain("Plantilla v2.1");
     expect(text).toContain("AUTORIZACIONES DE IMAGEN");
   });
 

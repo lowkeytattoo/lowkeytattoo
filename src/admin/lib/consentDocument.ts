@@ -8,13 +8,15 @@ import { PIRATA_ONE_B64 } from "@admin/lib/pirataOneFont";
 // ═══════════════════════════════════════════════════════════════════════════
 // Consentimiento informado — textos, cuestionarios y PDF (plantilla 2.0)
 //
-// ⚠️ Textos pendientes de validar por el asesor: LEGAL_TEXT (V-02 láser),
-// HEALTH_TEXT (V-01, art. 9 RGPD), MINOR_TEXT (V-03, anexo VII Decreto
-// 154/2004). Al cambiar cualquier texto o pregunta, subir
-// CONSENT_TEMPLATE_VERSION: los documentos firmados conservan su versión.
+// Plantilla 2.1 (28/11/2026): LEGAL_TEXT, HEALTH_TEXT y MINOR_TEXT redactados
+// con criterio de asesoría a petición del titular. ⚠️ PENDIENTES DE
+// VERIFICACIÓN PROFESIONAL: cotejo con anexos VI/VII del Decreto 154/2004,
+// régimen sanitario del láser (V-02) y entrega obligatoria de copia.
+// Al cambiar cualquier texto o pregunta, subir CONSENT_TEMPLATE_VERSION:
+// los documentos firmados conservan su versión.
 // ═══════════════════════════════════════════════════════════════════════════
 
-export const CONSENT_TEMPLATE_VERSION = "2.0";
+export const CONSENT_TEMPLATE_VERSION = "2.1";
 
 // ─── Cuestionarios por tipo ──────────────────────────────────────────────────
 
@@ -96,26 +98,38 @@ export const PHOTOTYPES = ["I", "II", "III", "IV", "V", "VI"];
 
 export const LEGAL_TEXT: Record<ConsentFormType, string> = {
   tattoo:
-    "Declaro haber sido informado/a de manera clara y comprensible sobre el procedimiento de tatuaje que voy a realizar. Comprendo que un tatuaje es un procedimiento permanente que implica la introducción de pigmentos en la dermis mediante agujas estériles de un solo uso, y que puede conllevar riesgos como infección, reacción alérgica a los pigmentos, formación de queloides, pérdida de color durante la cicatrización u otras complicaciones. Entiendo que el resultado puede variar según mi tipo de piel y proceso de cicatrización individual, y que pueden ser necesarios retoques posteriores sin coste adicional en el plazo indicado por el artista. Me comprometo a seguir las instrucciones de cuidado postprocedimiento facilitadas y a consultar a un médico ante cualquier signo de alarma. La información facilitada en el cuestionario médico es verídica y completa. Presto mi consentimiento de forma libre, voluntaria e informada para la realización del tatuaje, pudiendo revocarlo en cualquier momento antes del inicio del procedimiento.",
+    "He sido informado/a de forma clara y comprensible sobre el tatuaje que se me va a realizar. Consiste en introducir pigmentos en la piel con agujas estériles de un solo uso y material esterilizado o desechable, y su resultado es permanente: eliminarlo después requiere tratamientos largos, costosos y no siempre completos. " +
+    "Conozco sus riesgos y posibles complicaciones: dolor, inflamación y enrojecimiento pasajeros; infección local; reacción alérgica a los pigmentos, que puede aparecer incluso años después; cicatrización anómala o queloides; y pérdida o alteración del color. El resultado puede variar según mi tipo de piel y los cuidados que siga. " +
+    "He respondido con veracidad al cuestionario de salud y sé que ocultar información aumenta estos riesgos. Me comprometo a seguir las instrucciones de cuidado y a consultar a un profesional sanitario ante signos de infección o reacción (fiebre, dolor intenso, supuración o enrojecimiento que se extiende). " +
+    "He podido hacer todas las preguntas que he considerado necesarias. Presto mi consentimiento de forma libre y voluntaria y sé que puedo revocarlo en cualquier momento antes de que comience el procedimiento.",
   piercing:
-    "Declaro haber sido informado/a de manera clara y comprensible sobre el procedimiento de piercing que voy a realizar. Comprendo que un piercing implica la perforación de tejido corporal y que puede conllevar riesgos como infección, rechazo o migración del piercing, formación de queloides, reacción alérgica al material de la joya u otras complicaciones descritas en este documento. Entiendo que el tiempo de cicatrización varía según la zona y puede extenderse varios meses, y que debo seguir las instrucciones de cuidado para evitar complicaciones. Me comprometo a no manipular la joya hasta la cicatrización completa y a consultar a un médico ante cualquier signo de alarma. La información facilitada en el cuestionario médico es verídica y completa. Presto mi consentimiento de forma libre, voluntaria e informada para la realización del piercing, pudiendo revocarlo en cualquier momento antes del inicio del procedimiento.",
+    "He sido informado/a de forma clara y comprensible sobre el piercing que se me va a realizar. Consiste en perforar la piel o el tejido con una aguja estéril de un solo uso y colocar una joya de material apto para perforaciones. Si más adelante retiro la joya, puede quedar una pequeña cicatriz permanente. " +
+    "Conozco sus riesgos y posibles complicaciones: dolor, sangrado e inflamación pasajeros; infección; rechazo o desplazamiento de la joya; queloides o cicatrices elevadas; y reacción alérgica al metal. Según la zona puede haber riesgos específicos (en el cartílago la cicatrización es más lenta; en la boca, posibles daños en dientes y encías). La cicatrización puede durar de semanas a varios meses. " +
+    "He respondido con veracidad al cuestionario de salud. Me comprometo a seguir las instrucciones de cuidado, a no manipular ni cambiar la joya antes de la cicatrización completa y a consultar a un profesional sanitario ante signos de infección. " +
+    "He podido hacer todas las preguntas que he considerado necesarias. Presto mi consentimiento de forma libre y voluntaria y sé que puedo revocarlo en cualquier momento antes de que comience el procedimiento.",
   laser:
-    "Declaro haber sido informado/a de manera clara y comprensible sobre el tratamiento con láser que voy a realizar. Comprendo que el láser es un procedimiento médico-estético que puede conllevar riesgos como enrojecimiento transitorio, hiperpigmentación o hipopigmentación post-inflamatoria, quemadura superficial, infección u otras complicaciones descritas en este documento. Entiendo que los resultados no están garantizados al 100%, que pueden requerirse varias sesiones y que la respuesta varía según el fototipo de piel, el color del pigmento y otros factores individuales. Me comprometo a seguir las instrucciones de protección solar y cuidados posteriores, y a comunicar cualquier cambio en mi estado de salud o medicación antes de cada sesión. La información facilitada en el cuestionario médico es verídica y completa. Presto mi consentimiento de forma libre, voluntaria e informada para la realización del tratamiento con láser, pudiendo revocarlo en cualquier momento antes del inicio del procedimiento.",
+    "He sido informado/a de que la eliminación de tatuajes con láser consiste en aplicar pulsos de luz de alta energía que fragmentan el pigmento para que el organismo lo elimine poco a poco. Normalmente hacen falta varias sesiones, separadas varias semanas, y no se puede garantizar la eliminación completa: depende de los colores, la profundidad y la antigüedad del tatuaje, de mi tipo de piel y de mi respuesta individual. Algunos colores (blancos, rosados o tonos piel) pueden oscurecerse. " +
+    "Conozco los riesgos: dolor durante la sesión; enrojecimiento, inflamación, ampollas, costras o pequeños sangrados pasajeros; aclaramiento u oscurecimiento de la piel, que puede durar meses o ser permanente; cambios en la textura de la piel o cicatrices; infección; y, excepcionalmente, reacciones alérgicas. Durante la sesión debo llevar la protección ocular que se me indique. " +
+    "Me comprometo a evitar el sol y las cabinas de bronceado en la zona, usar protección solar, no rascar ni arrancar las costras, seguir las instrucciones de cuidado y comunicar antes de cada sesión cualquier cambio en mi salud o medicación. He respondido con veracidad al cuestionario de salud. " +
+    "He podido hacer todas las preguntas que he considerado necesarias. Presto mi consentimiento de forma libre y voluntaria y sé que puedo revocarlo en cualquier momento antes de que comience cada sesión.",
 };
 
-// Borrador pendiente de validar por el asesor (V-01): declaración explícita
+// Redactado 28/11/2026, pendiente de verificación profesional (V-01): declaración explícita
 // para el tratamiento de datos de salud (art. 9.2.a RGPD).
 export const HEALTH_TEXT =
-  "Autorizo expresamente a Pablo Matos Rodríguez (Lowkey Tattoo) a tratar los datos de salud que he indicado en el cuestionario, " +
-  "con la única finalidad de valorar si el procedimiento puede realizarse con seguridad y de documentar la intervención conforme a la normativa sanitaria. " +
-  "Sé que, sin esta autorización, el procedimiento no puede realizarse, y que el documento firmado se conservará durante el plazo legal aunque retire mi consentimiento más adelante.";
+  "Para valorar si el procedimiento puede realizarse con seguridad es necesario tratar los datos de salud que indico en el cuestionario. " +
+  "Autorizo expresamente a Pablo Matos Rodríguez (Lowkey Tattoo) a tratarlos con esa única finalidad y para documentar la intervención conforme a la normativa sanitaria. " +
+  "Solo podrán consultarlos los titulares del estudio y el artista que me atienda; no se usarán para otros fines ni se cederán a terceros salvo obligación legal. " +
+  "Puedo retirar esta autorización, pero sin ella no es posible realizar el procedimiento. La retirada no afecta a lo ya realizado, y el documento firmado se conservará con acceso restringido durante el plazo legal (al menos 5 años desde la intervención), para cumplir la normativa sanitaria y, en su caso, atender reclamaciones.";
 
 export const CARE_TEXT = "He recibido las instrucciones de cuidado posteriores al procedimiento.";
 
-// Borrador pendiente de validar por el asesor (V-03): autorización del representante.
+// Redactado 28/11/2026, pendiente de verificación profesional (V-03): autorización del representante.
 export const MINOR_TEXT =
-  "Como representante legal del menor, declaro haber acreditado esa condición ante el estudio, haber recibido la información sobre el procedimiento, " +
-  "sus riesgos y cuidados, y autorizo expresamente su realización y el tratamiento de los datos indicados en este documento.";
+  "Declaro que soy padre, madre o tutor/a legal del menor que figura en este documento, que ejerzo su representación legal y que he acreditado esta condición ante el estudio. " +
+  "Declaro también que actúo con el conocimiento y la conformidad del otro progenitor o representante legal, si lo hubiera, o que ejerzo la representación en exclusiva. " +
+  "He estado presente, he recibido la información sobre el procedimiento, sus riesgos y los cuidados posteriores, y he podido resolver mis dudas. El menor también ha sido informado y está de acuerdo. " +
+  "Autorizo expresamente la realización del procedimiento y el tratamiento de sus datos, incluidos los de salud, con las finalidades indicadas en este documento.";
 
 // Mismo texto en pantalla y en el PDF; coherente con la política de privacidad.
 export const rgpdText = (type: ConsentFormType) =>
