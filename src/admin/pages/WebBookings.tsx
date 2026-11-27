@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, Fragment } from "react";
 import { useSearchParams } from "react-router-dom";
 import { refOf } from "@shared/lib/ref";
 import { BookingToSessionModal } from "@admin/components/BookingToSessionModal";
@@ -40,7 +40,7 @@ import {
 import { format } from "date-fns";
 import { formatLocalDate } from "@shared/lib/formatDate";
 import { es } from "date-fns/locale";
-import { Phone, Reply, AlertTriangle, Trash2 } from "lucide-react";
+import { Phone, Reply, AlertTriangle, Trash2, ChevronDown } from "lucide-react";
 import { DatePickerInput } from "@admin/components/DatePickerInput";
 import type { WebBooking, WebBookingStatus } from "@shared/types/index";
 import { useCreateCalendarEvent, buildBookingEvent } from "@admin/hooks/useGoogleCalendar";
@@ -177,6 +177,43 @@ function ConflictWarning({ booking }: { booking: WebBooking }) {
           : "El artista ya tiene citas ese día. Confirma que hay disponibilidad."}
       </span>
     </div>
+  );
+}
+
+// Detalle de la solicitud: los avisos por email/WhatsApp ya no llevan datos
+// del cliente (RGPD), así que todo se consulta aquí, con sesión iniciada.
+function BookingDetails({ b }: { b: WebBooking }) {
+  const rows: [string, string | null][] = [
+    ["Zona del cuerpo", b.body_zone],
+    ["Hora preferida", b.preferred_time],
+    ["Primera vez", b.is_first_time === null ? null : b.is_first_time ? "Sí" : "No"],
+    ["Teléfono", b.client_phone],
+    ["Email", b.client_email],
+  ];
+  return (
+    <div className="rounded-md border border-border bg-background p-3 space-y-2 text-sm">
+      <dl className="grid grid-cols-[auto_1fr] gap-x-4 gap-y-1">
+        {rows.map(([k, v]) => (
+          <Fragment key={k}>
+            <dt className="text-xs font-['IBM_Plex_Mono'] uppercase tracking-wider text-muted-foreground pt-0.5">{k}</dt>
+            <dd className="text-foreground break-words">{v || "—"}</dd>
+          </Fragment>
+        ))}
+      </dl>
+      <div>
+        <p className="text-xs font-['IBM_Plex_Mono'] uppercase tracking-wider text-muted-foreground mb-1">Descripción del cliente</p>
+        <p className="text-foreground whitespace-pre-wrap break-words">{b.description || "—"}</p>
+      </div>
+    </div>
+  );
+}
+
+function DetailToggle({ open, onClick }: { open: boolean; onClick: () => void }) {
+  return (
+    <Button variant="ghost" size="sm" className="text-xs gap-1 h-7 px-2" onClick={onClick} aria-expanded={open}>
+      <ChevronDown className={`w-3 h-3 transition-transform ${open ? "rotate-180" : ""}`} />
+      Detalle
+    </Button>
   );
 }
 
@@ -321,6 +358,20 @@ export default function WebBookings() {
   const [searchParams, setSearchParams] = useSearchParams();
   const refFilter = searchParams.get("ref")?.trim().toUpperCase() || null;
 
+  // Detalle desplegado por solicitud; la abierta desde un aviso (?ref=) se despliega sola
+  const [expanded, setExpanded] = useState<Set<string>>(new Set());
+  const isExpanded = (b: WebBooking) => expanded.has(b.id) || (!!refFilter && refOf(b.id) === refFilter);
+  const toggleExpanded = (b: WebBooking) => {
+    const open = isExpanded(b);
+    // Cerrar la solicitud abierta desde un aviso vuelve a la lista completa
+    if (open && refFilter && refOf(b.id) === refFilter) setSearchParams({});
+    setExpanded((prev) => {
+      const next = new Set(prev);
+      if (open) next.delete(b.id); else next.add(b.id);
+      return next;
+    });
+  };
+
   const filteredBookings = (isOwner
     ? (bookings ?? [])
     : (bookings ?? []).filter((b) => b.artist_config_id === profile?.artist_config_id)
@@ -384,6 +435,7 @@ export default function WebBookings() {
                 <Badge variant={STATUS_VARIANTS[b.status]} className="text-xs font-['IBM_Plex_Mono'] mr-1">
                   {STATUS_LABELS[b.status]}
                 </Badge>
+                <DetailToggle open={isExpanded(b)} onClick={() => toggleExpanded(b)} />
                 {b.client_phone && (
                   <Button
                     variant="ghost"
@@ -440,6 +492,7 @@ export default function WebBookings() {
                   </Button>
                 )}
               </div>
+              {isExpanded(b) && <BookingDetails b={b} />}
             </div>
           ))
         )}
@@ -472,7 +525,8 @@ export default function WebBookings() {
               </TableRow>
             ) : (
               filteredBookings.map((b) => (
-                <TableRow key={b.id} className="border-border">
+                <Fragment key={b.id}>
+                <TableRow className="border-border">
                   <TableCell className="text-xs font-['IBM_Plex_Mono'] text-muted-foreground whitespace-nowrap">
                     {format(new Date(b.created_at), "d MMM yyyy", { locale: es })}
                     <div className="text-[10px]">REF {refOf(b.id)}</div>
@@ -508,6 +562,7 @@ export default function WebBookings() {
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center gap-1">
+                      <DetailToggle open={isExpanded(b)} onClick={() => toggleExpanded(b)} />
                       {b.client_phone && (
                         <Button
                           variant="ghost"
@@ -567,6 +622,14 @@ export default function WebBookings() {
                     </div>
                   </TableCell>
                 </TableRow>
+                {isExpanded(b) && (
+                  <TableRow className="border-border hover:bg-transparent">
+                    <TableCell colSpan={isOwner ? 7 : 6} className="pt-0">
+                      <BookingDetails b={b} />
+                    </TableCell>
+                  </TableRow>
+                )}
+                </Fragment>
               ))
             )}
           </TableBody>
