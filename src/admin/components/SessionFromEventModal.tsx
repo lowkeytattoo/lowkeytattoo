@@ -17,7 +17,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useClientsPaged, useCreateClient } from "@admin/hooks/useClients";
 import { useCreateSession } from "@admin/hooks/useSessions";
 import { useArtistProfiles } from "@admin/hooks/useArtistProfiles";
-import { useUpdateCalendarEvent } from "@admin/hooks/useGoogleCalendar";
+import { useUpdateCalendarEvent, shortClientName, buildEventDescription } from "@admin/hooks/useGoogleCalendar";
 import { sendCalendarEmail, formatEventDate, formatEventTime, formatDuration } from "@admin/lib/calendarEmail";
 import { CALENDAR_COLOR } from "@shared/config/calendar";
 import type { CalendarEventWithSource } from "@admin/hooks/useGoogleCalendar";
@@ -189,8 +189,8 @@ export function SessionFromEventModal({ open, onClose, event }: Props) {
       await updateEvent.mutateAsync({
         calendarId:  event._calendarId,
         eventId:     event.id,
-        summary:     `${SESSION_TYPE_LABELS[values.type]} — ${clientName}`,
-        description: values.notes || event.description,
+        summary:     `${SESSION_TYPE_LABELS[values.type]} — ${shortClientName(clientName)}`,
+        description: buildEventDescription(values.body_zone, clientId),
         colorId:     CALENDAR_COLOR.SESSION_FROM_EVENT,
       });
 

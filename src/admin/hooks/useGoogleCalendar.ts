@@ -134,6 +134,28 @@ export function useUpdateCalendarEvent() {
   });
 }
 
+// ── RGPD helpers for calendar events ─────────────────────────────────────────
+// Google Calendar is shared between the studio and the artists and synced to
+// their phones, so events only carry first name + surname initial, the body
+// zone and a link to the client file. Phone and notes stay in the panel
+// (ticket C07).
+
+/** "Laura García Pérez" → "Laura G." */
+export function shortClientName(fullName: string): string {
+  const parts = fullName.trim().split(/\s+/).filter(Boolean);
+  if (parts.length === 0) return "Cliente";
+  if (parts.length === 1) return parts[0];
+  return `${parts[0]} ${parts[1].charAt(0).toUpperCase()}.`;
+}
+
+/** Event description: body zone + link to the client file (login required). */
+export function buildEventDescription(bodyZone?: string | null, clientId?: string | null): string | undefined {
+  const parts: string[] = [];
+  if (bodyZone) parts.push(`📍 Zona: ${bodyZone}`);
+  if (clientId) parts.push(`Ficha: https://tattoolowkey.com/admin/clients/${clientId}`);
+  return parts.join("\n") || undefined;
+}
+
 // ── Build event object from a web booking ────────────────────────────────────
 
 export function buildBookingEvent(params: {
@@ -141,11 +163,10 @@ export function buildBookingEvent(params: {
   serviceLabel: string;
   date: string;       // yyyy-MM-dd
   time?: string | null; // HH:mm
-  notes?: string | null;
   bodyZone?: string | null;
-  phone?: string | null;
+  clientId?: string | null;
 }): Omit<CalendarEvent, "id" | "htmlLink"> {
-  const { clientName, serviceLabel, date, time, notes, bodyZone, phone } = params;
+  const { clientName, serviceLabel, date, time, bodyZone, clientId } = params;
 
   const startDate = time ? `${date}T${time}:00` : date;
   const endDate   = time
@@ -155,14 +176,9 @@ export function buildBookingEvent(params: {
       })}:00`
     : date;
 
-  const descParts: string[] = [];
-  if (phone)    descParts.push(`📞 ${phone}`);
-  if (bodyZone) descParts.push(`📍 Zona: ${bodyZone}`);
-  if (notes)    descParts.push(`📝 ${notes}`);
-
   const eventBase = {
-    summary: `${serviceLabel} — ${clientName}`,
-    description: descParts.join("\n") || undefined,
+    summary: `${serviceLabel} — ${shortClientName(clientName)}`,
+    description: buildEventDescription(bodyZone, clientId),
     location: "Calle Dr. Allart, 50, Santa Cruz de Tenerife",
   };
 

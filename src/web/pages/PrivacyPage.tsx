@@ -190,7 +190,7 @@ export default function PrivacyPage() {
             <li><B>Supabase Inc.</B>: base de datos y almacenamiento de archivos (servidores en la UE, Fráncfort).</li>
             <li><B>Vercel Inc.</B>: alojamiento de la página web.</li>
             <li><B>Brevo (Sendinblue SAS, Francia)</B>: envío de los emails de confirmación y de aviso.</li>
-            <li><B>CallMeBot</B>: avisos internos por WhatsApp al equipo cuando entra una solicitud nueva. El aviso incluye tu nombre, teléfono, fecha solicitada, zona del cuerpo y descripción, necesarios para contactarte y valorar tu solicitud.</li>
+            <li><B>CallMeBot</B>: avisos internos por WhatsApp al equipo cuando entra una solicitud nueva. El aviso solo indica el servicio, el artista, la fecha solicitada y un número de referencia; no incluye tus datos personales.</li>
             <li><B>Google</B>: Google Calendar (agenda interna). Además, solo si das tu consentimiento: Google Analytics, Google Ads y Google Maps.</li>
             <li><B>Meta Platforms Ireland Ltd.</B>: Meta Pixel, solo si das tu consentimiento.</li>
             <li><B>Elfsight Inc.</B>: muestra el feed de Instagram integrado, solo si aceptas el contenido externo.</li>

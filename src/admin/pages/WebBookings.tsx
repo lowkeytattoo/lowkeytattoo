@@ -301,9 +301,8 @@ export default function WebBookings() {
         serviceLabel: SERVICE_LABELS[convertBooking.service_type] ?? convertBooking.service_type,
         date: convertDate,
         time: convertBooking.preferred_time,
-        notes: convertNotes || null,
         bodyZone: convertBooking.body_zone ?? null,
-        phone: convertBooking.client_phone ?? null,
+        clientId,
       });
       await createCalendarEvent.mutateAsync({
         ...event,
