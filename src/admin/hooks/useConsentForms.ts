@@ -1,6 +1,6 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@shared/lib/supabase";
-import type { ConsentForm } from "@shared/types/index";
+import type { ConsentForm, ConsentFormInsert } from "@shared/types/index";
 
 export function useConsentForms(clientId: string) {
   return useQuery({
@@ -21,7 +21,7 @@ export function useConsentForms(clientId: string) {
 export function useCreateConsentForm() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async (payload: Omit<ConsentForm, "id" | "created_at" | "status" | "annul_reason" | "annul_requested_by" | "annul_requested_at" | "annul_resolved_by" | "annul_resolved_at">) => {
+    mutationFn: async (payload: ConsentFormInsert) => {
       const { data, error } = await supabase
         .from("consent_forms")
         .insert(payload)
@@ -82,8 +82,13 @@ export function useResolveConsentAnnulment() {
 export function useDeleteAnnulledConsent() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, storagePath, reason, clientId }: { id: string; storagePath: string | null; reason: string; clientId: string }) => {
+    mutationFn: async ({ id, storagePath, extraPaths = [], reason, clientId }: { id: string; storagePath: string | null; extraPaths?: string[]; reason: string; clientId: string }) => {
       if (reason.trim().length < 5) throw new Error("Indica el motivo del borrado");
+      // Adjuntos (foto del documento del representante): mismas reglas que el PDF
+      if (extraPaths.length > 0) {
+        const { error } = await supabase.storage.from("consent-documents").remove(extraPaths);
+        if (error) throw error;
+      }
       // 1. PDF: Storage solo lo permite a dueños y si el consentimiento está ANULADO.
       //    Si la política lo bloquea, remove() no da error pero devuelve 0 archivos.
       if (storagePath) {

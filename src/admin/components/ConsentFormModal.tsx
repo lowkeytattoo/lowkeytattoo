@@ -1,14 +1,19 @@
 import { useRef, useState, useEffect } from "react";
 import SignatureCanvas from "react-signature-canvas";
-import jsPDF from "jspdf";
-import { format } from "date-fns";
+import { useQuery } from "@tanstack/react-query";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { supabase } from "@shared/lib/supabase";
-import type { Artist } from "@shared/config/artists";
-import type { Client, ConsentFormType, ConsentFormData } from "@shared/types/index";
-import { CONTACT } from "@web/config/contact";
-import { PIRATA_ONE_B64 } from "@admin/lib/pirataOneFont";
+import { ARTISTS, type Artist } from "@shared/config/artists";
+import {
+  CONSENT_TEMPLATE_VERSION, QUESTIONS, TYPE_LABEL, NORM_REF, PHOTOTYPES, LEGAL_TEXT, HEALTH_TEXT, CARE_TEXT,
+  rgpdText, imageOptions, NO_IMAGE, fmtDate, sha256Hex, compressImage, buildPdf,
+} from "@admin/lib/consentDocument";
+import type { Client, ConsentFormType, ConsentFormData, ConsentImagePermissions } from "@shared/types/index";
 import { useCreateConsentForm } from "@admin/hooks/useConsentForms";
 import { useApplicatorLegalInfo } from "@admin/hooks/useArtistLegalInfo";
+import { useUpdateClient } from "@admin/hooks/useClients";
+import { useAdminAuth } from "@admin/contexts/AdminAuthContext";
+import { ageOn } from "@admin/lib/age";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -22,314 +27,29 @@ import {
 } from "@/components/ui/dialog";
 import { toast } from "sonner";
 
-// ─── Cuestionarios por tipo ──────────────────────────────────────────────────
+// ═══════════════════════════════════════════════════════════════════════════
+// Consentimiento informado — plantilla 2.0 (RGPD, Fase 1, 28/11/2026)
+// Plan: docs/PLAN_MEJORA_CONSENTIMIENTOS_2026-11-27.md
+//
+// Pasos: Intervención → Cliente (edad / representante) → Cuestionario →
+// Consentimientos (procedimiento · salud · imagen) → Revisión y firmas
+// (cliente · representante · aplicador).
+//
+// Integridad: hora del servidor (server_now + trigger), created_by y estado
+// fijados por la base de datos, SHA-256 del PDF, id del documento = id de la
+// fila, la firma solo está en el PDF. La foto del documento del representante
+// se guarda como archivo aparte y NUNCA se incrusta en el PDF.
+//
+// ⚠️ Textos pendientes de validar por el asesor (V-01 salud, V-02 láser,
+// V-03 modelo canario y menores): HEALTH_TEXT, LEGAL_TEXT, MINOR_TEXT.
+// Al cambiar cualquier texto o pregunta, subir CONSENT_TEMPLATE_VERSION.
+// ═══════════════════════════════════════════════════════════════════════════
 
-const TATTOO_QUESTIONS = [
-  "¿Tiene o ha tenido enfermedades de la piel (psoriasis, eccema, vitíligo, queloides)?",
-  "¿Padece trastornos de la coagulación o hemorragias?",
-  "¿Es diabético/a?",
-  "¿Tiene VIH, hepatitis u otras enfermedades de transmisión sanguínea?",
-  "¿Padece enfermedades cardíacas o lleva marcapasos?",
-  "¿Tiene el sistema inmunitario comprometido?",
-  "¿Toma anticoagulantes, aspirina u otros antiinflamatorios?",
-  "¿Toma isotretinoína (Roacután) actualmente o en los últimos 6 meses?",
-  "¿Es alérgico/a a algún medicamento, tinte o material?",
-  "¿Está embarazada o en periodo de lactancia?",
-  "¿Ha consumido alcohol o drogas en las últimas 24 horas?",
-  "¿Tiene heridas, infecciones o irritación en la zona a tatuar?",
-  "¿Ha tenido reacciones adversas a tatuajes anteriores?",
-];
+const MIN_AGE = 16;   // política del estudio
+const ADULT_AGE = 18;
 
-const PIERCING_QUESTIONS = [
-  "¿Tiene tendencia a formar queloides o cicatrices elevadas?",
-  "¿Padece diabetes o alguna enfermedad que ralentice la cicatrización?",
-  "¿Tiene alguna alteración del sistema inmunitario?",
-  "¿Toma anticoagulantes, aspirina o antiinflamatorios?",
-  "¿Es alérgico/a a metales (níquel, cobalto, cromo)?",
-  "¿Es alérgico/a al látex u otro material?",
-  "¿Tiene VIH, hepatitis u otras enfermedades de transmisión sanguínea?",
-  "¿Tiene enfermedades cardíacas o lleva prótesis valvular?",
-  "¿Está embarazada o en periodo de lactancia?",
-  "¿Ha consumido alcohol o drogas en las últimas 24 horas?",
-  "¿Tiene infección, herida o irritación en la zona a perforar?",
-  "¿Tiene antecedentes de rechazo a piercings anteriores?",
-  "¿Lleva prótesis metálicas, marcapasos u otros implantes?",
-  "¿Está tomando algún medicamento actualmente?",
-];
-
-const LASER_QUESTIONS = [
-  "¿Está embarazada o en periodo de lactancia?",
-  "¿Tiene o ha tenido cáncer de piel?",
-  "¿Tiene lesiones sospechosas o lunares en la zona a tratar?",
-  "¿Padece epilepsia fotosensible?",
-  "¿Tiene tendencia a formar queloides o cicatrices hipertróficas?",
-  "¿Ha tomado isotretinoína en los últimos 6 meses?",
-  "¿Toma medicamentos fotosensibilizantes (antibióticos, diuréticos, antidepresivos)?",
-  "¿Toma anticoagulantes?",
-  "¿Padece diabetes o alguna enfermedad que ralentice la cicatrización?",
-  "¿Tiene el sistema inmunitario comprometido?",
-  "¿Tiene vitíligo, psoriasis u otras enfermedades cutáneas activas?",
-  "¿Ha tenido herpes recurrente en la zona a tratar?",
-  "¿Se ha expuesto al sol o a cabinas de bronceado en las últimas 4 semanas?",
-  "¿Tiene tatuajes de henna negra o pigmentos metálicos en la zona?",
-  "¿Lleva implantes metálicos o marcapasos cerca de la zona?",
-  "¿Ha recibido tratamientos con ácidos o peelings en los últimos 30 días?",
-  "¿Ha recibido rellenos con ácido hialurónico en la zona?",
-];
-
-const QUESTIONS: Record<ConsentFormType, string[]> = {
-  tattoo: TATTOO_QUESTIONS,
-  piercing: PIERCING_QUESTIONS,
-  laser: LASER_QUESTIONS,
-};
-
-const TYPE_LABEL: Record<ConsentFormType, string> = {
-  tattoo: "Tatuaje",
-  piercing: "Piercing",
-  laser: "Láser",
-};
-
-// Normativa sanitaria aplicable. Tatuaje y piercing: Decreto canario 154/2004
-// (registro y consentimiento, anexos VI y VII). Láser: régimen pendiente de
-// validar con el asesor (V-02); no se cita norma hasta entonces.
-const NORM_REF: Record<ConsentFormType, string> = {
-  tattoo: "Decreto 154/2004 de Canarias · Reglamento de establecimientos de tatuaje, micropigmentación y piercing",
-  piercing: "Decreto 154/2004 de Canarias · Reglamento de establecimientos de tatuaje, micropigmentación y piercing",
-  laser: "",
-};
-
-// Versión de la plantilla: subirla cada vez que cambie un texto o pregunta.
-// 1.0 = original · 1.1 = 27/11/2026 (Fase 0: normativa, protección de datos,
-// respuestas sin preselección, aplicador con DNI desde la base de datos).
-const CONSENT_TEMPLATE_VERSION = "1.1";
-
-const LEGAL_TEXT: Record<ConsentFormType, string> = {
-  tattoo:
-    "Declaro haber sido informado/a de manera clara y comprensible sobre el procedimiento de tatuaje que voy a realizar. Comprendo que un tatuaje es un procedimiento permanente que implica la introducción de pigmentos en la dermis mediante agujas estériles de un solo uso, y que puede conllevar riesgos como infección, reacción alérgica a los pigmentos, formación de queloides, pérdida de color durante la cicatrización u otras complicaciones. Entiendo que el resultado puede variar según mi tipo de piel y proceso de cicatrización individual, y que pueden ser necesarios retoques posteriores sin coste adicional en el plazo indicado por el artista. Me comprometo a seguir las instrucciones de cuidado postprocedimiento facilitadas y a consultar a un médico ante cualquier signo de alarma. La información facilitada en el cuestionario médico es verídica y completa. Presto mi consentimiento de forma libre, voluntaria e informada para la realización del tatuaje, pudiendo revocarlo en cualquier momento antes del inicio del procedimiento.",
-  piercing:
-    "Declaro haber sido informado/a de manera clara y comprensible sobre el procedimiento de piercing que voy a realizar. Comprendo que un piercing implica la perforación de tejido corporal y que puede conllevar riesgos como infección, rechazo o migración del piercing, formación de queloides, reacción alérgica al material de la joya u otras complicaciones descritas en este documento. Entiendo que el tiempo de cicatrización varía según la zona y puede extenderse varios meses, y que debo seguir las instrucciones de cuidado para evitar complicaciones. Me comprometo a no manipular la joya hasta la cicatrización completa y a consultar a un médico ante cualquier signo de alarma. La información facilitada en el cuestionario médico es verídica y completa. Presto mi consentimiento de forma libre, voluntaria e informada para la realización del piercing, pudiendo revocarlo en cualquier momento antes del inicio del procedimiento.",
-  laser:
-    "Declaro haber sido informado/a de manera clara y comprensible sobre el tratamiento con láser que voy a realizar. Comprendo que el láser es un procedimiento médico-estético que puede conllevar riesgos como enrojecimiento transitorio, hiperpigmentación o hipopigmentación post-inflamatoria, quemadura superficial, infección u otras complicaciones descritas en este documento. Entiendo que los resultados no están garantizados al 100%, que pueden requerirse varias sesiones y que la respuesta varía según el fototipo de piel, el color del pigmento y otros factores individuales. Me comprometo a seguir las instrucciones de protección solar y cuidados posteriores, y a comunicar cualquier cambio en mi estado de salud o medicación antes de cada sesión. La información facilitada en el cuestionario médico es verídica y completa. Presto mi consentimiento de forma libre, voluntaria e informada para la realización del tratamiento con láser, pudiendo revocarlo en cualquier momento antes del inicio del procedimiento.",
-};
-
-// Mismo texto en pantalla y en el PDF; coherente con la política de privacidad.
-const rgpdText = (type: ConsentFormType) =>
-  "Responsable: Pablo Matos Rodríguez (Lowkey Tattoo), NIF 54050691R, Calle Dr. Allart 50, 38003 Santa Cruz de Tenerife. " +
-  "Finalidad: valorar si el procedimiento puede realizarse con seguridad, documentar la intervención y cumplir la normativa sanitaria. " +
-  "Sus datos, incluidos los de salud, solo los consultan los titulares del estudio y el artista que le atiende, y no se ceden a terceros salvo obligación legal. " +
-  (type === "laser"
-    ? "Conservación: durante el plazo que exija la normativa aplicable y, como mínimo, 5 años desde esta intervención. "
-    : "Conservación: al menos 5 años desde esta intervención (Decreto 154/2004 de Canarias). ") +
-  "Puede ejercer sus derechos de acceso, rectificación, supresión, oposición, limitación y portabilidad en info@tattoolowkey.com y reclamar ante la AEPD (www.aepd.es). " +
-  "Más información: tattoolowkey.com/politica-de-privacidad.";
-
-// ─── Generacion del PDF ──────────────────────────────────────────────────────
-
-interface PdfParams {
-  formType: ConsentFormType;
-  artist: Artist;
-  client: Pick<Client, "name" | "phone" | "email" | "birthday">;
-  formData: ConsentFormData;
-  signatureDataUrl: string;
-  signedAt: Date;
-  formId: string;
-  applicatorNif: string | null;
-  applicatorCert: string | null;
-}
-
-function buildPdf(p: PdfParams): Blob {
-  const pdf = new jsPDF({ orientation: "portrait", unit: "mm", format: "a4" });
-
-  // Registrar Pirata One para el título de cabecera
-  pdf.addFileToVFS("PirataOne.ttf", PIRATA_ONE_B64);
-  pdf.addFont("PirataOne.ttf", "PirataOne", "normal");
-
-  const W = 210, H = 297;
-  const ml = 14, mr = 14;
-  const tw = W - ml - mr;
-  let y = 0;
-
-  // ── helpers ──────────────────────────────────────────────────────────────────
-  const np = (need = 6) => {
-    if (y + need > H - 14) { pdf.addPage(); y = 16; }
-  };
-
-  const h2 = (t: string) => {
-    np(9);
-    pdf.setFontSize(8.5).setFont("helvetica", "bold");
-    pdf.text(t, ml, y);
-    y += 5.5;
-  };
-
-  const body = (t: string, x = ml, maxW = tw) => {
-    pdf.setFontSize(8).setFont("helvetica", "normal");
-    const lines = pdf.splitTextToSize(t, maxW);
-    np(lines.length * 4.2);
-    pdf.text(lines, x, y);
-    y += lines.length * 4.2;
-  };
-
-  const hr = (gap = 5) => {
-    np(gap + 2);
-    pdf.setDrawColor(200, 200, 200);
-    pdf.line(ml, y, W - mr, y);
-    y += gap;
-  };
-
-  const colLabel = (t: string, x: number) => {
-    pdf.setFontSize(7).setFont("helvetica", "bold").setTextColor(120, 120, 120);
-    pdf.text(t, x, y);
-    pdf.setTextColor(0, 0, 0);
-  };
-
-  // ── Cabecera ─────────────────────────────────────────────────────────────
-  const hdrH = 28;
-  pdf.setFillColor(18, 18, 18);
-  pdf.rect(0, 0, W, hdrH, "F");
-
-  // Nombre del estudio — Pirata One
-  pdf.setTextColor(255, 255, 255);
-  pdf.setFontSize(18).setFont("PirataOne", "normal");
-  pdf.text("Lowkey Tattoo Tenerife", ml, 14);
-
-  // Datos del estudio
-  pdf.setFontSize(7).setFont("helvetica", "normal").setTextColor(200, 200, 200);
-  pdf.text(CONTACT.address, ml, 20);
-  pdf.text(`${CONTACT.phonePretty}  ·  ${CONTACT.website}  ·  ${CONTACT.email}`, ml, 25);
-
-  pdf.setTextColor(0, 0, 0);
-  y = hdrH + 6;
-
-  // ── Título ───────────────────────────────────────────────────────────────
-  pdf.setFontSize(11).setFont("helvetica", "bold");
-  pdf.text(`CONSENTIMIENTO INFORMADO — ${TYPE_LABEL[p.formType].toUpperCase()}`, ml, y);
-  y += 5.5;
-  if (NORM_REF[p.formType]) {
-    pdf.setFontSize(7).setFont("helvetica", "normal").setTextColor(130, 130, 130);
-    pdf.text(NORM_REF[p.formType], ml, y);
-    pdf.setTextColor(0, 0, 0);
-  }
-  y += 6;
-  hr(4);
-
-  // ── Profesional | Cliente (dos columnas con yL/yR independientes) ─────────
-  const colW = (tw - 6) / 2;
-  const col2 = ml + colW + 6;
-  let yL = y;
-  let yR = y;
-
-  // Columna izquierda: Profesional
-  colLabel("PROFESIONAL RESPONSABLE", ml);
-  yL += 4.5;
-  pdf.setFontSize(9).setFont("helvetica", "bold");
-  pdf.text(p.artist.name, ml, yL); yL += 5;
-  pdf.setFontSize(8).setFont("helvetica", "normal");
-  pdf.text(`DNI/NIE: ${p.applicatorNif ?? "[Pendiente]"}`, ml, yL); yL += 4.5;
-  if (p.applicatorCert) {
-    pdf.text(`Cert. higiénico-sanitario: ${p.applicatorCert}`, ml, yL); yL += 4.5;
-  }
-
-  // Columna derecha: Cliente (yR independiente, posición x = col2)
-  colLabel("CLIENTE", col2);
-  yR += 4.5;
-  pdf.setFontSize(9).setFont("helvetica", "bold");
-  pdf.text(p.client.name, col2, yR); yR += 5;
-  pdf.setFontSize(8).setFont("helvetica", "normal");
-  pdf.text(`DNI/NIE: ${p.formData.clientDni || "—"}`, col2, yR); yR += 4.5;
-  if (p.client.phone) { pdf.text(`Tel: ${p.client.phone}`, col2, yR); yR += 4.5; }
-  if (p.client.email) {
-    const emailLines = pdf.splitTextToSize(`Email: ${p.client.email}`, colW);
-    pdf.text(emailLines, col2, yR); yR += emailLines.length * 4.5;
-  }
-  if (p.client.birthday) { pdf.text(`Nac: ${p.client.birthday}`, col2, yR); yR += 4.5; }
-
-  y = Math.max(yL, yR) + 4;
-  hr(5);
-
-  // ── Cuestionario médico ───────────────────────────────────────────────────
-  h2("CUESTIONARIO MÉDICO PREVIO");
-  p.formData.questionnaire.forEach((item) => {
-    np(5);
-    pdf.setFontSize(8).setFont("helvetica", "normal").setTextColor(0, 0, 0);
-    const qLines = pdf.splitTextToSize(item.q, tw - 14);
-    pdf.text(qLines, ml + 2, y);
-    pdf.setFont("helvetica", "bold");
-    pdf.setTextColor(item.a ? 180 : 40, item.a ? 40 : 140, 0);
-    pdf.text(item.a ? "SÍ" : "NO", W - mr - 7, y);
-    pdf.setTextColor(0, 0, 0);
-    y += qLines.length * 4.2 + 1;
-  });
-
-  if (p.formData.additionalInfo) {
-    y += 2;
-    h2("INFORMACIÓN ADICIONAL");
-    body(p.formData.additionalInfo);
-  }
-
-  if (p.formData.isMinor) {
-    y += 2;
-    hr(4);
-    h2("REPRESENTANTE LEGAL (MENOR DE EDAD)");
-    body(`Tutor: ${p.formData.tutorName ?? ""}   ·   DNI: ${p.formData.tutorDni ?? ""}   ·   Relación: ${p.formData.tutorRelation ?? ""}`);
-  }
-
-  y += 4;
-  hr(5);
-
-  // ── Declaración + RGPD ───────────────────────────────────────────────────
-  h2("DECLARACIÓN DE CONSENTIMIENTO INFORMADO");
-  body(LEGAL_TEXT[p.formType]);
-  y += 4;
-  pdf.setFontSize(8).setFont("helvetica", "bold").setTextColor(80, 80, 80);
-  pdf.text("PROTECCIÓN DE DATOS", ml, y); y += 4.5;
-  pdf.setFont("helvetica", "normal").setFontSize(7.5);
-  const rgpdLines = pdf.splitTextToSize(rgpdText(p.formType), tw);
-  np(rgpdLines.length * 3.8);
-  pdf.text(rgpdLines, ml, y);
-  pdf.setTextColor(0, 0, 0);
-  y += rgpdLines.length * 3.8 + 5;
-  hr(5);
-
-  // ── Firma: metadatos a la izquierda, caja de firma a la derecha ───────────
-  const sigH = 36;
-  const metaW = 88;
-  const sigBoxW = tw - metaW - 6;
-  const sigX = ml + metaW + 6;
-  np(sigH + 6);
-  const sigRowY = y;
-
-  pdf.setFontSize(8.5).setFont("helvetica", "bold");
-  pdf.text("FIRMA DEL CLIENTE", ml, y); y += 7;
-  pdf.setFontSize(8).setFont("helvetica", "normal");
-  pdf.text(`Fecha y hora:  ${format(p.signedAt, "dd/MM/yyyy  HH:mm:ss")}`, ml, y); y += 5;
-  pdf.setFontSize(7).setTextColor(130, 130, 130);
-  const idLines = pdf.splitTextToSize(`Documento: ${p.formId}`, metaW - 2);
-  pdf.text(idLines, ml, y);
-  pdf.setTextColor(0, 0, 0);
-
-  pdf.setDrawColor(180, 180, 180);
-  pdf.rect(sigX, sigRowY, sigBoxW, sigH);
-  try {
-    pdf.addImage(p.signatureDataUrl, "PNG", sigX + 1.5, sigRowY + 1.5, sigBoxW - 3, sigH - 3, "", "FAST");
-  } catch (_) {}
-
-  y = sigRowY + sigH + 4;
-
-  // ── Pie de página ─────────────────────────────────────────────────────────
-  const pageCount = pdf.getNumberOfPages();
-  for (let i = 1; i <= pageCount; i++) {
-    pdf.setPage(i);
-    pdf.setFontSize(7).setTextColor(170, 170, 170);
-    pdf.text(
-      `Lowkey Tattoo  ·  Plantilla v${CONSENT_TEMPLATE_VERSION}  ·  Generado: ${format(p.signedAt, "dd/MM/yyyy HH:mm:ss")}`,
-      ml, H - 8
-    );
-    pdf.text(`${i} / ${pageCount}`, W - mr - 8, H - 8);
-    pdf.setTextColor(0, 0, 0);
-  }
-
-  return pdf.output("blob");
-}
+// La función SQL server_now() no está en el tipo Database generado.
+const db = supabase as unknown as SupabaseClient;
 
 // ─── Componente ──────────────────────────────────────────────────────────────
 
@@ -337,122 +57,312 @@ interface Props {
   open: boolean;
   onClose: () => void;
   client: Pick<Client, "id" | "name" | "phone" | "email" | "birthday">;
+  /** Artista de la cuenta actual (aplicador por defecto). */
   artist: Artist;
+  /** Si es un documento corregido: id del consentimiento anulado al que sustituye. */
+  replacesId?: string | null;
+  /** Valores iniciales (documento corregido). */
+  initial?: { formType?: ConsentFormType; applicatorId?: string; sessionId?: string | null; zone?: string; description?: string };
 }
 
-const STEPS = ["tipo", "datos", "cuestionario", "firma"] as const;
+const STEPS = ["intervencion", "cliente", "cuestionario", "consentimientos", "firmas"] as const;
 type Step = typeof STEPS[number];
+const STEP_LABEL: Record<Step, string> = {
+  intervencion: "Intervención",
+  cliente: "Cliente",
+  cuestionario: "Cuestionario",
+  consentimientos: "Consentimientos",
+  firmas: "Revisión y firmas",
+};
 
-export function ConsentFormModal({ open, onClose, client, artist }: Props) {
-  const sigRef = useRef<SignatureCanvas>(null);
-  const scrollRef = useRef<HTMLDivElement>(null);
+const label = "font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider";
+
+export function ConsentFormModal({ open, onClose, client, artist, replacesId = null, initial }: Props) {
+  const { profile } = useAdminAuth();
+  const isOwner = profile?.role === "owner";
   const createConsent = useCreateConsentForm();
-  const { data: legal, isLoading: legalLoading } = useApplicatorLegalInfo(open ? artist.id : null);
+  const updateClient = useUpdateClient();
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const sigClient = useRef<SignatureCanvas>(null);
+  const sigTutor = useRef<SignatureCanvas>(null);
+  const sigApplicator = useRef<SignatureCanvas>(null);
+  const photoInput = useRef<HTMLInputElement>(null);
+
+  const [step, setStep] = useState<Step>("intervencion");
+  useEffect(() => { scrollRef.current?.scrollTo({ top: 0 }); }, [step]);
+
+  // Aplicador: un artista solo firma como él mismo; los dueños eligen.
+  const ownArtist = ARTISTS.find((a) => a.id === profile?.artist_config_id && !a.hidden) ?? null;
+  const selectableArtists = isOwner ? ARTISTS.filter((a) => !a.hidden) : ownArtist ? [ownArtist] : [];
+  const defaultApplicator = initial?.applicatorId ?? (!artist.hidden ? artist.id : ownArtist?.id ?? "");
+
+  // ── Paso 1 ──
+  const [formType, setFormType] = useState<ConsentFormType | null>(initial?.formType ?? null);
+  const [applicatorId, setApplicatorId] = useState<string>(defaultApplicator);
+  const [sessionId, setSessionId] = useState<string>(initial?.sessionId ?? "");
+  const [zone, setZone] = useState(initial?.zone ?? "");
+  const [description, setDescription] = useState(initial?.description ?? "");
+  const [phototype, setPhototype] = useState("");
+  const [laserSession, setLaserSession] = useState("");
+  const [pigmentColors, setPigmentColors] = useState("");
+  const [laserParams, setLaserParams] = useState("");
+  // ── Paso 2 ──
+  const [clientDni, setClientDni] = useState("");
+  const [birthDate, setBirthDate] = useState(client.birthday ?? "");
+  const [tutorName, setTutorName] = useState("");
+  const [tutorRelation, setTutorRelation] = useState("");
+  const [tutorDni, setTutorDni] = useState("");
+  const [tutorVerified, setTutorVerified] = useState(false);
+  const [tutorPhoto, setTutorPhoto] = useState<Blob | null>(null);
+  const [tutorPhotoUrl, setTutorPhotoUrl] = useState<string | null>(null);
+  // ── Paso 3 ──
+  const [answers, setAnswers] = useState<(boolean | null)[]>([]);
+  const [details, setDetails] = useState<string[]>([]);
+  const [additionalInfo, setAdditionalInfo] = useState("");
+  // ── Paso 4 ──
+  const [cProcedure, setCProcedure] = useState(false);
+  const [cCare, setCCare] = useState(false);
+  const [cHealth, setCHealth] = useState(false);
+  const [image, setImage] = useState<ConsentImagePermissions>(NO_IMAGE);
+  // ── Paso 5 ──
+  const [signed, setSigned] = useState({ client: false, tutor: false, applicator: false });
+  const [saving, setSaving] = useState(false);
+
+  const applicator = ARTISTS.find((a) => a.id === applicatorId) ?? null;
+  const { data: legal, isLoading: legalLoading } = useApplicatorLegalInfo(open && applicatorId ? applicatorId : null);
   const applicatorNif = legal?.nif ?? null;
   const applicatorCert = legal?.sanitary_cert ?? null;
 
-  const [step, setStep] = useState<Step>("tipo");
+  const { data: sessions } = useQuery({
+    queryKey: ["consent-client-sessions", client.id],
+    enabled: open,
+    queryFn: async () => {
+      const { data, error } = await db
+        .from("sessions")
+        .select("id, date, type, body_zone")
+        .eq("client_id", client.id)
+        .order("date", { ascending: false })
+        .limit(20);
+      if (error) throw error;
+      return (data ?? []) as { id: string; date: string; type: string; body_zone: string | null }[];
+    },
+  });
 
-  useEffect(() => {
-    scrollRef.current?.scrollTo({ top: 0 });
-  }, [step]);
-  const [formType, setFormType] = useState<ConsentFormType | null>(null);
-  const [clientDni, setClientDni] = useState("");
-  const [isMinor, setIsMinor] = useState(false);
-  const [tutorName, setTutorName] = useState("");
-  const [tutorDni, setTutorDni] = useState("");
-  const [tutorRelation, setTutorRelation] = useState("");
-  // null = sin contestar: cada pregunta debe responderse expresamente
-  const [answers, setAnswers] = useState<(boolean | null)[]>([]);
-  const [additionalInfo, setAdditionalInfo] = useState("");
-  const [accepted, setAccepted] = useState(false);
-  const [saving, setSaving] = useState(false);
+  const age = birthDate ? ageOn(birthDate, new Date()) : null;
+  const isMinor = age !== null && age < ADULT_AGE;
+  const tooYoung = age !== null && age < MIN_AGE;
+
+  const availableTypes = (["tattoo", "piercing", "laser"] as ConsentFormType[]).filter((t) =>
+    selectableArtists.some((a) => a.services.includes(t)),
+  );
+  const applicatorChoices = formType ? selectableArtists.filter((a) => a.services.includes(formType)) : [];
 
   const stepIndex = STEPS.indexOf(step);
-  const progress = Math.round(((stepIndex + 1) / STEPS.length) * 100);
+
+  const reset = () => {
+    setStep("intervencion");
+    setFormType(initial?.formType ?? null);
+    setApplicatorId(defaultApplicator);
+    setSessionId(initial?.sessionId ?? ""); setZone(initial?.zone ?? ""); setDescription(initial?.description ?? "");
+    setPhototype(""); setLaserSession(""); setPigmentColors(""); setLaserParams("");
+    setClientDni(""); setBirthDate(client.birthday ?? "");
+    setTutorName(""); setTutorRelation(""); setTutorDni(""); setTutorVerified(false);
+    setTutorPhoto(null);
+    if (tutorPhotoUrl) URL.revokeObjectURL(tutorPhotoUrl);
+    setTutorPhotoUrl(null);
+    setAnswers(initial?.formType ? new Array(QUESTIONS[initial.formType].length).fill(null) : []);
+    setDetails(initial?.formType ? new Array(QUESTIONS[initial.formType].length).fill("") : []);
+    setAdditionalInfo("");
+    setCProcedure(false); setCCare(false); setCHealth(false); setImage(NO_IMAGE);
+    setSigned({ client: false, tutor: false, applicator: false });
+  };
+
+  // Al abrir (p. ej. documento corregido) se aplican los valores iniciales
+  useEffect(() => {
+    if (open) reset();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   const handleClose = () => {
-    setStep("tipo");
-    setFormType(null);
-    setClientDni("");
-    setIsMinor(false);
-    setTutorName(""); setTutorDni(""); setTutorRelation("");
-    setAnswers([]);
-    setAdditionalInfo("");
-    setAccepted(false);
-    sigRef.current?.clear();
+    reset();
     onClose();
   };
 
   const selectType = (t: ConsentFormType) => {
     setFormType(t);
     setAnswers(new Array(QUESTIONS[t].length).fill(null));
-    setStep("datos");
+    setDetails(new Array(QUESTIONS[t].length).fill(""));
+    if (!selectableArtists.find((a) => a.id === applicatorId)?.services.includes(t)) {
+      const first = selectableArtists.find((a) => a.services.includes(t));
+      setApplicatorId(first?.id ?? "");
+    }
   };
 
-  const setAnswer = (i: number, value: boolean) => {
-    setAnswers((prev) => prev.map((v, idx) => (idx === i ? value : v)));
+  const onPickSession = (id: string) => {
+    setSessionId(id);
+    const s = sessions?.find((x) => x.id === id);
+    if (s?.body_zone && !zone) setZone(s.body_zone);
+  };
+
+  const onPhoto = async (file: File | undefined) => {
+    if (!file) return;
+    try {
+      const blob = await compressImage(file);
+      if (tutorPhotoUrl) URL.revokeObjectURL(tutorPhotoUrl);
+      setTutorPhoto(blob);
+      setTutorPhotoUrl(URL.createObjectURL(blob));
+    } catch (err) {
+      toast.error((err as Error).message);
+    }
+  };
+
+  // ── Validaciones por paso ──
+  const unanswered = answers.filter((a) => a === null).length;
+  const missingDetails = answers.filter((a, i) => a === true && (details[i] ?? "").trim().length < 3).length;
+
+  const canNext: Record<Step, boolean> = {
+    intervencion: !!formType && !!applicator && !!applicatorNif && zone.trim().length >= 2 &&
+      (formType !== "laser" || !!phototype),
+    cliente: clientDni.trim().length >= 5 && age !== null && !tooYoung &&
+      (!isMinor || (tutorName.trim().length >= 3 && tutorRelation.trim().length >= 3 && tutorDni.trim().length >= 5 && tutorVerified)),
+    cuestionario: answers.length > 0 && unanswered === 0 && missingDetails === 0,
+    consentimientos: cProcedure && cCare && cHealth,
+    firmas: signed.client && signed.applicator && (!isMinor || signed.tutor),
+  };
+
+  const blockReason: Partial<Record<Step, string>> = {
+    intervencion: !formType ? "Elige el tipo de intervención"
+      : !applicator ? "Elige el aplicador"
+      : legalLoading ? "Cargando datos del aplicador…"
+      : !applicatorNif ? `Falta el DNI/NIE de ${applicator.name}: añádelo en Mi perfil → Datos legales`
+      : zone.trim().length < 2 ? "Indica la zona"
+      : formType === "laser" && !phototype ? "Indica el fototipo" : undefined,
+    cliente: clientDni.trim().length < 5 ? "Falta el documento del cliente"
+      : age === null ? "Falta la fecha de nacimiento"
+      : tooYoung ? `No se realizan procedimientos a menores de ${MIN_AGE} años`
+      : isMinor && !tutorVerified ? "Completa y comprueba los datos del representante" : undefined,
+    cuestionario: unanswered > 0 ? `Faltan ${unanswered} ${unanswered === 1 ? "respuesta" : "respuestas"}`
+      : missingDetails > 0 ? "Añade la aclaración de cada «Sí»" : undefined,
+    consentimientos: !(cProcedure && cCare && cHealth) ? "Faltan las casillas obligatorias" : undefined,
+    firmas: !signed.client ? "Falta la firma del cliente"
+      : isMinor && !signed.tutor ? "Falta la firma del representante"
+      : !signed.applicator ? "Falta la firma del aplicador" : undefined,
+  };
+
+  const goNext = () => {
+    if (step === "cliente" && !client.birthday && birthDate) {
+      // Guardar la fecha de nacimiento en la ficha si no estaba (no bloquea si falla)
+      updateClient.mutate({ id: client.id, birthday: birthDate }, { onError: () => undefined });
+    }
+    setStep(STEPS[stepIndex + 1]);
+  };
+
+  const clearSig = (k: keyof typeof signed) => {
+    ({ client: sigClient, tutor: sigTutor, applicator: sigApplicator })[k].current?.clear();
+    setSigned((s) => ({ ...s, [k]: false }));
   };
 
   const handleSubmit = async () => {
-    if (!formType) return;
-    if (!sigRef.current || sigRef.current.isEmpty()) {
-      toast.error("La firma es obligatoria");
-      return;
-    }
-    if (!accepted) {
-      toast.error("Debes aceptar la declaración");
-      return;
-    }
+    if (!formType || !applicator || !applicatorNif || age === null) return;
+    if (!canNext.firmas) { toast.error(blockReason.firmas ?? "Faltan firmas"); return; }
 
     setSaving(true);
+    const uploaded: string[] = [];
     try {
-      const signatureDataUrl = sigRef.current.getCanvas().toDataURL("image/png");
-      const signedAt = new Date();
+      // Hora del servidor (la base de datos la vuelve a comprobar)
+      let signedAt = new Date();
+      const { data: srv, error: srvErr } = await db.rpc("server_now");
+      if (!srvErr && srv) signedAt = new Date(srv as string);
+
       const formId = crypto.randomUUID();
+      const session = sessions?.find((s) => s.id === sessionId) ?? null;
+
+      // 1. Foto del documento del representante: archivo aparte, nunca en el PDF
+      let documentPhotoPath: string | null = null;
+      if (isMinor && tutorPhoto) {
+        documentPhotoPath = `${client.id}/representante_${formId}.jpg`;
+        const { error } = await supabase.storage
+          .from("consent-documents")
+          .upload(documentPhotoPath, tutorPhoto, { contentType: "image/jpeg" });
+        if (error) throw error;
+        uploaded.push(documentPhotoPath);
+      }
 
       const questions = QUESTIONS[formType];
       const formData: ConsentFormData = {
-        clientDni,
+        // v1 (compatibilidad con listados y documentos antiguos)
+        clientDni: clientDni.trim(),
         isMinor,
-        tutorName: isMinor ? tutorName : undefined,
-        tutorDni: isMinor ? tutorDni : undefined,
-        tutorRelation: isMinor ? tutorRelation : undefined,
-        questionnaire: questions.map((q, i) => ({ q, a: answers[i] === true })),
-        additionalInfo,
-        artistId: artist.id,
-        artistName: artist.name,
-        artistNif: applicatorNif ?? "",
+        tutorName: isMinor ? tutorName.trim() : undefined,
+        tutorDni: isMinor ? tutorDni.trim() : undefined,
+        tutorRelation: isMinor ? tutorRelation.trim() : undefined,
+        questionnaire: questions.map((q, i) => ({
+          q,
+          a: answers[i] === true,
+          ...(answers[i] === true ? { detail: details[i].trim() } : {}),
+        })),
+        additionalInfo: additionalInfo.trim(),
+        artistId: applicator.id,
+        artistName: applicator.name,
+        artistNif: applicatorNif,
         formType,
+        // v2
+        templateVersion: CONSENT_TEMPLATE_VERSION,
+        procedure: { zone: zone.trim(), description: description.trim(), sessionId: session?.id ?? null, sessionDate: session?.date ?? null },
+        laser: formType === "laser"
+          ? { phototype, sessionNumber: laserSession.trim(), pigmentColors: pigmentColors.trim(), parameters: laserParams.trim() }
+          : undefined,
+        applicator: { artistId: applicator.id, name: applicator.name, nif: applicatorNif, sanitaryCert: applicatorCert },
+        client: { birthDate, ageAtSigning: age },
+        minor: isMinor
+          ? {
+              tutorName: tutorName.trim(),
+              tutorRelation: tutorRelation.trim(),
+              tutorDni: tutorDni.trim(),
+              verified: tutorVerified,
+              verifiedBy: profile?.display_name ?? applicator.name,
+              documentPhotoPath,
+            }
+          : null,
+        consents: { procedure: cProcedure, careInstructions: cCare, healthData: cHealth, image },
+        signatures: { client: true, tutor: isMinor, applicator: true },
       };
 
+      // 2. PDF + huella
       const pdfBlob = buildPdf({
         formType,
-        artist,
         client,
         formData,
-        signatureDataUrl,
+        signatures: {
+          client: sigClient.current!.getCanvas().toDataURL("image/png"),
+          tutor: isMinor ? sigTutor.current!.getCanvas().toDataURL("image/png") : null,
+          applicator: sigApplicator.current!.getCanvas().toDataURL("image/png"),
+        },
         signedAt,
         formId,
-        applicatorNif,
-        applicatorCert,
+        replacesId,
       });
+      const pdfSha256 = await sha256Hex(pdfBlob);
 
-      const fileName = `${client.id}/${formType}_${Date.now()}.pdf`;
-      const { error: uploadError } = await supabase.storage
+      const pdfPath = `${client.id}/${formType}_${formId}.pdf`;
+      const { error: upErr } = await supabase.storage
         .from("consent-documents")
-        .upload(fileName, pdfBlob, { contentType: "application/pdf" });
+        .upload(pdfPath, pdfBlob, { contentType: "application/pdf" });
+      if (upErr) throw upErr;
+      uploaded.push(pdfPath);
 
-      if (uploadError) throw uploadError;
-
+      // 3. Registro (estado, autor y hora los fija/valida la base de datos)
       await createConsent.mutateAsync({
+        id: formId,
         client_id: client.id,
-        session_id: null,
+        session_id: session?.id ?? null,
         type: formType,
         version: CONSENT_TEMPLATE_VERSION,
         form_data: formData,
-        signature_data: signatureDataUrl,
-        pdf_storage_path: fileName,
+        signature_data: null,
+        pdf_storage_path: pdfPath,
+        pdf_sha256: pdfSha256,
+        replaces_id: replacesId,
         signed_at: signedAt.toISOString(),
         ip_address: null,
         user_agent: navigator.userAgent,
@@ -463,322 +373,391 @@ export function ConsentFormModal({ open, onClose, client, artist }: Props) {
       handleClose();
     } catch (err) {
       console.error(err);
-      toast.error("Error al guardar el consentimiento");
+      // Sin registro, los archivos subidos no deben quedar sueltos
+      if (uploaded.length > 0) {
+        await supabase.storage.from("consent-documents").remove(uploaded).catch(() => undefined);
+      }
+      toast.error("Error al guardar el consentimiento. No se ha guardado nada; inténtalo de nuevo.");
     } finally {
       setSaving(false);
     }
   };
 
-  const canProceedFromDatos = clientDni.trim().length >= 8;
-  const unanswered = answers.filter((a) => a === null).length;
-  const canProceedFromCuestionario = answers.length > 0 && unanswered === 0;
+  const sigBox = (k: keyof typeof signed, ref: React.RefObject<SignatureCanvas>, title: string, who: string) => (
+    <div>
+      <Label className={`${label} mb-1 block`}>{title}</Label>
+      <p className="text-xs text-muted-foreground mb-2">{who}</p>
+      <div className="border-2 border-dashed border-border rounded-lg overflow-hidden bg-white dark:bg-white">
+        <SignatureCanvas
+          ref={ref}
+          penColor="black"
+          onEnd={() => setSigned((s) => ({ ...s, [k]: true }))}
+          canvasProps={{ className: "w-full", style: { height: 160, touchAction: "none" } }}
+        />
+      </div>
+      <Button variant="ghost" size="sm" className="mt-1 text-muted-foreground" onClick={() => clearSig(k)}>
+        Borrar firma
+      </Button>
+    </div>
+  );
+
+  const yesNo = (v: boolean) => (v ? "Sí" : "No");
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) handleClose(); }}>
       <DialogContent className="max-w-2xl w-full max-h-[92vh] flex flex-col p-0 gap-0 bg-card border-border">
-        {/* Header */}
         <DialogHeader className="px-5 pt-5 pb-3 shrink-0">
           <DialogTitle className="font-['IBM_Plex_Mono'] text-sm uppercase tracking-wider text-muted-foreground">
-            Consentimiento informado
-            {formType && (
-              <span className="text-foreground ml-2">— {TYPE_LABEL[formType]}</span>
-            )}
+            {replacesId ? "Consentimiento corregido" : "Consentimiento informado"}
+            {formType && <span className="text-foreground ml-2">— {TYPE_LABEL[formType]}</span>}
           </DialogTitle>
-          {/* Barra de progreso */}
           <div className="flex gap-1.5 mt-3">
             {STEPS.map((s, i) => (
-              <div
-                key={s}
-                className={`h-1 rounded-full flex-1 transition-colors ${
-                  i <= stepIndex ? "bg-primary" : "bg-border"
-                }`}
-              />
+              <div key={s} className={`h-1 rounded-full flex-1 transition-colors ${i <= stepIndex ? "bg-primary" : "bg-border"}`} />
             ))}
           </div>
+          <p className="text-[11px] text-muted-foreground mt-1.5 font-['IBM_Plex_Mono']">
+            Paso {stepIndex + 1} de {STEPS.length} · {STEP_LABEL[step]}
+          </p>
         </DialogHeader>
 
-        {/* Contenido scrollable */}
         <div ref={scrollRef} className="flex-1 overflow-y-auto px-5 pb-2">
 
-          {/* PASO 1 — Tipo */}
-          {step === "tipo" && (
-            <div className="space-y-3 py-4">
-              <p className="text-sm text-muted-foreground mb-4">
-                Selecciona el tipo de procedimiento para el que se genera el consentimiento.
-              </p>
-              {(["tattoo", "piercing", "laser"] as ConsentFormType[])
-                .filter((t) => artist.services.includes(t))
-                .map((t) => (
-                  <button
-                    key={t}
-                    onClick={() => selectType(t)}
-                    className="w-full text-left p-4 rounded-lg border border-border bg-background hover:border-primary hover:bg-primary/5 transition-all group"
-                  >
-                    <div className="font-semibold text-foreground group-hover:text-primary">
+          {/* ── PASO 1 · Intervención ── */}
+          {step === "intervencion" && (
+            <div className="space-y-4 py-4">
+              <div className="space-y-2">
+                <Label className={label}>Tipo de intervención *</Label>
+                <div className="grid grid-cols-3 gap-2">
+                  {availableTypes.map((t) => (
+                    <button
+                      key={t}
+                      type="button"
+                      onClick={() => selectType(t)}
+                      className={`p-3 rounded-lg border text-sm font-semibold transition-all ${
+                        formType === t ? "border-primary bg-primary/10 text-primary" : "border-border bg-background hover:border-primary"
+                      }`}
+                    >
                       {TYPE_LABEL[t]}
+                    </button>
+                  ))}
+                </div>
+                {formType && NORM_REF[formType] && (
+                  <p className="text-[11px] text-muted-foreground">{NORM_REF[formType]}</p>
+                )}
+              </div>
+
+              {formType && (
+                <>
+                  <div className="space-y-1.5">
+                    <Label className={label}>Aplicador *</Label>
+                    {applicatorChoices.length > 1 ? (
+                      <select
+                        value={applicatorId}
+                        onChange={(e) => setApplicatorId(e.target.value)}
+                        className="w-full h-10 rounded-md border border-border bg-background px-3 text-sm"
+                      >
+                        <option value="">Elige al artista que realiza la intervención</option>
+                        {applicatorChoices.map((a) => <option key={a.id} value={a.id}>{a.name}</option>)}
+                      </select>
+                    ) : (
+                      <div className="p-2.5 rounded-md border border-border bg-background text-sm">
+                        {applicator?.name ?? "Tu cuenta no está asociada a un artista que realice este servicio"}
+                      </div>
+                    )}
+                    {applicator && (
+                      <div className="text-xs">
+                        {legalLoading ? (
+                          <span className="text-muted-foreground">Cargando datos legales…</span>
+                        ) : applicatorNif ? (
+                          <span className="text-muted-foreground font-['IBM_Plex_Mono']">
+                            DNI/NIE: {applicatorNif}{applicatorCert ? ` · Cert.: ${applicatorCert}` : ""}
+                          </span>
+                        ) : (
+                          <span className="text-destructive">
+                            Falta el DNI/NIE de {applicator.name}. Debe añadirlo en Mi perfil → Datos legales (o un dueño en Artistas).
+                          </span>
+                        )}
+                        {!legalLoading && applicatorNif && !applicatorCert && (
+                          <span className="block text-amber-500 dark:text-amber-400 mt-0.5">
+                            Falta el nº de certificado higiénico-sanitario (aviso, no bloquea).
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {(sessions ?? []).length > 0 && (
+                    <div className="space-y-1.5">
+                      <Label className={label}>Sesión (opcional)</Label>
+                      <select
+                        value={sessionId}
+                        onChange={(e) => onPickSession(e.target.value)}
+                        className="w-full h-10 rounded-md border border-border bg-background px-3 text-sm"
+                      >
+                        <option value="">Sin vincular a una sesión</option>
+                        {(sessions ?? []).map((s) => (
+                          <option key={s.id} value={s.id}>
+                            {fmtDate(s.date)} · {s.type}{s.body_zone ? ` · ${s.body_zone}` : ""}
+                          </option>
+                        ))}
+                      </select>
                     </div>
-                    <div className="text-xs text-muted-foreground mt-0.5">
-                      {t === "tattoo" && "Consentimiento para tatuaje · Decreto 154/2004 de Canarias"}
-                      {t === "piercing" && "Consentimiento para piercing · Decreto 154/2004 de Canarias"}
-                      {t === "laser" && "Consentimiento para eliminación de tatuajes con láser"}
+                  )}
+
+                  <div className="space-y-1.5">
+                    <Label className={label}>Zona del cuerpo *</Label>
+                    <Input value={zone} onChange={(e) => setZone(e.target.value)} maxLength={80} placeholder="Ej.: antebrazo izquierdo" className="bg-background border-border" />
+                  </div>
+                  <div className="space-y-1.5">
+                    <Label className={label}>Descripción breve del trabajo</Label>
+                    <Input value={description} onChange={(e) => setDescription(e.target.value)} maxLength={200} placeholder="Ej.: rosa fine line, 8 cm" className="bg-background border-border" />
+                    <p className="text-[11px] text-muted-foreground">Sin datos de salud: van en el cuestionario.</p>
+                  </div>
+
+                  {formType === "laser" && (
+                    <div className="space-y-3 p-3 rounded-lg border border-border bg-background">
+                      <p className={label}>Datos técnicos del láser</p>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">Fototipo (Fitzpatrick) *</Label>
+                        <div className="flex gap-1.5 flex-wrap">
+                          {PHOTOTYPES.map((f) => (
+                            <button key={f} type="button" aria-pressed={phototype === f} onClick={() => setPhototype(f)}
+                              className={`min-w-[2.75rem] px-3 py-2 rounded text-xs font-['IBM_Plex_Mono'] font-bold ${phototype === f ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground"}`}>
+                              {f}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="space-y-1.5">
+                          <Label className="text-xs">Nº de sesión</Label>
+                          <Input value={laserSession} onChange={(e) => setLaserSession(e.target.value)} maxLength={10} placeholder="Ej.: 3" className="bg-card border-border" />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label className="text-xs">Colores del pigmento</Label>
+                          <Input value={pigmentColors} onChange={(e) => setPigmentColors(e.target.value)} maxLength={80} placeholder="Ej.: negro, rojo" className="bg-card border-border" />
+                        </div>
+                      </div>
+                      <div className="space-y-1.5">
+                        <Label className="text-xs">Parámetros / observaciones técnicas</Label>
+                        <Textarea value={laserParams} onChange={(e) => setLaserParams(e.target.value)} maxLength={500} rows={2} placeholder="Longitud de onda, energía, tamaño de punto…" className="bg-card border-border" />
+                      </div>
                     </div>
-                  </button>
-                ))}
+                  )}
+                </>
+              )}
             </div>
           )}
 
-          {/* PASO 2 — Datos personales */}
-          {step === "datos" && (
+          {/* ── PASO 2 · Cliente ── */}
+          {step === "cliente" && (
             <div className="space-y-4 py-4">
-              {/* Cliente + Profesional lado a lado */}
+              <div className="p-3 rounded-lg bg-background border border-border text-sm">
+                <div className="text-[10px] font-['IBM_Plex_Mono'] uppercase tracking-wider text-muted-foreground mb-1">Cliente</div>
+                <div className="font-medium">{client.name}</div>
+                {client.phone && <div className="text-muted-foreground text-xs">{client.phone}</div>}
+                {client.email && <div className="text-muted-foreground text-xs truncate">{client.email}</div>}
+              </div>
               <div className="grid grid-cols-2 gap-3">
-                <div className="p-3 rounded-lg bg-background border border-border text-sm space-y-1">
-                  <div className="text-[10px] font-['IBM_Plex_Mono'] uppercase tracking-wider text-muted-foreground mb-1.5">Cliente</div>
-                  <div className="font-medium leading-tight">{client.name}</div>
-                  {client.phone && <div className="text-muted-foreground text-xs">{client.phone}</div>}
-                  {client.email && <div className="text-muted-foreground text-xs truncate">{client.email}</div>}
+                <div className="space-y-1.5">
+                  <Label className={label}>DNI / NIE / Pasaporte *</Label>
+                  <Input value={clientDni} onChange={(e) => setClientDni(e.target.value.toUpperCase())} maxLength={20} placeholder="12345678A" className="bg-background border-border uppercase" />
                 </div>
-                <div className="p-3 rounded-lg bg-background border border-border text-sm space-y-1">
-                  <div className="text-[10px] font-['IBM_Plex_Mono'] uppercase tracking-wider text-muted-foreground mb-1.5">Profesional</div>
-                  <div className="font-medium leading-tight">{artist.name}</div>
-                  {legalLoading ? (
-                    <div className="text-muted-foreground text-xs">Cargando datos legales…</div>
-                  ) : applicatorNif ? (
-                    <div className="text-muted-foreground text-xs font-['IBM_Plex_Mono']">DNI/NIE: {applicatorNif}</div>
-                  ) : (
-                    <div className="text-amber-500 dark:text-amber-400 text-xs">
-                      Falta tu DNI/NIE: añádelo en Mi perfil → Datos legales
-                    </div>
-                  )}
-                  {applicatorCert ? (
-                    <div className="text-muted-foreground text-xs">Cert.: {applicatorCert}</div>
-                  ) : !legalLoading && (
-                    <div className="text-amber-500 dark:text-amber-400 text-xs">Falta el nº de certificado higiénico-sanitario</div>
-                  )}
+                <div className="space-y-1.5">
+                  <Label className={label}>Fecha de nacimiento *</Label>
+                  <Input type="date" value={birthDate} onChange={(e) => setBirthDate(e.target.value)} className="bg-background border-border" />
                 </div>
               </div>
+              {age !== null && (
+                <p className={`text-xs ${tooYoung ? "text-destructive font-medium" : "text-muted-foreground"}`}>
+                  Edad: {age} años
+                  {tooYoung && ` — No se realizan procedimientos a menores de ${MIN_AGE} años (política del estudio).`}
+                </p>
+              )}
 
-              <div className="space-y-1.5">
-                <Label className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">
-                  DNI / NIE / Pasaporte *
-                </Label>
-                <Input
-                  value={clientDni}
-                  onChange={(e) => setClientDni(e.target.value.toUpperCase())}
-                  placeholder="12345678A"
-                  className="bg-background border-border uppercase"
-                  maxLength={20}
-                />
-              </div>
-
-              <div className="flex items-center gap-2">
-                <Checkbox
-                  id="is-minor"
-                  checked={isMinor}
-                  onCheckedChange={(v) => setIsMinor(!!v)}
-                />
-                <Label htmlFor="is-minor" className="text-sm cursor-pointer">
-                  El cliente es menor de edad (requiere tutor legal)
-                </Label>
-              </div>
-
-              {isMinor && (
+              {isMinor && !tooYoung && (
                 <div className="space-y-3 p-3 rounded-lg border border-amber-500/30 bg-amber-500/5">
                   <p className="text-xs text-amber-600 dark:text-amber-400 font-medium">
-                    Se requiere la firma del tutor legal. Solicita el documento acreditativo (libro de familia o DNI del tutor).
+                    Cliente de {age} años: el representante legal debe estar presente, acreditar su condición y firmar.
                   </p>
-                  <div className="space-y-1.5">
-                    <Label className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Nombre del tutor *</Label>
-                    <Input value={tutorName} onChange={(e) => setTutorName(e.target.value)} className="bg-background border-border" />
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1.5 col-span-2">
+                      <Label className={label}>Nombre del representante *</Label>
+                      <Input value={tutorName} onChange={(e) => setTutorName(e.target.value)} maxLength={120} className="bg-background border-border" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className={label}>Relación *</Label>
+                      <Input value={tutorRelation} onChange={(e) => setTutorRelation(e.target.value)} maxLength={60} placeholder="Padre / Madre / Tutor legal" className="bg-background border-border" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className={label}>DNI / NIE *</Label>
+                      <Input value={tutorDni} onChange={(e) => setTutorDni(e.target.value.toUpperCase())} maxLength={20} className="bg-background border-border uppercase" />
+                    </div>
                   </div>
-                  <div className="space-y-1.5">
-                    <Label className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">DNI del tutor *</Label>
-                    <Input value={tutorDni} onChange={(e) => setTutorDni(e.target.value.toUpperCase())} className="bg-background border-border uppercase" />
+                  <div className="space-y-2">
+                    <input ref={photoInput} type="file" accept="image/*" capture="environment" className="hidden"
+                      onChange={(e) => { void onPhoto(e.target.files?.[0]); e.target.value = ""; }} />
+                    <Button type="button" variant="outline" size="sm" onClick={() => photoInput.current?.click()}>
+                      {tutorPhoto ? "Repetir foto del documento" : "Fotografiar documento del representante"}
+                    </Button>
+                    {tutorPhotoUrl && (
+                      <div className="flex items-center gap-3">
+                        <img src={tutorPhotoUrl} alt="Documento del representante" className="h-16 rounded border border-border object-cover" />
+                        <button type="button" className="text-xs underline text-muted-foreground" onClick={() => { setTutorPhoto(null); if (tutorPhotoUrl) URL.revokeObjectURL(tutorPhotoUrl); setTutorPhotoUrl(null); }}>
+                          Quitar foto
+                        </button>
+                      </div>
+                    )}
+                    <p className="text-[11px] text-muted-foreground">
+                      Opcional. Se guarda como archivo privado aparte; no se incluye en el PDF ni en la copia del cliente.
+                    </p>
                   </div>
-                  <div className="space-y-1.5">
-                    <Label className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">Relación con el menor</Label>
-                    <Input value={tutorRelation} onChange={(e) => setTutorRelation(e.target.value)} placeholder="Padre / Madre / Tutor legal" className="bg-background border-border" />
+                  <div className="flex items-start gap-2">
+                    <Checkbox id="tutor-verified" checked={tutorVerified} onCheckedChange={(v) => setTutorVerified(!!v)} className="mt-0.5" />
+                    <Label htmlFor="tutor-verified" className="text-sm cursor-pointer leading-snug">
+                      He comprobado el documento del representante y su relación con el menor (libro de familia, resolución u otro documento acreditativo).
+                    </Label>
                   </div>
                 </div>
               )}
             </div>
           )}
 
-          {/* PASO 3 — Cuestionario medico */}
+          {/* ── PASO 3 · Cuestionario ── */}
           {step === "cuestionario" && formType && (
             <div className="py-4 space-y-2">
               <p className="text-xs text-muted-foreground mb-3">
-                El cliente responde personalmente <strong>todas</strong> las preguntas (Sí o No).
+                El cliente responde personalmente <strong>todas</strong> las preguntas. Si responde «Sí», indica brevemente el detalle.
               </p>
               {QUESTIONS[formType].map((q, i) => (
-                <div
-                  key={i}
-                  className="flex items-start gap-3 p-2.5 rounded-lg bg-background border border-border"
-                >
-                  <span className="text-sm text-foreground flex-1 leading-snug pt-0.5">{q}</span>
-                  <div className="flex gap-1.5 shrink-0">
-                    <button
-                      type="button"
-                      aria-pressed={answers[i] === false}
-                      onClick={() => setAnswer(i, false)}
-                      className={`min-w-[3rem] px-3 py-2 rounded text-xs font-['IBM_Plex_Mono'] font-bold transition-colors ${
-                        answers[i] === false
-                          ? "bg-emerald-600 text-white"
-                          : "bg-muted text-muted-foreground hover:bg-muted/80"
-                      }`}
-                    >
-                      No
-                    </button>
-                    <button
-                      type="button"
-                      aria-pressed={answers[i] === true}
-                      onClick={() => setAnswer(i, true)}
-                      className={`min-w-[3rem] px-3 py-2 rounded text-xs font-['IBM_Plex_Mono'] font-bold transition-colors ${
-                        answers[i] === true
-                          ? "bg-destructive text-destructive-foreground"
-                          : "bg-muted text-muted-foreground hover:bg-muted/80"
-                      }`}
-                    >
-                      Sí
-                    </button>
+                <div key={i} className="p-2.5 rounded-lg bg-background border border-border space-y-2">
+                  <div className="flex items-start gap-3">
+                    <span className="text-sm text-foreground flex-1 leading-snug pt-0.5">{q}</span>
+                    <div className="flex gap-1.5 shrink-0">
+                      {([false, true] as const).map((v) => (
+                        <button
+                          key={String(v)}
+                          type="button"
+                          aria-pressed={answers[i] === v}
+                          onClick={() => setAnswers((prev) => prev.map((a, idx) => (idx === i ? v : a)))}
+                          className={`min-w-[3rem] px-3 py-2 rounded text-xs font-['IBM_Plex_Mono'] font-bold transition-colors ${
+                            answers[i] === v
+                              ? v ? "bg-destructive text-destructive-foreground" : "bg-emerald-600 text-white"
+                              : "bg-muted text-muted-foreground hover:bg-muted/80"
+                          }`}
+                        >
+                          {v ? "Sí" : "No"}
+                        </button>
+                      ))}
+                    </div>
                   </div>
+                  {answers[i] === true && (
+                    <Input
+                      value={details[i] ?? ""}
+                      onChange={(e) => setDetails((prev) => prev.map((d, idx) => (idx === i ? e.target.value : d)))}
+                      maxLength={200}
+                      placeholder="Aclaración (obligatoria)"
+                      className="bg-card border-border text-sm"
+                    />
+                  )}
                 </div>
               ))}
               <div className="space-y-1.5 mt-3">
-                <Label className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider">
-                  Información adicional (si alguna respuesta fue Sí)
-                </Label>
-                <Textarea
-                  value={additionalInfo}
-                  onChange={(e) => setAdditionalInfo(e.target.value)}
-                  placeholder="Especifique aquí..."
-                  className="bg-background border-border"
-                  rows={2}
-                />
+                <Label className={label}>Observaciones (opcional)</Label>
+                <Textarea value={additionalInfo} onChange={(e) => setAdditionalInfo(e.target.value)} maxLength={1000} rows={2} className="bg-background border-border" />
               </div>
             </div>
           )}
 
-          {/* PASO 4 — Firma */}
-          {step === "firma" && formType && (
+          {/* ── PASO 4 · Consentimientos ── */}
+          {step === "consentimientos" && formType && applicator && (
             <div className="py-4 space-y-4">
-              {/* Texto legal completo */}
-              <div className="p-4 rounded-lg bg-background border border-border space-y-3">
-                <div className="text-[10px] font-['IBM_Plex_Mono'] uppercase tracking-wider text-muted-foreground">
-                  Declaración de consentimiento informado
+              <section className="p-4 rounded-lg bg-background border border-border space-y-3">
+                <p className={`${label} text-muted-foreground`}>1 · Procedimiento y riesgos (obligatorio)</p>
+                <p className="text-sm text-foreground leading-relaxed">{LEGAL_TEXT[formType]}</p>
+                <div className="flex items-start gap-2">
+                  <Checkbox id="c-proc" checked={cProcedure} onCheckedChange={(v) => setCProcedure(!!v)} className="mt-0.5" />
+                  <Label htmlFor="c-proc" className="text-sm cursor-pointer leading-snug">He leído y comprendo la información anterior y doy mi consentimiento libre e informado para la realización del procedimiento.</Label>
                 </div>
-                <p className="text-sm text-foreground leading-relaxed">
-                  {LEGAL_TEXT[formType]}
+                <div className="flex items-start gap-2">
+                  <Checkbox id="c-care" checked={cCare} onCheckedChange={(v) => setCCare(!!v)} className="mt-0.5" />
+                  <Label htmlFor="c-care" className="text-sm cursor-pointer leading-snug">{CARE_TEXT}</Label>
+                </div>
+              </section>
+
+              <section className="p-4 rounded-lg bg-background border border-border space-y-3">
+                <p className={`${label} text-muted-foreground`}>2 · Datos de salud (obligatorio)</p>
+                <p className="text-sm text-foreground leading-relaxed">{HEALTH_TEXT}</p>
+                <div className="flex items-start gap-2">
+                  <Checkbox id="c-health" checked={cHealth} onCheckedChange={(v) => setCHealth(!!v)} className="mt-0.5" />
+                  <Label htmlFor="c-health" className="text-sm cursor-pointer leading-snug">Presto mi consentimiento explícito para el tratamiento de mis datos de salud con esta finalidad.</Label>
+                </div>
+              </section>
+
+              <section className="p-4 rounded-lg bg-background border border-border space-y-3">
+                <p className={`${label} text-muted-foreground`}>3 · Fotografías (voluntario)</p>
+                <p className="text-xs text-muted-foreground">Marca solo lo que autorices. Negarte no afecta al servicio y puedes retirarlo cuando quieras.</p>
+                {imageOptions(applicator).map((o) => (
+                  <div key={o.key} className="flex items-start gap-2">
+                    <Checkbox id={`img-${o.key}`} checked={image[o.key]} onCheckedChange={(v) => setImage((s) => ({ ...s, [o.key]: !!v }))} className="mt-0.5" />
+                    <Label htmlFor={`img-${o.key}`} className="text-sm cursor-pointer leading-snug">{o.label}</Label>
+                  </div>
+                ))}
+              </section>
+
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                <strong>Protección de datos:</strong> {rgpdText(formType)}
+              </p>
+            </div>
+          )}
+
+          {/* ── PASO 5 · Revisión y firmas ── */}
+          {step === "firmas" && formType && applicator && (
+            <div className="py-4 space-y-5">
+              <div className="p-3 rounded-lg bg-background border border-border text-sm space-y-1">
+                <p className={`${label} text-muted-foreground mb-1`}>Resumen</p>
+                <p><strong>{TYPE_LABEL[formType]}</strong> · {zone}{description ? ` · ${description}` : ""}</p>
+                <p>Aplicador: {applicator.name} · DNI/NIE {applicatorNif}</p>
+                <p>Cliente: {client.name} · {clientDni} · {age} años</p>
+                {isMinor && <p>Representante: {tutorName} ({tutorRelation}) · {tutorDni}{tutorPhoto ? " · foto del documento adjunta" : ""}</p>}
+                <p>Cuestionario: {answers.filter((a) => a === true).length} respuestas «Sí»</p>
+                <p>Procedimiento: {yesNo(cProcedure)} · Cuidados: {yesNo(cCare)} · Datos de salud: {yesNo(cHealth)}</p>
+                <p>
+                  Fotos — interna: {yesNo(image.internal)} · web: {yesNo(image.studioWeb)} · redes Lowkey: {yesNo(image.studioSocial)} ·
+                  portfolio {applicator.name}: {yesNo(image.artistPortfolio)} · redes {applicator.name}: {yesNo(image.artistSocial)}
                 </p>
-                <div className="pt-1 border-t border-border text-xs text-muted-foreground leading-relaxed">
-                  <strong>Protección de datos:</strong> {rgpdText(formType)}
-                </div>
               </div>
 
-              <div className="flex items-start gap-2">
-                <Checkbox
-                  id="accepted"
-                  checked={accepted}
-                  onCheckedChange={(v) => setAccepted(!!v)}
-                  className="mt-0.5"
-                />
-                <Label htmlFor="accepted" className="text-sm cursor-pointer leading-snug">
-                  He leído y comprendo el texto anterior. Doy mi consentimiento libre e informado para la realización del procedimiento.
-                </Label>
-              </div>
-
-              {/* Canvas de firma */}
-              <div>
-                <Label className="font-['IBM_Plex_Mono'] text-xs uppercase tracking-wider mb-2 block">
-                  Firma del cliente
-                </Label>
-                <p className="text-xs text-muted-foreground mb-2">
-                  Firme con el dedo o Apple Pencil en el recuadro.
-                </p>
-                <div className="border-2 border-dashed border-border rounded-lg overflow-hidden bg-white dark:bg-white">
-                  <SignatureCanvas
-                    ref={sigRef}
-                    penColor="black"
-                    canvasProps={{
-                      className: "w-full",
-                      style: { height: 180, touchAction: "none" },
-                    }}
-                  />
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  className="mt-1.5 text-muted-foreground"
-                  onClick={() => sigRef.current?.clear()}
-                >
-                  Borrar firma
-                </Button>
-              </div>
+              {sigBox("client", sigClient, "Firma del cliente", client.name)}
+              {isMinor && sigBox("tutor", sigTutor, "Firma del representante legal", `${tutorName} (${tutorRelation})`)}
+              {sigBox("applicator", sigApplicator, "Firma del aplicador", applicator.name)}
             </div>
           )}
         </div>
 
-        {/* Footer con navegacion */}
-        <div className="px-5 py-4 border-t border-border shrink-0 flex justify-between gap-3">
-          {step !== "tipo" ? (
-            <Button
-              variant="outline"
-              onClick={() => setStep(STEPS[stepIndex - 1])}
-              disabled={saving}
-            >
-              Anterior
-            </Button>
+        {/* Pie con navegación */}
+        <div className="px-5 py-4 border-t border-border shrink-0 flex items-center justify-between gap-3">
+          {step !== "intervencion" ? (
+            <Button variant="outline" onClick={() => setStep(STEPS[stepIndex - 1])} disabled={saving}>Anterior</Button>
           ) : (
-            <Button variant="outline" onClick={handleClose}>
-              Cancelar
-            </Button>
+            <Button variant="outline" onClick={handleClose}>Cancelar</Button>
           )}
 
-          {step === "tipo" && (
-            <span className="text-xs text-muted-foreground self-center">
-              Selecciona un tipo para continuar
-            </span>
+          {!canNext[step] && blockReason[step] && (
+            <span className="text-xs text-muted-foreground text-center flex-1">{blockReason[step]}</span>
           )}
 
-          {step === "datos" && (
-            <Button
-              className="cta-button"
-              onClick={() => setStep("cuestionario")}
-              disabled={!canProceedFromDatos}
-            >
-              Siguiente
-            </Button>
-          )}
-
-          {step === "cuestionario" && unanswered > 0 && (
-            <span className="text-xs text-muted-foreground self-center">
-              Faltan {unanswered} {unanswered === 1 ? "respuesta" : "respuestas"}
-            </span>
-          )}
-          {step === "cuestionario" && (
-            <Button
-              className="cta-button"
-              onClick={() => setStep("firma")}
-              disabled={!canProceedFromCuestionario}
-            >
-              Siguiente
-            </Button>
-          )}
-
-          {step === "firma" && (
-            <Button
-              className="cta-button"
-              onClick={handleSubmit}
-              disabled={saving || !accepted}
-            >
+          {step !== "firmas" ? (
+            <Button className="cta-button" onClick={goNext} disabled={!canNext[step]}>Siguiente</Button>
+          ) : (
+            <Button className="cta-button" onClick={handleSubmit} disabled={saving || !canNext.firmas}>
               {saving ? (
                 <span className="flex items-center gap-2">
                   <span className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
                   Guardando...
                 </span>
-              ) : (
-                "Firmar y guardar"
-              )}
+              ) : "Firmar y guardar"}
             </Button>
           )}
         </div>

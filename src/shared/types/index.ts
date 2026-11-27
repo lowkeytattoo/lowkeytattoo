@@ -47,7 +47,7 @@ export interface Database {
       };
       consent_forms: {
         Row: ConsentForm;
-        Insert: Omit<ConsentForm, "id" | "created_at" | "status" | "annul_reason" | "annul_requested_by" | "annul_requested_at" | "annul_resolved_by" | "annul_resolved_at">;
+        Insert: ConsentFormInsert;
         Update: Partial<Omit<ConsentForm, "id" | "created_at">>;
       };
     };
@@ -176,18 +176,50 @@ export interface BlogPost {
 
 export type ConsentFormType = "tattoo" | "piercing" | "laser";
 
+// Campos v1 (plantillas 1.0 y 1.1) + bloques opcionales de la plantilla 2.0.
+// Los documentos antiguos no tienen los bloques nuevos: tratarlos como opcionales.
 export interface ConsentFormData {
   clientDni: string;
   isMinor: boolean;
   tutorName?: string;
   tutorDni?: string;
   tutorRelation?: string;
-  questionnaire: { q: string; a: boolean }[];
+  questionnaire: { q: string; a: boolean; detail?: string }[];
   additionalInfo: string;
   artistId: string;
   artistName: string;
   artistNif: string;
   formType: ConsentFormType;
+
+  // ── Plantilla 2.0 ──
+  templateVersion?: string;
+  procedure?: { zone: string; description: string; sessionId: string | null; sessionDate: string | null };
+  laser?: { phototype: string; sessionNumber: string; pigmentColors: string; parameters: string };
+  applicator?: { artistId: string; name: string; nif: string; sanitaryCert: string | null };
+  client?: { birthDate: string; ageAtSigning: number };
+  minor?: {
+    tutorName: string;
+    tutorRelation: string;
+    tutorDni: string;
+    verified: boolean;
+    verifiedBy: string;          // nombre de quien comprobó el documento
+    documentPhotoPath: string | null; // archivo aparte en consent-documents, nunca dentro del PDF
+  } | null;
+  consents?: {
+    procedure: boolean;
+    careInstructions: boolean;
+    healthData: boolean;
+    image: ConsentImagePermissions;
+  };
+  signatures?: { client: boolean; tutor: boolean; applicator: boolean };
+}
+
+export interface ConsentImagePermissions {
+  internal: boolean;        // foto interna de seguimiento
+  studioWeb: boolean;       // web de Lowkey
+  studioSocial: boolean;    // redes de Lowkey
+  artistPortfolio: boolean; // portfolio del artista aplicador
+  artistSocial: boolean;    // redes del artista aplicador
 }
 
 export interface ConsentForm {
@@ -204,6 +236,8 @@ export interface ConsentForm {
   user_agent: string | null;
   created_by: string | null;
   created_at: string;
+  pdf_sha256: string | null;
+  replaces_id: string | null;
   // Anulación (RGPD paquete 2): el PDF firmado nunca se modifica
   status: ConsentStatus;
   annul_reason: string | null;
@@ -212,6 +246,9 @@ export interface ConsentForm {
   annul_resolved_by: string | null;
   annul_resolved_at: string | null;
 }
+
+/** Lo que el panel envía al crear un consentimiento (estado, autor y hora los fija el servidor). */
+export type ConsentFormInsert = Omit<ConsentForm, "id" | "created_at" | "status" | "annul_reason" | "annul_requested_by" | "annul_requested_at" | "annul_resolved_by" | "annul_resolved_at"> & { id?: string };
 
 export type ConsentStatus = "firmado" | "anulacion_solicitada" | "anulado";
 

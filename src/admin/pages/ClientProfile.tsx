@@ -582,7 +582,21 @@ export default function ClientProfile() {
                           : "Sin fecha"}
                       </span>
                     </div>
-                    <div className="text-xs text-muted-foreground mt-0.5">{cf.form_data.artistName}</div>
+                    <div className="text-xs text-muted-foreground mt-0.5">
+                      {cf.form_data.applicator?.name ?? cf.form_data.artistName}
+                      {cf.form_data.procedure?.zone ? ` · ${cf.form_data.procedure.zone}` : ""}
+                      {cf.form_data.minor ? ` · menor (representante: ${cf.form_data.minor.tutorName})` : ""}
+                    </div>
+                    {cf.form_data.minor?.documentPhotoPath && (
+                      <button
+                        type="button"
+                        className="text-xs underline text-muted-foreground hover:text-foreground mt-0.5"
+                        disabled={openPdf.isPending}
+                        onClick={() => handleViewPdf(cf.form_data.minor!.documentPhotoPath!)}
+                      >
+                        Ver documento del representante
+                      </button>
+                    )}
                     {cf.status !== "firmado" && (
                       <div className="mt-1 flex flex-wrap items-center gap-2">
                         <Badge
@@ -1048,7 +1062,13 @@ export default function ClientProfile() {
                   );
                 } else {
                   deleteAnnulled.mutate(
-                    { id: cf.id, storagePath: cf.pdf_storage_path, reason, clientId: id! },
+                    {
+                      id: cf.id,
+                      storagePath: cf.pdf_storage_path,
+                      extraPaths: cf.form_data.minor?.documentPhotoPath ? [cf.form_data.minor.documentPhotoPath] : [],
+                      reason,
+                      clientId: id!,
+                    },
                     {
                       onSuccess: () => toast.success("Consentimiento anulado borrado"),
                       onError: (e) => toast.error((e as Error).message),
