@@ -1,4 +1,5 @@
 import { useState, useRef } from "react";
+import { ArtistLegalInfoSection } from "@admin/components/ArtistLegalInfoSection";
 import { toast } from "sonner";
 import { useArtistProfiles, useUpdateProfile } from "@admin/hooks/useArtistProfiles";
 import { supabase } from "@shared/lib/supabase";
@@ -200,7 +201,7 @@ export default function Artists() {
       />
 
       <Dialog open={!!editing} onOpenChange={(open) => !open && setEditing(null)}>
-        <DialogContent className="bg-card border-border">
+        <DialogContent className="bg-card border-border max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Editar artista</DialogTitle>
             <DialogDescription>
@@ -316,6 +317,8 @@ export default function Artists() {
                 ID del calendario de Google para sincronizar disponibilidad.
               </p>
             </div>
+
+            {editing && <ArtistLegalInfoSection profileId={editing.id} />}
           </div>
           <DialogFooter className="mt-4">
             <Button variant="ghost" onClick={() => setEditing(null)}>Cancelar</Button>

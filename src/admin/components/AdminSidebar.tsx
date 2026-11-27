@@ -23,6 +23,7 @@ import { useUpdateProfile } from "@admin/hooks/useArtistProfiles";
 import { StockAlertBadge } from "@admin/components/StockAlertBadge";
 import { MessagesUnreadBadge } from "@admin/components/MessagesUnreadBadge";
 import { BookingsPendingBadge } from "@admin/components/BookingsPendingBadge";
+import { ArtistLegalInfoSection } from "@admin/components/ArtistLegalInfoSection";
 import { AnnulmentsPendingBadge } from "@admin/components/AnnulmentsPendingBadge";
 import { cn } from "@shared/lib/utils";
 import { Badge } from "@/components/ui/badge";
@@ -392,7 +393,7 @@ export const AdminSidebar = () => {
 
       {/* ── Edit profile dialog ─────────────────────────── */}
       <Dialog open={editOpen} onOpenChange={(open) => !open && setEditOpen(false)}>
-        <DialogContent className="bg-card border-border">
+        <DialogContent className="bg-card border-border max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Mi perfil</DialogTitle>
             <DialogDescription>
@@ -450,6 +451,8 @@ export const AdminSidebar = () => {
                 ID del calendario de Google para sincronizar disponibilidad.
               </p>
             </div>
+
+            {profile && <ArtistLegalInfoSection profileId={profile.id} />}
           </div>
           <DialogFooter className="mt-4">
             <Button variant="ghost" onClick={() => setEditOpen(false)}>Cancelar</Button>

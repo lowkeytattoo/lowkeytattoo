@@ -10,9 +10,9 @@ export interface Artist {
   styles: string[];
   services: ServiceType[];
   hidden?: boolean;
-  nif?: string;
   phone?: string;
-  hygienicSanitaryCert?: string;
+  // DNI/NIE y certificado higiénico-sanitario NO van aquí: este archivo se
+  // publica con la web. Están en la tabla artist_legal_info (solo panel).
 }
 
 export const PUBLIC_ARTISTS = (artists: Artist[]) => artists.filter((a) => !a.hidden);

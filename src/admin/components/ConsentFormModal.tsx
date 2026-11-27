@@ -8,6 +8,7 @@ import type { Client, ConsentFormType, ConsentFormData } from "@shared/types/ind
 import { CONTACT } from "@web/config/contact";
 import { PIRATA_ONE_B64 } from "@admin/lib/pirataOneFont";
 import { useCreateConsentForm } from "@admin/hooks/useConsentForms";
+import { useApplicatorLegalInfo } from "@admin/hooks/useArtistLegalInfo";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -24,56 +25,56 @@ import { toast } from "sonner";
 // ─── Cuestionarios por tipo ──────────────────────────────────────────────────
 
 const TATTOO_QUESTIONS = [
-  "¿Tiene o ha tenido enfermedades de la piel (psoriasis, eccema, vitiligo, queloides)?",
-  "¿Padece trastornos de coagulacion o hemorragias?",
-  "¿Es diabetico/a?",
-  "¿Tiene VIH, hepatitis u otras enfermedades de transmision sanguinea?",
-  "¿Padece enfermedades cardiacas o lleva marcapasos?",
-  "¿Tiene el sistema inmunologico comprometido?",
+  "¿Tiene o ha tenido enfermedades de la piel (psoriasis, eccema, vitíligo, queloides)?",
+  "¿Padece trastornos de la coagulación o hemorragias?",
+  "¿Es diabético/a?",
+  "¿Tiene VIH, hepatitis u otras enfermedades de transmisión sanguínea?",
+  "¿Padece enfermedades cardíacas o lleva marcapasos?",
+  "¿Tiene el sistema inmunitario comprometido?",
   "¿Toma anticoagulantes, aspirina u otros antiinflamatorios?",
-  "¿Toma isotretinoina (Roacutane) actualmente o en los ultimos 6 meses?",
-  "¿Es alergico/a a algun medicamento, tinte o material?",
-  "¿Esta embarazada o en periodo de lactancia?",
-  "¿Ha consumido alcohol o drogas en las ultimas 24 horas?",
-  "¿Tiene heridas, infecciones o irritacion en la zona a tatuar?",
+  "¿Toma isotretinoína (Roacután) actualmente o en los últimos 6 meses?",
+  "¿Es alérgico/a a algún medicamento, tinte o material?",
+  "¿Está embarazada o en periodo de lactancia?",
+  "¿Ha consumido alcohol o drogas en las últimas 24 horas?",
+  "¿Tiene heridas, infecciones o irritación en la zona a tatuar?",
   "¿Ha tenido reacciones adversas a tatuajes anteriores?",
 ];
 
 const PIERCING_QUESTIONS = [
   "¿Tiene tendencia a formar queloides o cicatrices elevadas?",
-  "¿Padece diabetes o enfermedad que ralentice la cicatrizacion?",
-  "¿Tiene alguna alteracion del sistema inmunologico?",
+  "¿Padece diabetes o alguna enfermedad que ralentice la cicatrización?",
+  "¿Tiene alguna alteración del sistema inmunitario?",
   "¿Toma anticoagulantes, aspirina o antiinflamatorios?",
-  "¿Es alergico/a a metales (niquel, cobalto, cromo)?",
-  "¿Es alergico/a al latex u otro material?",
-  "¿Tiene VIH, hepatitis u otras enfermedades de transmision sanguinea?",
-  "¿Tiene enfermedades cardiacas o lleva protesis valvular?",
-  "¿Esta embarazada o en periodo de lactancia?",
-  "¿Ha consumido alcohol o drogas en las ultimas 24 horas?",
-  "¿Tiene infeccion, herida o irritacion en la zona a perforar?",
+  "¿Es alérgico/a a metales (níquel, cobalto, cromo)?",
+  "¿Es alérgico/a al látex u otro material?",
+  "¿Tiene VIH, hepatitis u otras enfermedades de transmisión sanguínea?",
+  "¿Tiene enfermedades cardíacas o lleva prótesis valvular?",
+  "¿Está embarazada o en periodo de lactancia?",
+  "¿Ha consumido alcohol o drogas en las últimas 24 horas?",
+  "¿Tiene infección, herida o irritación en la zona a perforar?",
   "¿Tiene antecedentes de rechazo a piercings anteriores?",
-  "¿Lleva protesis metalicas, marcapasos u otros implantes?",
-  "¿Esta tomando algun medicamento actualmente?",
+  "¿Lleva prótesis metálicas, marcapasos u otros implantes?",
+  "¿Está tomando algún medicamento actualmente?",
 ];
 
 const LASER_QUESTIONS = [
-  "¿Esta embarazada o en periodo de lactancia?",
-  "¿Tiene o ha tenido cancer de piel?",
-  "¿Tiene lesiones sospechosas o nevos en la zona a tratar?",
+  "¿Está embarazada o en periodo de lactancia?",
+  "¿Tiene o ha tenido cáncer de piel?",
+  "¿Tiene lesiones sospechosas o lunares en la zona a tratar?",
   "¿Padece epilepsia fotosensible?",
-  "¿Tiene tendencia a formar queloides o cicatrices hipertroficas?",
-  "¿Ha tomado isotretinoina en los ultimos 6 meses?",
-  "¿Toma fotosensibilizantes (antibioticos, diureticos, antidepresivos)?",
+  "¿Tiene tendencia a formar queloides o cicatrices hipertróficas?",
+  "¿Ha tomado isotretinoína en los últimos 6 meses?",
+  "¿Toma medicamentos fotosensibilizantes (antibióticos, diuréticos, antidepresivos)?",
   "¿Toma anticoagulantes?",
-  "¿Padece diabetes o enfermedad que ralentice la cicatrizacion?",
-  "¿Tiene el sistema inmunologico comprometido?",
-  "¿Tiene vitiligo, psoriasis u otras enfermedades cutaneas activas?",
+  "¿Padece diabetes o alguna enfermedad que ralentice la cicatrización?",
+  "¿Tiene el sistema inmunitario comprometido?",
+  "¿Tiene vitíligo, psoriasis u otras enfermedades cutáneas activas?",
   "¿Ha tenido herpes recurrente en la zona a tratar?",
-  "¿Se ha expuesto al sol o cabinas de bronceado en las ultimas 4 semanas?",
-  "¿Tiene tatuajes de henna negra o pigmentos metalicos en la zona?",
-  "¿Lleva implantes metalicos o marcapasos cerca de la zona?",
-  "¿Ha tenido tratamientos con acidos o peelings en los ultimos 30 dias?",
-  "¿Ha tenido rellenos con acido hialuronico en la zona?",
+  "¿Se ha expuesto al sol o a cabinas de bronceado en las últimas 4 semanas?",
+  "¿Tiene tatuajes de henna negra o pigmentos metálicos en la zona?",
+  "¿Lleva implantes metálicos o marcapasos cerca de la zona?",
+  "¿Ha recibido tratamientos con ácidos o peelings en los últimos 30 días?",
+  "¿Ha recibido rellenos con ácido hialurónico en la zona?",
 ];
 
 const QUESTIONS: Record<ConsentFormType, string[]> = {
@@ -85,14 +86,22 @@ const QUESTIONS: Record<ConsentFormType, string[]> = {
 const TYPE_LABEL: Record<ConsentFormType, string> = {
   tattoo: "Tatuaje",
   piercing: "Piercing",
-  laser: "Laser",
+  laser: "Láser",
 };
 
+// Normativa sanitaria aplicable. Tatuaje y piercing: Decreto canario 154/2004
+// (registro y consentimiento, anexos VI y VII). Láser: régimen pendiente de
+// validar con el asesor (V-02); no se cita norma hasta entonces.
 const NORM_REF: Record<ConsentFormType, string> = {
-  tattoo: "Conforme al Real Decreto 1088/2009 y Decreto 33/2012 de Canarias",
-  piercing: "Conforme al Real Decreto 1088/2009 y Decreto 33/2012 de Canarias",
-  laser: "Conforme a la Ley 41/2002 y normativa de equipos laser clase IV",
+  tattoo: "Decreto 154/2004 de Canarias · Reglamento de establecimientos de tatuaje, micropigmentación y piercing",
+  piercing: "Decreto 154/2004 de Canarias · Reglamento de establecimientos de tatuaje, micropigmentación y piercing",
+  laser: "",
 };
+
+// Versión de la plantilla: subirla cada vez que cambie un texto o pregunta.
+// 1.0 = original · 1.1 = 27/11/2026 (Fase 0: normativa, protección de datos,
+// respuestas sin preselección, aplicador con DNI desde la base de datos).
+const CONSENT_TEMPLATE_VERSION = "1.1";
 
 const LEGAL_TEXT: Record<ConsentFormType, string> = {
   tattoo:
@@ -103,8 +112,16 @@ const LEGAL_TEXT: Record<ConsentFormType, string> = {
     "Declaro haber sido informado/a de manera clara y comprensible sobre el tratamiento con láser que voy a realizar. Comprendo que el láser es un procedimiento médico-estético que puede conllevar riesgos como enrojecimiento transitorio, hiperpigmentación o hipopigmentación post-inflamatoria, quemadura superficial, infección u otras complicaciones descritas en este documento. Entiendo que los resultados no están garantizados al 100%, que pueden requerirse varias sesiones y que la respuesta varía según el fototipo de piel, el color del pigmento y otros factores individuales. Me comprometo a seguir las instrucciones de protección solar y cuidados posteriores, y a comunicar cualquier cambio en mi estado de salud o medicación antes de cada sesión. La información facilitada en el cuestionario médico es verídica y completa. Presto mi consentimiento de forma libre, voluntaria e informada para la realización del tratamiento con láser, pudiendo revocarlo en cualquier momento antes del inicio del procedimiento.",
 };
 
-const RGPD_TEXT =
-  "Los datos personales seran tratados por Lowkey Tattoo conforme al RGPD (UE) 2016/679 y LOPD-GDD 3/2018, con finalidad de gestion del consentimiento informado e historial clinico. Conservacion: 5 anios. Puede ejercer sus derechos de acceso, rectificacion, supresion, oposicion, limitacion y portabilidad en info@tattoolowkey.com, y reclamar ante la AEPD (www.aepd.es).";
+// Mismo texto en pantalla y en el PDF; coherente con la política de privacidad.
+const rgpdText = (type: ConsentFormType) =>
+  "Responsable: Pablo Matos Rodríguez (Lowkey Tattoo), NIF 54050691R, Calle Dr. Allart 50, 38003 Santa Cruz de Tenerife. " +
+  "Finalidad: valorar si el procedimiento puede realizarse con seguridad, documentar la intervención y cumplir la normativa sanitaria. " +
+  "Sus datos, incluidos los de salud, solo los consultan los titulares del estudio y el artista que le atiende, y no se ceden a terceros salvo obligación legal. " +
+  (type === "laser"
+    ? "Conservación: durante el plazo que exija la normativa aplicable y, como mínimo, 5 años desde esta intervención. "
+    : "Conservación: al menos 5 años desde esta intervención (Decreto 154/2004 de Canarias). ") +
+  "Puede ejercer sus derechos de acceso, rectificación, supresión, oposición, limitación y portabilidad en info@tattoolowkey.com y reclamar ante la AEPD (www.aepd.es). " +
+  "Más información: tattoolowkey.com/politica-de-privacidad.";
 
 // ─── Generacion del PDF ──────────────────────────────────────────────────────
 
@@ -116,6 +133,8 @@ interface PdfParams {
   signatureDataUrl: string;
   signedAt: Date;
   formId: string;
+  applicatorNif: string | null;
+  applicatorCert: string | null;
 }
 
 function buildPdf(p: PdfParams): Blob {
@@ -185,9 +204,11 @@ function buildPdf(p: PdfParams): Blob {
   pdf.setFontSize(11).setFont("helvetica", "bold");
   pdf.text(`CONSENTIMIENTO INFORMADO — ${TYPE_LABEL[p.formType].toUpperCase()}`, ml, y);
   y += 5.5;
-  pdf.setFontSize(7).setFont("helvetica", "normal").setTextColor(130, 130, 130);
-  pdf.text(NORM_REF[p.formType], ml, y);
-  pdf.setTextColor(0, 0, 0);
+  if (NORM_REF[p.formType]) {
+    pdf.setFontSize(7).setFont("helvetica", "normal").setTextColor(130, 130, 130);
+    pdf.text(NORM_REF[p.formType], ml, y);
+    pdf.setTextColor(0, 0, 0);
+  }
   y += 6;
   hr(4);
 
@@ -203,9 +224,9 @@ function buildPdf(p: PdfParams): Blob {
   pdf.setFontSize(9).setFont("helvetica", "bold");
   pdf.text(p.artist.name, ml, yL); yL += 5;
   pdf.setFontSize(8).setFont("helvetica", "normal");
-  pdf.text(`DNI: ${p.artist.nif ?? "[Pendiente]"}`, ml, yL); yL += 4.5;
-  if (p.artist.hygienicSanitaryCert) {
-    pdf.text(`Cert: ${p.artist.hygienicSanitaryCert}`, ml, yL); yL += 4.5;
+  pdf.text(`DNI/NIE: ${p.applicatorNif ?? "[Pendiente]"}`, ml, yL); yL += 4.5;
+  if (p.applicatorCert) {
+    pdf.text(`Cert. higiénico-sanitario: ${p.applicatorCert}`, ml, yL); yL += 4.5;
   }
 
   // Columna derecha: Cliente (yR independiente, posición x = col2)
@@ -262,7 +283,7 @@ function buildPdf(p: PdfParams): Blob {
   pdf.setFontSize(8).setFont("helvetica", "bold").setTextColor(80, 80, 80);
   pdf.text("PROTECCIÓN DE DATOS", ml, y); y += 4.5;
   pdf.setFont("helvetica", "normal").setFontSize(7.5);
-  const rgpdLines = pdf.splitTextToSize(RGPD_TEXT, tw);
+  const rgpdLines = pdf.splitTextToSize(rgpdText(p.formType), tw);
   np(rgpdLines.length * 3.8);
   pdf.text(rgpdLines, ml, y);
   pdf.setTextColor(0, 0, 0);
@@ -300,7 +321,7 @@ function buildPdf(p: PdfParams): Blob {
     pdf.setPage(i);
     pdf.setFontSize(7).setTextColor(170, 170, 170);
     pdf.text(
-      `Lowkey Tattoo  ·  Versión 1.0  ·  Generado: ${format(p.signedAt, "dd/MM/yyyy HH:mm:ss")}`,
+      `Lowkey Tattoo  ·  Plantilla v${CONSENT_TEMPLATE_VERSION}  ·  Generado: ${format(p.signedAt, "dd/MM/yyyy HH:mm:ss")}`,
       ml, H - 8
     );
     pdf.text(`${i} / ${pageCount}`, W - mr - 8, H - 8);
@@ -326,6 +347,9 @@ export function ConsentFormModal({ open, onClose, client, artist }: Props) {
   const sigRef = useRef<SignatureCanvas>(null);
   const scrollRef = useRef<HTMLDivElement>(null);
   const createConsent = useCreateConsentForm();
+  const { data: legal, isLoading: legalLoading } = useApplicatorLegalInfo(open ? artist.id : null);
+  const applicatorNif = legal?.nif ?? null;
+  const applicatorCert = legal?.sanitary_cert ?? null;
 
   const [step, setStep] = useState<Step>("tipo");
 
@@ -338,7 +362,8 @@ export function ConsentFormModal({ open, onClose, client, artist }: Props) {
   const [tutorName, setTutorName] = useState("");
   const [tutorDni, setTutorDni] = useState("");
   const [tutorRelation, setTutorRelation] = useState("");
-  const [answers, setAnswers] = useState<boolean[]>([]);
+  // null = sin contestar: cada pregunta debe responderse expresamente
+  const [answers, setAnswers] = useState<(boolean | null)[]>([]);
   const [additionalInfo, setAdditionalInfo] = useState("");
   const [accepted, setAccepted] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -361,12 +386,12 @@ export function ConsentFormModal({ open, onClose, client, artist }: Props) {
 
   const selectType = (t: ConsentFormType) => {
     setFormType(t);
-    setAnswers(new Array(QUESTIONS[t].length).fill(false));
+    setAnswers(new Array(QUESTIONS[t].length).fill(null));
     setStep("datos");
   };
 
-  const toggleAnswer = (i: number) => {
-    setAnswers((prev) => prev.map((v, idx) => (idx === i ? !v : v)));
+  const setAnswer = (i: number, value: boolean) => {
+    setAnswers((prev) => prev.map((v, idx) => (idx === i ? value : v)));
   };
 
   const handleSubmit = async () => {
@@ -393,11 +418,11 @@ export function ConsentFormModal({ open, onClose, client, artist }: Props) {
         tutorName: isMinor ? tutorName : undefined,
         tutorDni: isMinor ? tutorDni : undefined,
         tutorRelation: isMinor ? tutorRelation : undefined,
-        questionnaire: questions.map((q, i) => ({ q, a: answers[i] ?? false })),
+        questionnaire: questions.map((q, i) => ({ q, a: answers[i] === true })),
         additionalInfo,
         artistId: artist.id,
         artistName: artist.name,
-        artistNif: artist.nif ?? "",
+        artistNif: applicatorNif ?? "",
         formType,
       };
 
@@ -409,6 +434,8 @@ export function ConsentFormModal({ open, onClose, client, artist }: Props) {
         signatureDataUrl,
         signedAt,
         formId,
+        applicatorNif,
+        applicatorCert,
       });
 
       const fileName = `${client.id}/${formType}_${Date.now()}.pdf`;
@@ -422,7 +449,7 @@ export function ConsentFormModal({ open, onClose, client, artist }: Props) {
         client_id: client.id,
         session_id: null,
         type: formType,
-        version: "1.0",
+        version: CONSENT_TEMPLATE_VERSION,
         form_data: formData,
         signature_data: signatureDataUrl,
         pdf_storage_path: fileName,
@@ -443,7 +470,8 @@ export function ConsentFormModal({ open, onClose, client, artist }: Props) {
   };
 
   const canProceedFromDatos = clientDni.trim().length >= 8;
-  const canProceedFromCuestionario = answers.length > 0;
+  const unanswered = answers.filter((a) => a === null).length;
+  const canProceedFromCuestionario = answers.length > 0 && unanswered === 0;
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) handleClose(); }}>
@@ -490,9 +518,9 @@ export function ConsentFormModal({ open, onClose, client, artist }: Props) {
                       {TYPE_LABEL[t]}
                     </div>
                     <div className="text-xs text-muted-foreground mt-0.5">
-                      {t === "tattoo" && "Consentimiento para tatuaje · Real Decreto 1088/2009"}
-                      {t === "piercing" && "Consentimiento para piercing · Real Decreto 1088/2009"}
-                      {t === "laser" && "Consentimiento para tratamiento laser · Ley 41/2002"}
+                      {t === "tattoo" && "Consentimiento para tatuaje · Decreto 154/2004 de Canarias"}
+                      {t === "piercing" && "Consentimiento para piercing · Decreto 154/2004 de Canarias"}
+                      {t === "laser" && "Consentimiento para eliminación de tatuajes con láser"}
                     </div>
                   </button>
                 ))}
@@ -513,13 +541,19 @@ export function ConsentFormModal({ open, onClose, client, artist }: Props) {
                 <div className="p-3 rounded-lg bg-background border border-border text-sm space-y-1">
                   <div className="text-[10px] font-['IBM_Plex_Mono'] uppercase tracking-wider text-muted-foreground mb-1.5">Profesional</div>
                   <div className="font-medium leading-tight">{artist.name}</div>
-                  {artist.nif ? (
-                    <div className="text-muted-foreground text-xs font-['IBM_Plex_Mono']">DNI: {artist.nif}</div>
+                  {legalLoading ? (
+                    <div className="text-muted-foreground text-xs">Cargando datos legales…</div>
+                  ) : applicatorNif ? (
+                    <div className="text-muted-foreground text-xs font-['IBM_Plex_Mono']">DNI/NIE: {applicatorNif}</div>
                   ) : (
-                    <div className="text-amber-500 dark:text-amber-400 text-xs">DNI: pendiente</div>
+                    <div className="text-amber-500 dark:text-amber-400 text-xs">
+                      Falta tu DNI/NIE: añádelo en Mi perfil → Datos legales
+                    </div>
                   )}
-                  {artist.hygienicSanitaryCert && (
-                    <div className="text-muted-foreground text-xs">Cert: {artist.hygienicSanitaryCert}</div>
+                  {applicatorCert ? (
+                    <div className="text-muted-foreground text-xs">Cert.: {applicatorCert}</div>
+                  ) : !legalLoading && (
+                    <div className="text-amber-500 dark:text-amber-400 text-xs">Falta el nº de certificado higiénico-sanitario</div>
                   )}
                 </div>
               </div>
@@ -574,7 +608,7 @@ export function ConsentFormModal({ open, onClose, client, artist }: Props) {
           {step === "cuestionario" && formType && (
             <div className="py-4 space-y-2">
               <p className="text-xs text-muted-foreground mb-3">
-                El cliente responde personalmente. Pulsa <strong>Sí</strong> si alguna pregunta aplica.
+                El cliente responde personalmente <strong>todas</strong> las preguntas (Sí o No).
               </p>
               {QUESTIONS[formType].map((q, i) => (
                 <div
@@ -584,9 +618,11 @@ export function ConsentFormModal({ open, onClose, client, artist }: Props) {
                   <span className="text-sm text-foreground flex-1 leading-snug pt-0.5">{q}</span>
                   <div className="flex gap-1.5 shrink-0">
                     <button
-                      onClick={() => !answers[i] || toggleAnswer(i)}
-                      className={`px-3 py-1 rounded text-xs font-['IBM_Plex_Mono'] font-bold transition-colors ${
-                        !answers[i]
+                      type="button"
+                      aria-pressed={answers[i] === false}
+                      onClick={() => setAnswer(i, false)}
+                      className={`min-w-[3rem] px-3 py-2 rounded text-xs font-['IBM_Plex_Mono'] font-bold transition-colors ${
+                        answers[i] === false
                           ? "bg-emerald-600 text-white"
                           : "bg-muted text-muted-foreground hover:bg-muted/80"
                       }`}
@@ -594,9 +630,11 @@ export function ConsentFormModal({ open, onClose, client, artist }: Props) {
                       No
                     </button>
                     <button
-                      onClick={() => answers[i] || toggleAnswer(i)}
-                      className={`px-3 py-1 rounded text-xs font-['IBM_Plex_Mono'] font-bold transition-colors ${
-                        answers[i]
+                      type="button"
+                      aria-pressed={answers[i] === true}
+                      onClick={() => setAnswer(i, true)}
+                      className={`min-w-[3rem] px-3 py-2 rounded text-xs font-['IBM_Plex_Mono'] font-bold transition-colors ${
+                        answers[i] === true
                           ? "bg-destructive text-destructive-foreground"
                           : "bg-muted text-muted-foreground hover:bg-muted/80"
                       }`}
@@ -633,7 +671,7 @@ export function ConsentFormModal({ open, onClose, client, artist }: Props) {
                   {LEGAL_TEXT[formType]}
                 </p>
                 <div className="pt-1 border-t border-border text-xs text-muted-foreground leading-relaxed">
-                  <strong>Protección de datos:</strong> Sus datos serán tratados por Lowkey Tattoo conforme al RGPD (UE) 2016/679 y LOPD-GDD 3/2018, con la finalidad exclusiva de gestionar el historial clínico y el consentimiento informado. Conservación: 5 años desde la última prestación de servicios. Puede ejercer sus derechos de acceso, rectificación, supresión, oposición, limitación y portabilidad en info@tattoolowkey.com, y reclamar ante la AEPD (www.aepd.es).
+                  <strong>Protección de datos:</strong> {rgpdText(formType)}
                 </div>
               </div>
 
@@ -712,6 +750,11 @@ export function ConsentFormModal({ open, onClose, client, artist }: Props) {
             </Button>
           )}
 
+          {step === "cuestionario" && unanswered > 0 && (
+            <span className="text-xs text-muted-foreground self-center">
+              Faltan {unanswered} {unanswered === 1 ? "respuesta" : "respuestas"}
+            </span>
+          )}
           {step === "cuestionario" && (
             <Button
               className="cta-button"
