@@ -70,9 +70,8 @@ jobs:
       - name: Instalar herramientas
         run: |
           sudo apt-get update -qq
-          sudo apt-get install -y -qq rclone gnupg >/dev/null
+          sudo apt-get install -y -qq gnupg >/dev/null
           pip install --quiet --upgrade b2
-          rclone version | head -1
           b2 version
 
       - uses: supabase/setup-cli@v1
@@ -101,20 +100,22 @@ jobs:
           grep -q "consent_forms" schema.sql || { echo "schema.sql no contiene consent_forms"; exit 1; }
 
       - name: 2 · Descargar archivos de Storage
+        # AWS CLI (preinstalada en el runner), como en la documentación de Supabase S3.
         env:
-          RCLONE_CONFIG_SUPA_TYPE: s3
-          RCLONE_CONFIG_SUPA_PROVIDER: Other
-          RCLONE_CONFIG_SUPA_ACCESS_KEY_ID: ${{ secrets.SUPABASE_S3_ACCESS_KEY_ID }}
-          RCLONE_CONFIG_SUPA_SECRET_ACCESS_KEY: ${{ secrets.SUPABASE_S3_SECRET_KEY }}
-          RCLONE_CONFIG_SUPA_ENDPOINT: https://${{ env.SUPABASE_PROJECT_REF }}.storage.supabase.co/storage/v1/s3
-          RCLONE_CONFIG_SUPA_REGION: ${{ env.SUPABASE_REGION }}
-          RCLONE_CONFIG_SUPA_FORCE_PATH_STYLE: "true"
+          AWS_ACCESS_KEY_ID: ${{ secrets.SUPABASE_S3_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.SUPABASE_S3_SECRET_KEY }}
+          AWS_DEFAULT_REGION: ${{ env.SUPABASE_REGION }}
+          AWS_REQUEST_CHECKSUM_CALCULATION: when_required
+          AWS_RESPONSE_CHECKSUM_VALIDATION: when_required
+          S3_ENDPOINT: https://${{ env.SUPABASE_PROJECT_REF }}.storage.supabase.co/storage/v1/s3
         run: |
           set -euo pipefail
-          rclone lsd supa: | awk '{print $NF}' > "$WORK/buckets.txt"
+          aws --version
+          aws s3api list-buckets --endpoint-url "$S3_ENDPOINT" --query 'Buckets[].Name' --output text \
+            | tr '\t' '\n' | sed '/^$/d' > "$WORK/buckets.txt"
           [ -s "$WORK/buckets.txt" ] || { echo "No se ha podido listar ningún bucket"; exit 1; }
           while read -r bucket; do
-            rclone copy "supa:$bucket" "$WORK/storage/$bucket" --transfers 4 --checkers 8
+            aws s3 sync "s3://$bucket" "$WORK/storage/$bucket" --endpoint-url "$S3_ENDPOINT" --only-show-errors
           done < "$WORK/buckets.txt"
           echo "Buckets: $(tr '\n' ' ' < "$WORK/buckets.txt")"
           echo "Archivos: $(find "$WORK/storage" -type f | wc -l)"
