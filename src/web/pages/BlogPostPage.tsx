@@ -1,4 +1,6 @@
-import { useState } from "react";
+import { useRef, useState } from "react";
+import { Honeypot } from "@web/components/Honeypot";
+import { isBot } from "@web/lib/honeypot";
 import { Link, useParams, Navigate } from "react-router-dom";
 import { MessageSquare } from "lucide-react";
 import { CONTACT } from "@web/config/contact";
@@ -35,8 +37,11 @@ export default function BlogPostPage() {
   const [cfSending, setCfSending] = useState(false);
   const [cfSent, setCfSent] = useState(false);
 
+  const honeypot = useRef<HTMLInputElement>(null);
+
   const handleContactSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isBot(honeypot.current)) { setCfSent(true); return; } // robot: aparenta éxito y no guarda nada
     setCfSending(true);
     try {
       const { supabase } = await import("@shared/lib/supabase");
@@ -215,7 +220,8 @@ export default function BlogPostPage() {
                 {cfSent ? (
                   <p className="font-mono text-sm text-foreground text-center">{t("contact.form.success")}</p>
                 ) : (
-                  <form onSubmit={handleContactSubmit} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <form onSubmit={handleContactSubmit} className="relative grid grid-cols-1 sm:grid-cols-2 gap-4">
+<Honeypot ref={honeypot} />
                     <div className="flex flex-col gap-1.5">
                       <label className="font-mono text-xs text-muted-foreground uppercase tracking-wider">
                         {t("contact.form.name")} *
@@ -223,6 +229,7 @@ export default function BlogPostPage() {
                       <input
                         required
                         value={cfName}
+                  maxLength={120}
                         onChange={(e) => setCfName(e.target.value)}
                         placeholder={t("contact.form.placeholder.name")}
                         className="bg-background border border-border rounded-sm px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-ring"
@@ -235,6 +242,7 @@ export default function BlogPostPage() {
                       <input
                         required
                         value={cfContact}
+                  maxLength={160}
                         onChange={(e) => setCfContact(e.target.value)}
                         placeholder={t("contact.form.placeholder.contact")}
                         className="bg-background border border-border rounded-sm px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-ring"
@@ -248,6 +256,7 @@ export default function BlogPostPage() {
                         required
                         rows={3}
                         value={cfMessage}
+                  maxLength={4000}
                         onChange={(e) => setCfMessage(e.target.value)}
                         placeholder={t("contact.form.placeholder.message")}
                         className="bg-background border border-border rounded-sm px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-ring resize-none"

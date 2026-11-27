@@ -319,3 +319,55 @@ export function useRecordImageWithdrawal() {
     onSuccess: () => qc.invalidateQueries({ queryKey: ["consent-image-withdrawals"] }),
   });
 }
+
+// ── Publicaciones de fotos (dónde se ha publicado cada una) ───────────────────
+
+export interface PhotoPublication {
+  id: string;
+  consent_id: string;
+  channel: "studioWeb" | "studioSocial" | "artistSocial";
+  url: string;
+  published_on: string;
+  created_by: string | null;
+  removed_at: string | null;
+}
+
+export function usePhotoPublications(consentIds: string[]) {
+  return useQuery({
+    queryKey: ["photo-publications", consentIds],
+    enabled: consentIds.length > 0,
+    queryFn: async () => {
+      const { data, error } = await db
+        .from("photo_publications")
+        .select("id, consent_id, channel, url, published_on, created_by, removed_at")
+        .in("consent_id", consentIds)
+        .order("published_on", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as PhotoPublication[];
+    },
+  });
+}
+
+export function useRegisterPublication() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (p: { consentId: string; channel: string; url: string; publishedOn: string }) => {
+      const { error } = await rpc("register_publication", {
+        p_consent_id: p.consentId, p_channel: p.channel, p_url: p.url.trim(), p_published_on: p.publishedOn,
+      });
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["photo-publications"] }),
+  });
+}
+
+export function useMarkPublicationRemoved() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await rpc("mark_publication_removed", { p_id: id });
+      if (error) throw new Error(error.message);
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["photo-publications"] }),
+  });
+}

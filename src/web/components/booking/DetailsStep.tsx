@@ -4,13 +4,16 @@ import { z } from "zod";
 import { useI18n } from "@web/i18n/I18nProvider";
 import { cn } from "@shared/lib/utils";
 import { PrivacyNotice } from "@web/components/PrivacyNotice";
+import { Honeypot } from "@web/components/Honeypot";
+import { isBot } from "@web/lib/honeypot";
+import { useRef } from "react";
 import type { ServiceType } from "@shared/types/index";
 
 const detailsSchema = z.object({
-  clientName: z.string().min(2, "Mínimo 2 caracteres"),
-  clientPhone: z.string().min(6, "Teléfono inválido"),
-  clientEmail: z.string().email("Email inválido"),
-  description: z.string().min(10, "Mínimo 10 caracteres"),
+  clientName: z.string().min(2, "Mínimo 2 caracteres").max(120, "Máximo 120 caracteres"),
+  clientPhone: z.string().min(6, "Teléfono inválido").max(40, "Teléfono inválido"),
+  clientEmail: z.string().email("Email inválido").max(160, "Email demasiado largo"),
+  description: z.string().min(10, "Mínimo 10 caracteres").max(4000, "Máximo 4000 caracteres"),
   bodyZone: z.string().min(1, "Selecciona una zona"),
   isFirstTime: z.boolean(),
 });
@@ -47,6 +50,7 @@ export const DetailsStep = ({ serviceType, defaultValues, onSubmit, onBack, isSu
   });
 
   const isFirstTime = watch("isFirstTime");
+  const honeypot = useRef<HTMLInputElement>(null);
 
   const inputClass = (hasError: boolean) =>
     cn(
@@ -55,7 +59,14 @@ export const DetailsStep = ({ serviceType, defaultValues, onSubmit, onBack, isSu
     );
 
   return (
-    <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-5">
+    <form
+      onSubmit={(e) => {
+        if (isBot(honeypot.current)) { e.preventDefault(); return; } // robot: no se envía nada
+        void handleSubmit(onSubmit)(e);
+      }}
+      className="relative flex flex-col gap-5"
+    >
+      <Honeypot ref={honeypot} />
       <div>
         <p className="font-mono text-xs text-muted-foreground tracking-[0.12em] uppercase mb-1">
           {t("booking.step3.label")}

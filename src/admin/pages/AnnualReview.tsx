@@ -228,6 +228,18 @@ export default function AnnualReview() {
             ))}
           </ul>
         )}
+        {(status?.publications_pending_removal ?? []).length > 0 && (
+          <div className="rounded-md border border-destructive/40 bg-destructive/5 p-3 text-sm space-y-1">
+            <p className="font-medium text-destructive">Publicaciones pendientes de retirar</p>
+            {(status?.publications_pending_removal ?? []).map((x, i) => (
+              <p key={i}>
+                <Link to={`/admin/clients/${x.client_id}`} className="underline">{x.client_name ?? "cliente"}</Link>
+                {" · "}{PERMISSION_LABEL[x.channel] ?? x.channel}{" · "}
+                <a href={x.url} target="_blank" rel="noopener noreferrer" className="underline break-all">{x.url}</a>
+              </p>
+            ))}
+          </div>
+        )}
         <label className="flex items-start gap-2 text-sm"><Checkbox checked={!!checks.withdrawals} onCheckedChange={tick("withdrawals")} className="mt-0.5" />
           Comprobado que esas fotos ya no están publicadas en la web ni en las redes del estudio, y que los artistas lo han hecho en las suyas.</label>
       </Section>

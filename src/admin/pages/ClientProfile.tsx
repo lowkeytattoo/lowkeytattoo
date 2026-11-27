@@ -46,7 +46,7 @@ import { es } from "date-fns/locale";
 import { useQueryClient } from "@tanstack/react-query";
 import { ARTISTS } from "@shared/config/artists";
 import { ConsentFormModal } from "@admin/components/ConsentFormModal";
-import { useConsentForms, useDownloadConsentPdf, useOpenConsentPdf, useRequestConsentAnnulment, useResolveConsentAnnulment, useDeleteAnnulledConsent, useShareConsentWhatsApp, useShareConsentGmail, useSendConsentCopyEmail, useConsentCopyLog, useImageWithdrawals, useRecordImageWithdrawal } from "@admin/hooks/useConsentForms";
+import { useConsentForms, useDownloadConsentPdf, useOpenConsentPdf, useRequestConsentAnnulment, useResolveConsentAnnulment, useDeleteAnnulledConsent, useShareConsentWhatsApp, useShareConsentGmail, useSendConsentCopyEmail, useConsentCopyLog, useImageWithdrawals, useRecordImageWithdrawal, usePhotoPublications, useRegisterPublication, useMarkPublicationRemoved } from "@admin/hooks/useConsentForms";
 import type { ConsentForm, ConsentImagePermissions } from "@shared/types/index";
 import { toast } from "sonner";
 
@@ -148,6 +148,14 @@ export default function ClientProfile() {
   const [withdrawSel, setWithdrawSel] = useState<string[]>([]);
   const [withdrawNote, setWithdrawNote] = useState("");
   const [correctionOf, setCorrectionOf] = useState<ConsentForm | null>(null);
+  // Publicaciones de fotos
+  const { data: publications } = usePhotoPublications(consentIds);
+  const registerPublication = useRegisterPublication();
+  const markRemoved = useMarkPublicationRemoved();
+  const [pubTarget, setPubTarget] = useState<ConsentForm | null>(null);
+  const [pubChannel, setPubChannel] = useState("");
+  const [pubUrl, setPubUrl] = useState("");
+  const [pubDate, setPubDate] = useState("");
 
   const currentArtist = ARTISTS.find((a) => a.id === profile?.artist_config_id)
     ?? ARTISTS.find((a) => a.id === "info")!;
@@ -714,6 +722,61 @@ export default function ClientProfile() {
                         )}
                       </div>
                     )}
+                    {(() => {
+                      const pubs = (publications ?? []).filter((x) => x.consent_id === cf.id);
+                      const state = imageState(cf);
+                      const publishable = (state ?? []).filter(
+                        (x) => ["studioWeb", "studioSocial", "artistSocial"].includes(x.key) && x.granted && !x.withdrawn,
+                      );
+                      if (pubs.length === 0 && (cf.status !== "firmado" || publishable.length === 0)) return null;
+                      const labels = imageLabels(cf);
+                      const withdrawn = withdrawnOf(cf);
+                      return (
+                        <div className="mt-1.5 space-y-1">
+                          {pubs.map((x) => {
+                            const pending = !x.removed_at && withdrawn.has(x.channel);
+                            return (
+                              <div key={x.id} className="text-[11px] flex flex-wrap items-center gap-1.5">
+                                <span className="text-muted-foreground">Publicada en {labels[x.channel]} · {fmtShort(x.published_on)}</span>
+                                <a href={x.url} target="_blank" rel="noopener noreferrer" className="underline truncate max-w-[14rem]">{x.url}</a>
+                                {x.removed_at ? (
+                                  <span className="text-muted-foreground">· retirada {fmtShort(x.removed_at)}</span>
+                                ) : (
+                                  <>
+                                    {pending && <span className="text-destructive font-medium">· pendiente de retirar</span>}
+                                    <button
+                                      type="button"
+                                      className="underline text-muted-foreground hover:text-foreground"
+                                      disabled={markRemoved.isPending}
+                                      onClick={() => markRemoved.mutate(x.id, {
+                                        onSuccess: () => toast.success("Publicación marcada como retirada"),
+                                        onError: (e) => toast.error((e as Error).message),
+                                      })}
+                                    >
+                                      Marcar como retirada
+                                    </button>
+                                  </>
+                                )}
+                              </div>
+                            );
+                          })}
+                          {cf.status === "firmado" && publishable.length > 0 && (
+                            <button
+                              type="button"
+                              className="text-[11px] underline text-muted-foreground hover:text-foreground"
+                              onClick={() => {
+                                setPubChannel(publishable[0].key);
+                                setPubUrl("");
+                                setPubDate(new Date().toISOString().slice(0, 10));
+                                setPubTarget(cf);
+                              }}
+                            >
+                              Registrar publicación
+                            </button>
+                          )}
+                        </div>
+                      );
+                    })()}
                     {(copyLog ?? []).some((l) => l.consent_id === cf.id) && (
                       <div className="text-[11px] text-muted-foreground mt-1">
                         Copia enviada:{" "}
@@ -1257,7 +1320,8 @@ export default function ClientProfile() {
             <AlertDialogTitle>Retirar autorización de imagen</AlertDialogTitle>
             <AlertDialogDescription>
               El documento firmado no cambia: la retirada queda registrada aparte, con fecha y quién la anota, y prevalece.
-              Retira después las publicaciones del estudio; si afecta a las redes o al portfolio del artista, avísale.
+              Retira después las publicaciones del estudio (aparecerán como «pendiente de retirar» hasta que las marques)
+              y, si afecta a las redes o al portfolio del artista, avísale.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <div className="space-y-2">
@@ -1290,6 +1354,45 @@ export default function ClientProfile() {
               }}
             >
               Registrar retirada
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Registrar dónde se ha publicado una foto */}
+      <AlertDialog open={!!pubTarget} onOpenChange={(open) => { if (!open) setPubTarget(null); }}>
+        <AlertDialogContent className="bg-card border-border">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Registrar publicación</AlertDialogTitle>
+            <AlertDialogDescription>
+              Anota dónde se ha publicado la foto para poder retirarla si el cliente retira su autorización.
+              Solo aparecen los canales que autorizó.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          {pubTarget && (
+            <div className="space-y-2">
+              <Label className="text-xs">Canal</Label>
+              <select value={pubChannel} onChange={(e) => setPubChannel(e.target.value)} className="w-full h-10 rounded-md border border-border bg-background px-3 text-sm">
+                {(imageState(pubTarget) ?? [])
+                  .filter((x) => ["studioWeb", "studioSocial", "artistSocial"].includes(x.key) && x.granted && !x.withdrawn)
+                  .map((x) => <option key={x.key} value={x.key}>{x.label}</option>)}
+              </select>
+              <Label className="text-xs">Enlace (URL) de la publicación</Label>
+              <Input value={pubUrl} onChange={(e) => setPubUrl(e.target.value)} maxLength={500} placeholder="https://www.instagram.com/p/…" />
+              <Label className="text-xs">Fecha de publicación</Label>
+              <Input type="date" value={pubDate} onChange={(e) => setPubDate(e.target.value)} />
+            </div>
+          )}
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={!/^https?:\/\/.{4,}/i.test(pubUrl.trim()) || !pubChannel || !pubDate || registerPublication.isPending}
+              onClick={() => pubTarget && registerPublication.mutate(
+                { consentId: pubTarget.id, channel: pubChannel, url: pubUrl, publishedOn: pubDate },
+                { onSuccess: () => toast.success("Publicación registrada"), onError: (e) => toast.error((e as Error).message) },
+              )}
+            >
+              Registrar
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>

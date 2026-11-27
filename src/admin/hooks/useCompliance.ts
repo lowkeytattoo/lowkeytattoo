@@ -100,6 +100,7 @@ export interface ReviewStatus {
   audit_purge_last_ok: string | null;
   oldest_web_booking: string | null;
   withdrawals_12m: { client_id: string; client_name: string | null; permission: string; withdrawn_at: string; note: string | null }[];
+  publications_pending_removal?: { client_id: string; client_name: string | null; channel: string; url: string; withdrawn_at: string }[];
 }
 export interface AnnualReview {
   id: string;

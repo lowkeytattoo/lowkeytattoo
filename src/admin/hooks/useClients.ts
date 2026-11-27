@@ -219,6 +219,15 @@ export const useDeleteClient = () => {
     mutationFn: async (id: string) => {
       const { error } = await supabase.from("clients").delete().eq("id", id);
       if (error) throw error;
+      // La ficha ya no existe: borrar también sus archivos de fotos, que si no
+      // quedarían sueltos en Storage. (Solo dueños pueden borrar clientes.)
+      const folder = `clients/${id}`;
+      const { data: files } = await supabase.storage.from("client-photos").list(folder, { limit: 1000 });
+      const paths = (files ?? []).filter((f) => f.id).map((f) => `${folder}/${f.name}`);
+      if (paths.length > 0) {
+        const { error: rmErr } = await supabase.storage.from("client-photos").remove(paths);
+        if (rmErr) console.warn("[useDeleteClient] fotos no borradas:", rmErr.message);
+      }
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["clients"] });

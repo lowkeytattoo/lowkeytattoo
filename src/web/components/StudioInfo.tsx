@@ -1,4 +1,6 @@
 import { useState, useRef, useEffect } from "react";
+import { Honeypot } from "@web/components/Honeypot";
+import { isBot } from "@web/lib/honeypot";
 import { motion } from "framer-motion";
 import { MapPin, Clock, Phone, MessageSquare } from "lucide-react";
 import { useI18n } from "@web/i18n/I18nProvider";
@@ -42,8 +44,11 @@ const StudioInfo = () => {
     return () => observer.disconnect();
   }, [consent.external]);
 
+  const honeypot = useRef<HTMLInputElement>(null);
+
   const handleContactSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (isBot(honeypot.current)) { setSent(true); return; } // robot: aparenta éxito y no guarda nada
     setSending(true);
     try {
       const { supabase } = await import("@shared/lib/supabase");
@@ -237,7 +242,8 @@ const StudioInfo = () => {
           {sent ? (
             <p className="font-mono text-sm text-foreground">{t("contact.form.success")}</p>
           ) : (
-            <form onSubmit={handleContactSubmit} className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <form onSubmit={handleContactSubmit} className="relative grid grid-cols-1 sm:grid-cols-2 gap-4">
+<Honeypot ref={honeypot} />
               <div className="flex flex-col gap-1.5">
                 <label className="font-mono text-xs text-muted-foreground uppercase tracking-wider">
                   {t("contact.form.name")} *
@@ -245,6 +251,7 @@ const StudioInfo = () => {
                 <input
                   required
                   value={name}
+                  maxLength={120}
                   onChange={(e) => setName(e.target.value)}
                   placeholder={t("contact.form.placeholder.name")}
                   className="bg-background border border-border rounded-sm px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-ring"
@@ -257,6 +264,7 @@ const StudioInfo = () => {
                 <input
                   required
                   value={contact}
+                  maxLength={160}
                   onChange={(e) => setContact(e.target.value)}
                   placeholder={t("contact.form.placeholder.contact")}
                   className="bg-background border border-border rounded-sm px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-ring"
@@ -270,6 +278,7 @@ const StudioInfo = () => {
                   required
                   rows={3}
                   value={message}
+                  maxLength={4000}
                   onChange={(e) => setMessage(e.target.value)}
                   placeholder={t("contact.form.placeholder.message")}
                   className="bg-background border border-border rounded-sm px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-ring resize-none"
