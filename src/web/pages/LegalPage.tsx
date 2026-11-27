@@ -35,7 +35,7 @@ export default function LegalPage() {
           </p>
           <h1 className="text-2xl font-semibold text-foreground mb-2">Aviso Legal</h1>
           <p className="text-xs text-muted-foreground font-mono">
-            Última actualización: noviembre de 2026
+            Última actualización: 27 de noviembre de 2026
           </p>
         </header>
 
@@ -56,8 +56,8 @@ export default function LegalPage() {
               <strong className="text-foreground">Nombre comercial:</strong> Lowkey Tattoo
             </li>
             <li>
-              <strong className="text-foreground">Actividad:</strong> Estudio de tatuajes y piercing
-              profesional
+              <strong className="text-foreground">Actividad:</strong> Estudio profesional de tatuajes,
+              piercing y eliminación de tatuajes con láser
             </li>
             <li>
               <strong className="text-foreground">Domicilio:</strong> Calle Dr. Allart, 50 · 38003

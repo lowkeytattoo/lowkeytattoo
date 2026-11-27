@@ -252,6 +252,7 @@ export default function BlogPostPage() {
                         placeholder={t("contact.form.placeholder.message")}
                         className="bg-background border border-border rounded-sm px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/50 focus:outline-none focus:ring-1 focus:ring-ring resize-none"
                       />
+                      <p className="text-[11px] text-muted-foreground">{t("privacy.healthHint")}</p>
                     </div>
                     <div className="sm:col-span-2">
                       <PrivacyNotice purpose="contact" />

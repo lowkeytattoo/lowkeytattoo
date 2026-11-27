@@ -21,9 +21,9 @@ export const ROUTES = {
     blog:     "/en/blog",
     blogPost: (slug: string) => `/en/blog/${slug}`,
     artist:   (slug: string) => `/en/artists/${slug}`,
-    privacy:  "/politica-de-privacidad",  // legal pages are ES-only
-    legal:    "/aviso-legal",
-    cookies:  "/politica-de-cookies",
+    privacy:  "/en/privacy-policy",
+    legal:    "/en/legal-notice",
+    cookies:  "/en/cookie-policy",
   },
 } as const;
 
@@ -44,9 +44,9 @@ export function switchLocaleUrl(pathname: string, to: "en" | "es"): string {
     [ROUTES.es.piercing, ROUTES.en.piercing],
     [ROUTES.es.laser,    ROUTES.en.laser],
     [ROUTES.es.blog,     ROUTES.en.blog],
-    [ROUTES.es.privacy,  ROUTES.es.privacy],  // same URL both locales
-    [ROUTES.es.legal,    ROUTES.es.legal],
-    [ROUTES.es.cookies,  ROUTES.es.cookies],
+    [ROUTES.es.privacy,  ROUTES.en.privacy],
+    [ROUTES.es.legal,    ROUTES.en.legal],
+    [ROUTES.es.cookies,  ROUTES.en.cookies],
   ];
 
   if (to === "en") {

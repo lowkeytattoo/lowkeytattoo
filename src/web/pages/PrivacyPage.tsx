@@ -47,7 +47,7 @@ export default function PrivacyPage() {
           </p>
           <h1 className="text-2xl font-semibold text-foreground mb-2">Política de Privacidad</h1>
           <p className="text-xs text-muted-foreground font-mono">
-            Última actualización: noviembre de 2026
+            Última actualización: 27 de noviembre de 2026
           </p>
         </header>
 
@@ -136,9 +136,13 @@ export default function PrivacyPage() {
           <ul className="list-disc pl-5 space-y-1">
             <li>Solo se recogen en el estudio, en el momento del servicio, y nunca a través de la web.</li>
             <li>
-              Solo pueden consultarlos los titulares del estudio y el profesional que te atiende, desde
-              un área privada con usuario y contraseña. Cada artista solo accede a las fichas de sus
-              propios clientes.
+              Solo pueden consultarlos los titulares del estudio y el artista que te atiende, desde un
+              área privada con usuario y contraseña. Si vuelves al estudio con otro artista, este
+              también podrá consultar tu historial, para valorar tu seguridad.
+            </li>
+            <li>
+              Los consentimientos firmados no se pueden modificar ni borrar. Si alguno contiene un
+              error, se anula (se conserva marcado como anulado) y se firma uno nuevo.
             </li>
             <li>
               Se guardan en almacenamiento privado con control de acceso, en servidores ubicados en la
@@ -147,6 +151,12 @@ export default function PrivacyPage() {
             <li>No se usan con fines comerciales ni se ceden a terceros, salvo obligación legal.</li>
             <li>Se conservan solo durante el tiempo mínimo exigido por la ley (apartado 5).</li>
           </ul>
+          <p>
+            Si nos envías información sobre tu salud por WhatsApp o redes sociales (por ejemplo, una
+            reacción después del tatuaje), la usaremos solo para atenderte y anotaremos en tu ficha lo
+            que sea relevante. Te pedimos que no envíes por esos canales más información de la
+            necesaria.
+          </p>
         </Section>
 
         <Section title="5. Plazo de Conservación">
@@ -158,9 +168,12 @@ export default function PrivacyPage() {
               de cliente (punto siguiente).
             </li>
             <li>
-              <B>Datos de clientes y documentos de consentimiento informado:</B> mientras dure la
-              relación y, después, 5 años desde el último servicio, plazo necesario para cumplir la
-              normativa sanitaria aplicable y atender posibles responsabilidades legales.
+              <B>Consentimientos informados y cuestionarios de salud:</B> al menos 5 años desde cada
+              intervención, como exige la normativa sanitaria de Canarias (Decreto 154/2004).
+            </li>
+            <li>
+              <B>Ficha de cliente e historial de sesiones:</B> mientras sigas siendo cliente y, después,
+              5 años desde tu última sesión, para atender posibles responsabilidades legales.
             </li>
             <li>
               <B>Datos de facturación:</B> durante los plazos que fija la normativa fiscal y mercantil.
@@ -174,8 +187,9 @@ export default function PrivacyPage() {
             </li>
           </ul>
           <p>
-            Cuando terminan estos plazos, los datos se bloquean durante el tiempo de prescripción de
-            las posibles responsabilidades (art. 32 LOPDGDD) y después se eliminan.
+            Una vez al año revisamos los datos que han superado estos plazos y los eliminamos o, cuando
+            la ley lo exige, los bloqueamos durante el tiempo de prescripción de las posibles
+            responsabilidades (art. 32 LOPDGDD) antes de eliminarlos.
           </p>
         </Section>
 
@@ -187,11 +201,11 @@ export default function PrivacyPage() {
             encargados del tratamiento:
           </p>
           <ul className="list-disc pl-5 space-y-1.5">
-            <li><B>Supabase Inc.</B>: base de datos y almacenamiento de archivos (servidores en la UE, Fráncfort).</li>
+            <li><B>Supabase Inc.</B>: base de datos y almacenamiento de archivos (servidores en la UE, Estocolmo).</li>
             <li><B>Vercel Inc.</B>: alojamiento de la página web.</li>
             <li><B>Brevo (Sendinblue SAS, Francia)</B>: envío de los emails de confirmación y de aviso.</li>
             <li><B>CallMeBot</B>: avisos internos por WhatsApp al equipo cuando entra una solicitud nueva. El aviso solo indica el servicio, el artista, la fecha solicitada y un número de referencia; no incluye tus datos personales.</li>
-            <li><B>Google</B>: Google Calendar (agenda interna). Además, solo si das tu consentimiento: Google Analytics, Google Ads y Google Maps.</li>
+            <li><B>Google</B>: Google Calendar (agenda interna). Además, solo si das tu consentimiento: Google Analytics y Google Maps.</li>
             <li><B>Meta Platforms Ireland Ltd.</B>: Meta Pixel, solo si das tu consentimiento.</li>
             <li><B>Elfsight Inc.</B>: muestra el feed de Instagram integrado, solo si aceptas el contenido externo.</li>
           </ul>
@@ -245,10 +259,14 @@ export default function PrivacyPage() {
 
         <Section title="9. Menores de Edad">
           <p>
+            No realizamos tatuajes, piercings ni tratamientos láser a menores de 16 años. Entre los 16 y
+            los 17 años, solo con la presencia y la autorización firmada de su padre, madre o
+            representante legal, cuyos datos también tratamos para ello.
+          </p>
+          <p>
             Los formularios de esta web están pensados para mayores de edad. Los menores de 14 años no
             pueden facilitarnos sus datos sin el consentimiento de sus padres o tutores (art. 7
-            LOPDGDD). Cualquier servicio a un menor de edad requiere la presencia y la autorización
-            firmada de su representante legal en el estudio.
+            LOPDGDD).
           </p>
         </Section>
 
@@ -257,7 +275,8 @@ export default function PrivacyPage() {
             Aplicamos medidas técnicas y organizativas adecuadas al riesgo para proteger tus datos
             frente a accesos no autorizados, pérdida o destrucción. Entre ellas: cifrado en tránsito
             (HTTPS), control de acceso por usuario y rol en la base de datos, almacenamiento privado de
-            los documentos firmados y acceso al área interna solo con autenticación.
+            los documentos firmados, que no se pueden modificar ni borrar desde el área interna, y
+            acceso al área interna solo con autenticación.
           </p>
         </Section>
 

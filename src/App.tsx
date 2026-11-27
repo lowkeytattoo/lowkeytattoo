@@ -27,6 +27,9 @@ const NotFound       = lazy(() => import("@web/pages/NotFound"));
 const PrivacyPage   = lazy(() => import("@web/pages/PrivacyPage"));
 const LegalPage     = lazy(() => import("@web/pages/LegalPage"));
 const CookiesPage   = lazy(() => import("@web/pages/CookiesPage"));
+const PrivacyPageEn = lazy(() => import("@web/pages/PrivacyPageEn"));
+const LegalPageEn   = lazy(() => import("@web/pages/LegalPageEn"));
+const CookiesPageEn = lazy(() => import("@web/pages/CookiesPageEn"));
 
 // Admin pages — lazy loaded (behind auth, excluded from public bundle)
 const AdminLogin        = lazy(() => import("@admin/pages/Login"));
@@ -122,6 +125,9 @@ const App = () => (
                   <Route path="/en/blog" element={<Suspense fallback={null}><BlogPage /></Suspense>} />
                   <Route path="/en/blog/:slug" element={<Suspense fallback={null}><BlogPostPage /></Suspense>} />
                   <Route path="/en/artists/:slug" element={<Suspense fallback={null}><ArtistBioPage /></Suspense>} />
+                  <Route path="/en/privacy-policy" element={<Suspense fallback={null}><PrivacyPageEn /></Suspense>} />
+                  <Route path="/en/legal-notice" element={<Suspense fallback={null}><LegalPageEn /></Suspense>} />
+                  <Route path="/en/cookie-policy" element={<Suspense fallback={null}><CookiesPageEn /></Suspense>} />
 
                   {/* ── Admin login ─────────────────────────────────── */}
                   <Route

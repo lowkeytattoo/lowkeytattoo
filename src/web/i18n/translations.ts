@@ -21,7 +21,7 @@ export const translations: Record<Locale, Record<string, string>> = {
 
     // Cookies
     "cookies.title": "Cookie Notice",
-    "cookies.desc": "We use our own and third-party cookies for analytics (measuring visits), advertising (Google Ads and Meta) and to show external content (Google Maps and the Instagram feed). They are only enabled if you accept them. You can accept all, reject them or choose by purpose, and change your choice at any time from \"Cookie settings\" in the footer.",
+    "cookies.desc": "We use our own and third-party cookies for analytics (measuring visits), advertising (Meta) and to show external content (Google Maps and the Instagram feed). They are only enabled if you accept them. You can accept all, reject them or choose by purpose, and change your choice at any time from \"Cookie settings\" in the footer.",
     "cookies.accept": "Accept all",
     "cookies.reject": "Reject all",
     "cookies.configure": "Configure",
@@ -35,7 +35,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "cookies.cat.analytics": "Analytics",
     "cookies.cat.analytics.desc": "Google Analytics 4: anonymous statistics on how the site is used.",
     "cookies.cat.marketing": "Advertising",
-    "cookies.cat.marketing.desc": "Google Ads and Meta Pixel: measure ad campaign results and show you relevant ads.",
+    "cookies.cat.marketing.desc": "Meta Pixel: measures ad campaign results and shows you relevant ads.",
     "cookies.cat.external": "External content",
     "cookies.cat.external.desc": "Google Maps (studio map) and Elfsight (Instagram feed). These providers may set their own cookies.",
     "footer.cookies": "Cookies",
@@ -45,9 +45,10 @@ export const translations: Record<Locale, Record<string, string>> = {
     "instagram.blocked": "Our Instagram feed is shown through Elfsight, an external service. It will only load if you accept external content.",
     "instagram.load": "Show Instagram feed",
     "studio.map.open": "Open in Google Maps",
-    "privacy.notice.booking": "Data controller: Lowkey Tattoo. Purpose: handle your appointment request and contact you about it. Legal basis: steps at your request prior to a contract. Recipients: no data is shared with third parties, except service providers acting on our behalf. Rights: access, rectification, erasure, objection, restriction and portability at info@tattoolowkey.com.",
-    "privacy.notice.contact": "Data controller: Lowkey Tattoo. Purpose: answer your message. Legal basis: your request. Recipients: no data is shared with third parties, except service providers acting on our behalf. Rights: access, rectification, erasure, objection, restriction and portability at info@tattoolowkey.com.",
+    "privacy.notice.booking": "Data controller: Pablo Matos Rodríguez (Lowkey Tattoo). Purpose: handle your appointment request and contact you about it. Legal basis: steps at your request prior to a contract. Recipients: no data is shared with third parties, except service providers acting on our behalf. Rights: access, rectification, erasure, objection, restriction and portability at info@tattoolowkey.com.",
+    "privacy.notice.contact": "Data controller: Pablo Matos Rodríguez (Lowkey Tattoo). Purpose: answer your message. Legal basis: your request. Recipients: no data is shared with third parties, except service providers acting on our behalf. Rights: access, rectification, erasure, objection, restriction and portability at info@tattoolowkey.com.",
     "privacy.notice.more": "More information in our Privacy Policy.",
+    "privacy.healthHint": "Please don't include diagnoses, medication or other health information: we'll give you the health questionnaire at the studio.",
 
     // Gallery
     "gallery.label": "The Work",
@@ -321,7 +322,7 @@ export const translations: Record<Locale, Record<string, string>> = {
 
     // Cookies
     "cookies.title": "Aviso de cookies",
-    "cookies.desc": "Usamos cookies propias y de terceros para analítica (medir las visitas), publicidad (Google Ads y Meta) y para mostrar contenido externo (Google Maps y el feed de Instagram). Solo se activan si las aceptas. Puedes aceptarlas todas, rechazarlas o elegir por finalidad, y cambiar tu decisión cuando quieras desde \"Configurar cookies\" en el pie de página.",
+    "cookies.desc": "Usamos cookies propias y de terceros para analítica (medir las visitas), publicidad (Meta) y para mostrar contenido externo (Google Maps y el feed de Instagram). Solo se activan si las aceptas. Puedes aceptarlas todas, rechazarlas o elegir por finalidad, y cambiar tu decisión cuando quieras desde \"Configurar cookies\" en el pie de página.",
     "cookies.accept": "Aceptar todas",
     "cookies.reject": "Rechazar todas",
     "cookies.configure": "Configurar",
@@ -335,7 +336,7 @@ export const translations: Record<Locale, Record<string, string>> = {
     "cookies.cat.analytics": "Analíticas",
     "cookies.cat.analytics.desc": "Google Analytics 4: estadísticas anónimas sobre el uso de la web.",
     "cookies.cat.marketing": "Publicidad",
-    "cookies.cat.marketing.desc": "Google Ads y Meta Pixel: miden el resultado de las campañas y te muestran anuncios relevantes.",
+    "cookies.cat.marketing.desc": "Meta Pixel: mide el resultado de las campañas y te muestra anuncios relevantes.",
     "cookies.cat.external": "Contenido externo",
     "cookies.cat.external.desc": "Google Maps (mapa del estudio) y Elfsight (feed de Instagram). Estos proveedores pueden instalar sus propias cookies.",
     "footer.cookies": "Cookies",
@@ -345,9 +346,10 @@ export const translations: Record<Locale, Record<string, string>> = {
     "instagram.blocked": "Nuestro feed de Instagram se muestra mediante Elfsight, un servicio externo. Solo se cargará si aceptas el contenido externo.",
     "instagram.load": "Ver feed de Instagram",
     "studio.map.open": "Abrir en Google Maps",
-    "privacy.notice.booking": "Responsable: Lowkey Tattoo. Finalidad: gestionar tu solicitud de cita y contactarte sobre ella. Legitimación: aplicación de medidas precontractuales a petición tuya. Destinatarios: no se ceden datos a terceros, salvo a los proveedores que nos prestan servicio como encargados del tratamiento. Derechos: acceso, rectificación, supresión, oposición, limitación y portabilidad en info@tattoolowkey.com.",
-    "privacy.notice.contact": "Responsable: Lowkey Tattoo. Finalidad: responder a tu mensaje. Legitimación: tu propia solicitud. Destinatarios: no se ceden datos a terceros, salvo a los proveedores que nos prestan servicio como encargados del tratamiento. Derechos: acceso, rectificación, supresión, oposición, limitación y portabilidad en info@tattoolowkey.com.",
+    "privacy.notice.booking": "Responsable: Pablo Matos Rodríguez (Lowkey Tattoo). Finalidad: gestionar tu solicitud de cita y contactarte sobre ella. Legitimación: aplicación de medidas precontractuales a petición tuya. Destinatarios: no se ceden datos a terceros, salvo a los proveedores que nos prestan servicio como encargados del tratamiento. Derechos: acceso, rectificación, supresión, oposición, limitación y portabilidad en info@tattoolowkey.com.",
+    "privacy.notice.contact": "Responsable: Pablo Matos Rodríguez (Lowkey Tattoo). Finalidad: responder a tu mensaje. Legitimación: tu propia solicitud. Destinatarios: no se ceden datos a terceros, salvo a los proveedores que nos prestan servicio como encargados del tratamiento. Derechos: acceso, rectificación, supresión, oposición, limitación y portabilidad en info@tattoolowkey.com.",
     "privacy.notice.more": "Más información en nuestra Política de Privacidad.",
+    "privacy.healthHint": "No incluyas diagnósticos, medicación ni otros datos de salud: te pasaremos el cuestionario de salud en el estudio.",
 
     // Gallery
     "gallery.label": "Nuestro Trabajo",

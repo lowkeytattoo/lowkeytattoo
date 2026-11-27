@@ -59,12 +59,11 @@ const TECHNICAL: CookieRow[] = [
 ];
 
 const ANALYTICS: CookieRow[] = [
-  { name: "_ga", owner: "Google Ireland Ltd.", purpose: "Distingue usuarios de forma anónima para generar estadísticas de uso.", duration: "2 años" },
+  { name: "_ga", owner: "Google Ireland Ltd.", purpose: "Distingue a los visitantes mediante un identificador aleatorio para generar estadísticas de uso.", duration: "2 años" },
   { name: "_ga_<ID>", owner: "Google Ireland Ltd.", purpose: "Mantiene el estado de la sesión en Google Analytics 4.", duration: "2 años" },
 ];
 
 const MARKETING: CookieRow[] = [
-  { name: "_gcl_au", owner: "Google Ireland Ltd.", purpose: "Mide las conversiones de las campañas de Google Ads.", duration: "3 meses" },
   { name: "_fbp", owner: "Meta Platforms Ireland Ltd.", purpose: "Mide la eficacia de los anuncios de Meta (Facebook / Instagram).", duration: "3 meses" },
   { name: "fr", owner: "Meta Platforms Ireland Ltd.", purpose: "Muestra y mide anuncios en Facebook e Instagram (dominio facebook.com).", duration: "3 meses" },
 ];
@@ -97,7 +96,7 @@ export default function CookiesPage() {
           </p>
           <h1 className="text-2xl font-semibold text-foreground mb-2">Política de Cookies</h1>
           <p className="text-xs text-muted-foreground font-mono">
-            Última actualización: noviembre de 2026
+            Última actualización: 27 de noviembre de 2026
           </p>
         </header>
 
@@ -148,15 +147,16 @@ export default function CookiesPage() {
         <Section title="4. Cookies analíticas (requieren consentimiento)">
           <p>
             Usamos Google Analytics 4 para saber cuántas personas visitan la web y qué páginas
-            consultan, con la IP anonimizada.
+            consultan. Google Analytics 4 no guarda la dirección IP completa, pero usa identificadores
+            del navegador que permiten distinguir las visitas.
           </p>
           <CookieTable rows={ANALYTICS} />
         </Section>
 
         <Section title="5. Cookies de publicidad (requieren consentimiento)">
           <p>
-            Sirven para medir el resultado de nuestras campañas en Google Ads y Meta (Facebook e
-            Instagram) y para mostrarte anuncios relevantes.
+            Sirven para medir el resultado de nuestras campañas en Meta (Facebook e Instagram) y para
+            mostrarte anuncios relevantes. Usamos el Meta Pixel.
           </p>
           <CookieTable rows={MARKETING} />
         </Section>

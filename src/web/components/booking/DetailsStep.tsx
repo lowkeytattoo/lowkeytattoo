@@ -122,6 +122,7 @@ export const DetailsStep = ({ serviceType, defaultValues, onSubmit, onBack, isSu
             className={cn(inputClass(!!errors.description), "resize-none")}
             placeholder={descriptionPlaceholder}
           />
+          <p className="mt-1 text-[11px] text-muted-foreground">{t("privacy.healthHint")}</p>
           {errors.description && (
             <p className="mt-1 text-xs text-destructive">{errors.description.message}</p>
           )}

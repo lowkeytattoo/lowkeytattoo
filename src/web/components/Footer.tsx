@@ -77,13 +77,13 @@ const Footer = () => {
             </a>
           </p>
           <div className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2">
-            <Link to="/politica-de-privacidad" className="font-mono text-[10px] text-muted-foreground hover:text-foreground transition-colors uppercase tracking-wider">
+            <Link to={ROUTES[locale].privacy} className="font-mono text-[10px] text-muted-foreground hover:text-foreground transition-colors uppercase tracking-wider">
               {t("footer.privacy")}
             </Link>
-            <Link to="/aviso-legal" className="font-mono text-[10px] text-muted-foreground hover:text-foreground transition-colors uppercase tracking-wider">
+            <Link to={ROUTES[locale].legal} className="font-mono text-[10px] text-muted-foreground hover:text-foreground transition-colors uppercase tracking-wider">
               {t("footer.legal")}
             </Link>
-            <Link to="/politica-de-cookies" className="font-mono text-[10px] text-muted-foreground hover:text-foreground transition-colors uppercase tracking-wider">
+            <Link to={ROUTES[locale].cookies} className="font-mono text-[10px] text-muted-foreground hover:text-foreground transition-colors uppercase tracking-wider">
               {t("footer.cookies")}
             </Link>
             <button type="button" onClick={openSettings} className="font-mono text-[10px] text-muted-foreground hover:text-foreground transition-colors uppercase tracking-wider">

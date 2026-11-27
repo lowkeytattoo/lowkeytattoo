@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { AnimatePresence, motion } from "framer-motion";
 import { useCookieConsent } from "@web/contexts/CookieConsentContext";
 import { useI18n } from "@web/i18n/I18nProvider";
+import { ROUTES } from "@web/config/routes";
 import type { ConsentCategory, ConsentChoices } from "@web/lib/analytics";
 
 // Accept / reject / configure share the same visual weight (AEPD cookie guide 2023).
@@ -44,7 +45,7 @@ const Toggle = ({
 export const CookieBanner = () => {
   const { pending, consent, settingsOpen, acceptAll, rejectAll, save, openSettings, closeSettings } =
     useCookieConsent();
-  const { t } = useI18n();
+  const { t, locale } = useI18n();
   const [draft, setDraft] = useState<ConsentChoices>(consent);
 
   // Start the settings panel from the current choices each time it opens.
@@ -78,7 +79,7 @@ export const CookieBanner = () => {
                   </p>
                   <p className="text-sm text-foreground/80 max-w-2xl leading-relaxed">
                     {t("cookies.desc")}{" "}
-                    <Link to="/politica-de-cookies" className="underline underline-offset-4 hover:text-foreground">
+                    <Link to={ROUTES[locale].cookies} className="underline underline-offset-4 hover:text-foreground">
                       {t("cookies.policy")}
                     </Link>
                   </p>
@@ -99,7 +100,7 @@ export const CookieBanner = () => {
                     </p>
                     <p className="text-sm text-foreground/80 max-w-2xl leading-relaxed">
                       {t("cookies.settings.desc")}{" "}
-                      <Link to="/politica-de-cookies" className="underline underline-offset-4 hover:text-foreground">
+                      <Link to={ROUTES[locale].cookies} className="underline underline-offset-4 hover:text-foreground">
                         {t("cookies.policy")}
                       </Link>
                     </p>
