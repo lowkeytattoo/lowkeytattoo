@@ -1,0 +1,172 @@
+# ============================================================================
+# Copia de seguridad diaria y cifrada — Lowkey Tattoo (RGPD paquete 3A)
+#
+# Cada noche:
+#   1. Exporta la base de datos de Supabase (roles, estructura y datos).
+#   2. Descarga TODOS los archivos de Supabase Storage (consentimientos,
+#      fotos, blog...). Las copias de Supabase no incluyen estos archivos.
+#   3. Empaqueta todo con una lista de huellas SHA-256 de cada archivo.
+#   4. Lo cifra con AES-256 (GnuPG) usando BACKUP_PASSPHRASE.
+#   5. Lo sube a Backblaze B2 (UE). El bucket tiene bloqueo de objetos de
+#      30 días y una regla que borra cada copia pasado ese plazo.
+#   6. Si algo falla: email de GitHub + WhatsApp al admin.
+#
+# Nada de esto se guarda en el repositorio. Los datos solo existen sin
+# cifrar en el disco temporal del runner durante la ejecución.
+#
+# Secretos (GitHub → Settings → Secrets and variables → Actions):
+#   SUPABASE_DB_URL            Cadena "Session pooler" (puerto 5432) con contraseña
+#   SUPABASE_S3_ACCESS_KEY_ID  Supabase → Storage → S3 Configuration → Access keys
+#   SUPABASE_S3_SECRET_KEY
+#   B2_KEY_ID                  Backblaze → Application Keys (solo listBuckets + writeFiles)
+#   B2_APP_KEY
+#   B2_BUCKET                  Nombre del bucket
+#   BACKUP_PASSPHRASE          Contraseña de cifrado (la guardan Pablo, Sergio y el técnico)
+#   ADMIN_WA_PHONE / ADMIN_WA_KEY   (opcionales) aviso por WhatsApp si falla
+#
+# Restaurar: supabase/backup/RESTAURAR.md
+# ============================================================================
+
+name: Backup diario cifrado
+
+on:
+  schedule:
+    - cron: "0 3 * * *" # 03:00 UTC = 03:00 Canarias en invierno, 04:00 en verano
+  workflow_dispatch: {}
+
+permissions:
+  contents: read
+
+concurrency:
+  group: backup
+  cancel-in-progress: false
+
+env:
+  SUPABASE_PROJECT_REF: raowczgzbrnzuvedjpbo
+  SUPABASE_REGION: eu-north-1
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Comprobar secretos
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+          SUPABASE_S3_ACCESS_KEY_ID: ${{ secrets.SUPABASE_S3_ACCESS_KEY_ID }}
+          SUPABASE_S3_SECRET_KEY: ${{ secrets.SUPABASE_S3_SECRET_KEY }}
+          B2_KEY_ID: ${{ secrets.B2_KEY_ID }}
+          B2_APP_KEY: ${{ secrets.B2_APP_KEY }}
+          B2_BUCKET: ${{ secrets.B2_BUCKET }}
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          missing=""
+          for v in SUPABASE_DB_URL SUPABASE_S3_ACCESS_KEY_ID SUPABASE_S3_SECRET_KEY B2_KEY_ID B2_APP_KEY B2_BUCKET BACKUP_PASSPHRASE; do
+            [ -n "${!v}" ] || missing="$missing $v"
+          done
+          if [ -n "$missing" ]; then echo "Faltan secretos:$missing"; exit 1; fi
+          if [ "${#BACKUP_PASSPHRASE}" -lt 20 ]; then echo "BACKUP_PASSPHRASE debe tener al menos 20 caracteres"; exit 1; fi
+
+      - name: Instalar herramientas
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq rclone gnupg >/dev/null
+          pip install --quiet --upgrade b2
+          rclone version | head -1
+          b2 version
+
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Preparar carpeta temporal
+        run: |
+          echo "STAMP=$(date -u +%Y-%m-%dT%H%MZ)" >> "$GITHUB_ENV"
+          echo "WORK=$RUNNER_TEMP/backup" >> "$GITHUB_ENV"
+          mkdir -p "$RUNNER_TEMP/backup/db" "$RUNNER_TEMP/backup/storage"
+          chmod 700 "$RUNNER_TEMP/backup"
+
+      - name: 1 · Exportar base de datos
+        env:
+          SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+        run: |
+          set -euo pipefail
+          cd "$WORK/db"
+          supabase db dump --db-url "$SUPABASE_DB_URL" -f roles.sql --role-only
+          supabase db dump --db-url "$SUPABASE_DB_URL" -f schema.sql
+          supabase db dump --db-url "$SUPABASE_DB_URL" -f data.sql --use-copy --data-only
+          for f in roles.sql schema.sql data.sql; do
+            [ -s "$f" ] || { echo "$f está vacío"; exit 1; }
+          done
+          grep -q "consent_forms" schema.sql || { echo "schema.sql no contiene consent_forms"; exit 1; }
+
+      - name: 2 · Descargar archivos de Storage
+        env:
+          RCLONE_CONFIG_SUPA_TYPE: s3
+          RCLONE_CONFIG_SUPA_PROVIDER: Other
+          RCLONE_CONFIG_SUPA_ACCESS_KEY_ID: ${{ secrets.SUPABASE_S3_ACCESS_KEY_ID }}
+          RCLONE_CONFIG_SUPA_SECRET_ACCESS_KEY: ${{ secrets.SUPABASE_S3_SECRET_KEY }}
+          RCLONE_CONFIG_SUPA_ENDPOINT: https://${{ env.SUPABASE_PROJECT_REF }}.storage.supabase.co/storage/v1/s3
+          RCLONE_CONFIG_SUPA_REGION: ${{ env.SUPABASE_REGION }}
+          RCLONE_CONFIG_SUPA_FORCE_PATH_STYLE: "true"
+        run: |
+          set -euo pipefail
+          rclone lsd supa: | awk '{print $NF}' > "$WORK/buckets.txt"
+          [ -s "$WORK/buckets.txt" ] || { echo "No se ha podido listar ningún bucket"; exit 1; }
+          while read -r bucket; do
+            rclone copy "supa:$bucket" "$WORK/storage/$bucket" --transfers 4 --checkers 8
+          done < "$WORK/buckets.txt"
+          echo "Buckets: $(tr '\n' ' ' < "$WORK/buckets.txt")"
+          echo "Archivos: $(find "$WORK/storage" -type f | wc -l)"
+
+      - name: 3 · Empaquetar y cifrar
+        env:
+          BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+        run: |
+          set -euo pipefail
+          cd "$WORK"
+          find db storage -type f -print0 | sort -z | xargs -0 sha256sum > MANIFEST.sha256
+          tar -czf "lowkey-$STAMP.tar.gz" db storage buckets.txt MANIFEST.sha256
+          printf '%s' "$BACKUP_PASSPHRASE" | gpg --batch --yes --quiet --pinentry-mode loopback \
+            --passphrase-fd 0 --symmetric --cipher-algo AES256 \
+            -o "lowkey-$STAMP.tar.gz.gpg" "lowkey-$STAMP.tar.gz"
+          # Comprobar que se puede descifrar antes de subir
+          printf '%s' "$BACKUP_PASSPHRASE" | gpg --batch --quiet --pinentry-mode loopback \
+            --passphrase-fd 0 -d "lowkey-$STAMP.tar.gz.gpg" | tar -tz > /dev/null
+          rm -rf db storage "lowkey-$STAMP.tar.gz"
+
+      - name: 4 · Subir a Backblaze B2
+        env:
+          B2_APPLICATION_KEY_ID: ${{ secrets.B2_KEY_ID }}
+          B2_APPLICATION_KEY: ${{ secrets.B2_APP_KEY }}
+          B2_BUCKET: ${{ secrets.B2_BUCKET }}
+        run: |
+          set -euo pipefail
+          cd "$WORK"
+          b2 file upload --quiet "$B2_BUCKET" "lowkey-$STAMP.tar.gz.gpg" "lowkey-$STAMP.tar.gz.gpg" > /dev/null
+          SIZE=$(du -h "lowkey-$STAMP.tar.gz.gpg" | cut -f1)
+          FILES=$(wc -l < MANIFEST.sha256)
+          {
+            echo "### Copia subida"
+            echo "- Fichero: \`lowkey-$STAMP.tar.gz.gpg\`"
+            echo "- Tamaño cifrado: $SIZE"
+            echo "- Archivos incluidos: $FILES"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Borrar temporales
+        if: always()
+        run: rm -rf "$RUNNER_TEMP/backup"
+
+      - name: Avisar si falla
+        if: failure()
+        env:
+          ADMIN_WA_PHONE: ${{ secrets.ADMIN_WA_PHONE }}
+          ADMIN_WA_KEY: ${{ secrets.ADMIN_WA_KEY }}
+          RUN_URL: ${{ github.server_url }}/${{ github.repository }}/actions/runs/${{ github.run_id }}
+        run: |
+          [ -n "$ADMIN_WA_PHONE" ] && [ -n "$ADMIN_WA_KEY" ] || exit 0
+          TEXT="⚠️ La copia de seguridad diaria de Lowkey ha FALLADO. Revisa: $RUN_URL"
+          curl -s -G "https://api.callmebot.com/whatsapp.php" \
+            --data-urlencode "phone=$ADMIN_WA_PHONE" \
+            --data-urlencode "text=$TEXT" \
+            --data-urlencode "apikey=$ADMIN_WA_KEY" > /dev/null || true
