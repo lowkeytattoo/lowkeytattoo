@@ -38,7 +38,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, Camera, Plus, Star, Upload, Trash2, Pencil, Phone, AlertCircle, Cake, Clock, Link2, UserCircle, FileText, Download, Mail, MessageCircle, Ban, Check, X } from "lucide-react";
+import { ArrowLeft, Camera, Plus, Star, Upload, Trash2, Pencil, Phone, AlertCircle, Cake, Clock, Link2, UserCircle, FileText, Download, Mail, MessageCircle, Ban, Check, X, Send, FilePlus2 } from "lucide-react";
 import type { SessionType } from "@shared/types/index";
 import { format } from "date-fns";
 import { formatLocalDate } from "@shared/lib/formatDate";
@@ -46,8 +46,8 @@ import { es } from "date-fns/locale";
 import { useQueryClient } from "@tanstack/react-query";
 import { ARTISTS } from "@shared/config/artists";
 import { ConsentFormModal } from "@admin/components/ConsentFormModal";
-import { useConsentForms, useDownloadConsentPdf, useOpenConsentPdf, useRequestConsentAnnulment, useResolveConsentAnnulment, useDeleteAnnulledConsent, useShareConsentWhatsApp, useShareConsentGmail } from "@admin/hooks/useConsentForms";
-import type { ConsentForm } from "@shared/types/index";
+import { useConsentForms, useDownloadConsentPdf, useOpenConsentPdf, useRequestConsentAnnulment, useResolveConsentAnnulment, useDeleteAnnulledConsent, useShareConsentWhatsApp, useShareConsentGmail, useSendConsentCopyEmail, useConsentCopyLog, useImageWithdrawals, useRecordImageWithdrawal } from "@admin/hooks/useConsentForms";
+import type { ConsentForm, ConsentImagePermissions } from "@shared/types/index";
 import { toast } from "sonner";
 
 const MAX_PX = 1920;
@@ -138,6 +138,16 @@ export default function ClientProfile() {
   const isOwner = profile?.role === "owner";
   const shareWhatsApp = useShareConsentWhatsApp();
   const shareGmail = useShareConsentGmail();
+  const sendCopyEmail = useSendConsentCopyEmail();
+  const consentIds = (consentForms ?? []).map((c) => c.id);
+  const { data: copyLog } = useConsentCopyLog(consentIds);
+  const { data: withdrawals } = useImageWithdrawals(consentIds);
+  const recordWithdrawal = useRecordImageWithdrawal();
+  // Retirada de autorizaciones de imagen y documento corregido (Fase 2)
+  const [withdrawTarget, setWithdrawTarget] = useState<ConsentForm | null>(null);
+  const [withdrawSel, setWithdrawSel] = useState<string[]>([]);
+  const [withdrawNote, setWithdrawNote] = useState("");
+  const [correctionOf, setCorrectionOf] = useState<ConsentForm | null>(null);
 
   const currentArtist = ARTISTS.find((a) => a.id === profile?.artist_config_id)
     ?? ARTISTS.find((a) => a.id === "info")!;
@@ -163,6 +173,36 @@ export default function ClientProfile() {
     piercing: "Piercing",
     laser: "Laser",
   };
+
+  // ── Permisos de imagen (plantilla 2.x) con las retiradas aplicadas ──
+  const imageLabels = (cf: ConsentForm): Record<keyof ConsentImagePermissions, string> => {
+    const artistName = cf.form_data.applicator?.name ?? cf.form_data.artistName;
+    return {
+      internal: "Interna",
+      studioWeb: "Web Lowkey",
+      studioSocial: "Redes Lowkey",
+      artistPortfolio: `Portfolio ${artistName}`,
+      artistSocial: `Redes ${artistName}`,
+    };
+  };
+  const withdrawnOf = (cf: ConsentForm) =>
+    new Set((withdrawals ?? []).filter((w) => w.consent_id === cf.id).map((w) => w.permission));
+  const imageState = (cf: ConsentForm) => {
+    const img = cf.form_data.consents?.image;
+    if (!img) return null; // plantillas antiguas: sin autorizaciones registradas
+    const withdrawn = withdrawnOf(cf);
+    const labels = imageLabels(cf);
+    return (Object.keys(labels) as (keyof ConsentImagePermissions)[]).map((k) => ({
+      key: k,
+      label: labels[k],
+      granted: img[k],
+      withdrawn: img[k] && withdrawn.has(k),
+    }));
+  };
+  const latestImageConsent = (consentForms ?? []).find((c) => c.status === "firmado" && c.form_data.consents?.image);
+  const fmtShort = (iso: string) => formatLocalDate(iso.split("T")[0], "d MMM yyyy", { locale: es });
+  const CHANNEL_LABEL: Record<string, string> = { email: "email", whatsapp: "WhatsApp", gmail: "Gmail" };
+
 
   // Session quick-edit state
   const [editingSession, setEditingSession] = useState<{
@@ -563,6 +603,24 @@ export default function ClientProfile() {
           </Button>
         </CardHeader>
         <CardContent>
+          {latestImageConsent && (
+            <div className="mb-3 rounded-md border border-border bg-background p-3">
+              <p className="text-[10px] font-['IBM_Plex_Mono'] uppercase tracking-wider text-muted-foreground mb-1.5">
+                Fotos autorizadas · consentimiento del {latestImageConsent.signed_at ? fmtShort(latestImageConsent.signed_at) : "—"}
+              </p>
+              <div className="flex flex-wrap gap-1.5">
+                {imageState(latestImageConsent)!.map((p) => (
+                  <Badge
+                    key={p.key}
+                    variant={p.granted && !p.withdrawn ? "default" : "outline"}
+                    className={`text-[10px] ${p.withdrawn ? "line-through text-muted-foreground" : ""}`}
+                  >
+                    {p.label} {p.withdrawn ? "· retirado" : p.granted ? "✓" : "✗"}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          )}
           {(consentForms ?? []).length === 0 ? (
             <p className="text-muted-foreground text-sm text-center py-6">Sin consentimientos registrados</p>
           ) : (
@@ -596,6 +654,66 @@ export default function ClientProfile() {
                       >
                         Ver documento del representante
                       </button>
+                    )}
+                    {(() => {
+                      const replaced = (consentForms ?? []).find((x) => x.replaces_id === cf.id);
+                      const original = cf.replaces_id ? (consentForms ?? []).find((x) => x.id === cf.replaces_id) : null;
+                      return (
+                        <>
+                          {original && (
+                            <div className="text-xs text-muted-foreground mt-0.5">
+                              Sustituye al documento anulado del {original.signed_at ? fmtShort(original.signed_at) : "—"}
+                            </div>
+                          )}
+                          {replaced && (
+                            <div className="text-xs text-muted-foreground mt-0.5">
+                              Sustituido por el documento del {replaced.signed_at ? fmtShort(replaced.signed_at) : "—"}
+                            </div>
+                          )}
+                          {cf.status === "anulado" && isOwner && !replaced && (
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-7 text-xs gap-1 mt-2"
+                              onClick={() => setCorrectionOf(cf)}
+                            >
+                              <FilePlus2 className="w-3.5 h-3.5" /> Firmar documento corregido
+                            </Button>
+                          )}
+                        </>
+                      );
+                    })()}
+                    {cf.status === "firmado" && imageState(cf) && (
+                      <div className="mt-1.5 flex flex-wrap items-center gap-1">
+                        {imageState(cf)!.map((p) => (
+                          <span
+                            key={p.key}
+                            className={`text-[10px] font-['IBM_Plex_Mono'] px-1.5 py-0.5 rounded border border-border ${
+                              p.withdrawn ? "line-through text-muted-foreground" : p.granted ? "text-foreground" : "text-muted-foreground"
+                            }`}
+                          >
+                            {p.label} {p.withdrawn ? "retirado" : p.granted ? "✓" : "✗"}
+                          </span>
+                        ))}
+                        {imageState(cf)!.some((p) => p.granted && !p.withdrawn) && (
+                          <button
+                            type="button"
+                            className="text-[11px] underline text-muted-foreground hover:text-foreground ml-1"
+                            onClick={() => { setWithdrawSel([]); setWithdrawNote(""); setWithdrawTarget(cf); }}
+                          >
+                            Retirar autorización
+                          </button>
+                        )}
+                      </div>
+                    )}
+                    {(copyLog ?? []).some((l) => l.consent_id === cf.id) && (
+                      <div className="text-[11px] text-muted-foreground mt-1">
+                        Copia enviada:{" "}
+                        {(copyLog ?? [])
+                          .filter((l) => l.consent_id === cf.id)
+                          .map((l) => `${CHANNEL_LABEL[l.channel] ?? l.channel} ${fmtShort(l.sent_at)}`)
+                          .join(" · ")}
+                      </div>
                     )}
                     {cf.status !== "firmado" && (
                       <div className="mt-1 flex flex-wrap items-center gap-2">
@@ -672,7 +790,24 @@ export default function ClientProfile() {
                         >
                           <Download className="w-3.5 h-3.5" />
                         </Button>
-                        {client.phone && (
+                        {cf.status === "firmado" && client.email && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground"
+                            title={`Enviar copia por email a ${client.email} (enlace de 7 días)`}
+                            disabled={sendCopyEmail.isPending}
+                            onClick={() =>
+                              sendCopyEmail.mutate(cf.id, {
+                                onSuccess: () => toast.success(`Copia enviada a ${client.email}`),
+                                onError: (e) => toast.error((e as Error).message),
+                              })
+                            }
+                          >
+                            <Send className="w-3.5 h-3.5" />
+                          </Button>
+                        )}
+                        {cf.status === "firmado" && client.phone && (
                           <Button
                             variant="ghost"
                             size="sm"
@@ -681,6 +816,7 @@ export default function ClientProfile() {
                             disabled={shareWhatsApp.isPending}
                             onClick={() =>
                               shareWhatsApp.mutate({
+                                consentId: cf.id,
                                 storagePath: cf.pdf_storage_path!,
                                 clientPhone: client.phone!,
                                 clientName: client.name,
@@ -690,7 +826,7 @@ export default function ClientProfile() {
                             <MessageCircle className="w-3.5 h-3.5" />
                           </Button>
                         )}
-                        {client.email && (
+                        {cf.status === "firmado" && client.email && (
                           <Button
                             variant="ghost"
                             size="sm"
@@ -699,6 +835,7 @@ export default function ClientProfile() {
                             disabled={shareGmail.isPending}
                             onClick={() =>
                               shareGmail.mutate({
+                                consentId: cf.id,
                                 storagePath: cf.pdf_storage_path!,
                                 clientEmail: client.email!,
                                 clientName: client.name,
@@ -1103,6 +1240,75 @@ export default function ClientProfile() {
             title="Consentimiento PDF"
           />
         </div>
+      )}
+
+      {/* Retirar autorizaciones de imagen */}
+      <AlertDialog open={!!withdrawTarget} onOpenChange={(open) => { if (!open) setWithdrawTarget(null); }}>
+        <AlertDialogContent className="bg-card border-border">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Retirar autorización de imagen</AlertDialogTitle>
+            <AlertDialogDescription>
+              El documento firmado no cambia: la retirada queda registrada aparte, con fecha y quién la anota, y prevalece.
+              Retira después las publicaciones del estudio; si afecta a las redes o al portfolio del artista, avísale.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <div className="space-y-2">
+            {withdrawTarget && imageState(withdrawTarget)!.filter((p) => p.granted && !p.withdrawn).map((p) => (
+              <label key={p.key} className="flex items-center gap-2 text-sm cursor-pointer">
+                <Checkbox
+                  checked={withdrawSel.includes(p.key)}
+                  onCheckedChange={(v) => setWithdrawSel((sel) => (v ? [...sel, p.key] : sel.filter((x) => x !== p.key)))}
+                />
+                {p.label}
+              </label>
+            ))}
+            <Label htmlFor="withdraw-note" className="text-xs">Nota (opcional): cómo y cuándo lo pidió</Label>
+            <Textarea id="withdraw-note" value={withdrawNote} onChange={(e) => setWithdrawNote(e.target.value)} maxLength={300} rows={2} />
+          </div>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancelar</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={withdrawSel.length === 0 || recordWithdrawal.isPending}
+              onClick={() => {
+                if (!withdrawTarget) return;
+                recordWithdrawal.mutate(
+                  { consentId: withdrawTarget.id, permissions: withdrawSel, note: withdrawNote },
+                  {
+                    onSuccess: () => toast.success("Retirada registrada"),
+                    onError: (e) => toast.error((e as Error).message),
+                  },
+                );
+                setWithdrawTarget(null);
+              }}
+            >
+              Registrar retirada
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Documento corregido: sustituye a un consentimiento anulado */}
+      {client && correctionOf && (
+        <ConsentFormModal
+          open={!!correctionOf}
+          onClose={() => setCorrectionOf(null)}
+          client={{
+            id: client.id,
+            name: client.name,
+            phone: client.phone,
+            email: client.email,
+            birthday: client.birthday,
+          }}
+          artist={currentArtist}
+          replacesId={correctionOf.id}
+          initial={{
+            formType: correctionOf.type,
+            applicatorId: correctionOf.form_data.applicator?.artistId ?? correctionOf.form_data.artistId,
+            sessionId: correctionOf.session_id,
+            zone: correctionOf.form_data.procedure?.zone,
+            description: correctionOf.form_data.procedure?.description,
+          }}
+        />
       )}
 
       {/* Consent form modal */}

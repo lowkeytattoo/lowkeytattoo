@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import type { SupabaseClient } from "@supabase/supabase-js";
 import { supabase } from "@shared/lib/supabase";
 import type { ConsentForm, ConsentFormInsert } from "@shared/types/index";
 
@@ -161,40 +162,51 @@ export function useDownloadConsentPdf() {
   });
 }
 
+const COPY_LINK_SECONDS = 7 * 24 * 60 * 60; // enlace de la copia: 7 días (decisión 28/11/2026)
+
 export function useShareConsentWhatsApp() {
+  const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({
+      consentId,
       storagePath,
       clientPhone,
       clientName,
     }: {
+      consentId: string;
       storagePath: string;
       clientPhone: string;
       clientName: string;
     }) => {
       const { data, error } = await supabase.storage
         .from("consent-documents")
-        .createSignedUrl(storagePath, 86400);
+        .createSignedUrl(storagePath, COPY_LINK_SECONDS);
       if (error) throw error;
       const msg =
         `Hola ${clientName}! Te enviamos una copia de tu consentimiento informado firmado en Lowkey Tattoo Tenerife. ` +
-        `Puedes descargarlo con este enlace (válido 24 horas):\n${data.signedUrl}`;
+        `Puedes descargarlo con este enlace (válido 7 días). Contiene datos de salud: guárdalo en un lugar seguro.\n${data.signedUrl}`;
       const phone = clientPhone.startsWith("+") || clientPhone.startsWith("00")
         ? clientPhone.replace(/\D/g, "")
         : "34" + clientPhone.replace(/\D/g, "");
       window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, "_blank");
+      // Constancia (no bloquea el envío si falla)
+      try { await rpc("log_consent_copy", { p_consent_id: consentId, p_channel: "whatsapp" }); } catch { /* la constancia no bloquea el envío */ }
     },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["consent-copy-log"] }),
   });
 }
 
 export function useShareConsentGmail() {
+  const qc = useQueryClient();
   return useMutation({
     mutationFn: async ({
+      consentId,
       storagePath,
       clientEmail,
       clientName,
       consentType,
     }: {
+      consentId: string;
       storagePath: string;
       clientEmail: string;
       clientName: string;
@@ -202,7 +214,7 @@ export function useShareConsentGmail() {
     }) => {
       const { data, error } = await supabase.storage
         .from("consent-documents")
-        .createSignedUrl(storagePath, 86400);
+        .createSignedUrl(storagePath, COPY_LINK_SECONDS);
       if (error) throw error;
       const subject = `Tu consentimiento informado — Lowkey Tattoo Tenerife`;
       const body = [
@@ -210,7 +222,7 @@ export function useShareConsentGmail() {
         ``,
         `Te enviamos el enlace para descargar tu consentimiento informado de ${consentType} firmado en Lowkey Tattoo Tenerife.`,
         ``,
-        `Enlace de descarga (válido 24 horas):`,
+        `Enlace de descarga (válido 7 días). Contiene datos de salud: guárdalo en un lugar seguro.`,
         data.signedUrl,
         ``,
         `Gracias por confiar en nosotros.`,
@@ -224,6 +236,83 @@ export function useShareConsentGmail() {
         `&su=${encodeURIComponent(subject)}` +
         `&body=${encodeURIComponent(body)}`;
       window.open(url, "_blank");
+      try { await rpc("log_consent_copy", { p_consent_id: consentId, p_channel: "gmail" }); } catch { /* la constancia no bloquea el envío */ }
     },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["consent-copy-log"] }),
+  });
+}
+
+// ── Copia por email (servidor) y registros de la Fase 2 ───────────────────────
+
+/** Envía la copia al email de la ficha del cliente desde el servidor (Brevo) y lo registra. */
+export function useSendConsentCopyEmail() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (consentId: string) => {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) throw new Error("Sesión caducada: vuelve a iniciar sesión");
+      const res = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/send-consent-copy`, {
+        method: "POST",
+        headers: {
+          apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+          Authorization: `Bearer ${session.access_token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ consent_id: consentId }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body?.error ?? "No se pudo enviar la copia");
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["consent-copy-log"] }),
+  });
+}
+
+export interface ConsentCopyLogEntry { id: string; consent_id: string; channel: "email" | "whatsapp" | "gmail"; sent_by: string | null; sent_at: string }
+export interface ImageWithdrawal { id: string; consent_id: string; permission: string; note: string | null; recorded_by: string | null; withdrawn_at: string }
+
+// Tablas fuera del tipo Database generado: cliente sin tipar solo para ellas.
+const db = supabase as unknown as SupabaseClient;
+
+export function useConsentCopyLog(consentIds: string[]) {
+  return useQuery({
+    queryKey: ["consent-copy-log", consentIds],
+    enabled: consentIds.length > 0,
+    queryFn: async () => {
+      const { data, error } = await db
+        .from("consent_copy_log")
+        .select("id, consent_id, channel, sent_by, sent_at")
+        .in("consent_id", consentIds)
+        .order("sent_at", { ascending: false });
+      if (error) throw error;
+      return (data ?? []) as ConsentCopyLogEntry[];
+    },
+  });
+}
+
+export function useImageWithdrawals(consentIds: string[]) {
+  return useQuery({
+    queryKey: ["consent-image-withdrawals", consentIds],
+    enabled: consentIds.length > 0,
+    queryFn: async () => {
+      const { data, error } = await db
+        .from("consent_image_withdrawals")
+        .select("id, consent_id, permission, note, recorded_by, withdrawn_at")
+        .in("consent_id", consentIds);
+      if (error) throw error;
+      return (data ?? []) as ImageWithdrawal[];
+    },
+  });
+}
+
+export function useRecordImageWithdrawal() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ consentId, permissions, note }: { consentId: string; permissions: string[]; note: string }) => {
+      for (const p of permissions) {
+        const { error } = await rpc("record_image_withdrawal", { p_consent_id: consentId, p_permission: p, p_note: note });
+        if (error) throw new Error(error.message);
+      }
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["consent-image-withdrawals"] }),
   });
 }
