@@ -47,7 +47,7 @@ export interface Database {
       };
       consent_forms: {
         Row: ConsentForm;
-        Insert: Omit<ConsentForm, "id" | "created_at">;
+        Insert: Omit<ConsentForm, "id" | "created_at" | "status" | "annul_reason" | "annul_requested_by" | "annul_requested_at" | "annul_resolved_by" | "annul_resolved_at">;
         Update: Partial<Omit<ConsentForm, "id" | "created_at">>;
       };
     };
@@ -105,6 +105,7 @@ export interface ClientPhoto {
   description: string | null;
   is_cover: boolean;
   created_at: string;
+  uploaded_by: string | null;
 }
 
 export type ProductCategory =
@@ -203,7 +204,16 @@ export interface ConsentForm {
   user_agent: string | null;
   created_by: string | null;
   created_at: string;
+  // Anulación (RGPD paquete 2): el PDF firmado nunca se modifica
+  status: ConsentStatus;
+  annul_reason: string | null;
+  annul_requested_by: string | null;
+  annul_requested_at: string | null;
+  annul_resolved_by: string | null;
+  annul_resolved_at: string | null;
 }
+
+export type ConsentStatus = "firmado" | "anulacion_solicitada" | "anulado";
 
 // ─── Join types (Supabase queries con relaciones) ─────────────────────────────
 

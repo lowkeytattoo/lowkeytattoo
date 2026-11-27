@@ -41,7 +41,11 @@ export const useDeleteClientPhoto = () => {
       storagePath: string;
       clientId: string;
     }) => {
-      await supabase.storage.from("client-photos").remove([storagePath]);
+      // Artistas: solo pueden borrar fotos que subieron ellos (RLS + Storage).
+      // Si Storage lo bloquea, remove() devuelve 0 archivos sin error.
+      const { data: removed, error: rmError } = await supabase.storage.from("client-photos").remove([storagePath]);
+      if (rmError) throw rmError;
+      if (!removed || removed.length === 0) throw new Error("No tienes permiso para borrar esta foto");
       const { error } = await supabase.from("client_photos").delete().eq("id", photoId);
       if (error) throw error;
       return clientId;

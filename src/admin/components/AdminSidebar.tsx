@@ -23,6 +23,7 @@ import { useUpdateProfile } from "@admin/hooks/useArtistProfiles";
 import { StockAlertBadge } from "@admin/components/StockAlertBadge";
 import { MessagesUnreadBadge } from "@admin/components/MessagesUnreadBadge";
 import { BookingsPendingBadge } from "@admin/components/BookingsPendingBadge";
+import { AnnulmentsPendingBadge } from "@admin/components/AnnulmentsPendingBadge";
 import { cn } from "@shared/lib/utils";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -55,11 +56,12 @@ interface NavItem {
   badge?: boolean;
   messagesBadge?: boolean;
   bookingsBadge?: boolean;
+  annulBadge?: boolean;
 }
 
 const allNavItems: NavItem[] = [
   { to: "/admin/dashboard", label: "Dashboard",  icon: LayoutDashboard },
-  { to: "/admin/clients",   label: "Clientes",   icon: Users },
+  { to: "/admin/clients",   label: "Clientes",   icon: Users, annulBadge: true },
   { to: "/admin/sessions",  label: "Sesiones",   icon: Calendar },
   { to: "/admin/calendar",  label: "Calendario", icon: CalendarDays, requiresCalendar: true },
   { to: "/admin/bookings",  label: "Citas Web",  icon: BookOpen, bookingsBadge: true },
@@ -156,7 +158,7 @@ export const AdminSidebar = () => {
         {/* Nav */}
         <nav className="flex-1 py-4 overflow-y-auto">
           <ul className="space-y-0.5 px-3">
-            {allItems.map(({ to, label, icon: Icon, badge, messagesBadge, bookingsBadge }) => (
+            {allItems.map(({ to, label, icon: Icon, badge, messagesBadge, bookingsBadge, annulBadge }) => (
               <li key={to}>
                 <NavLink
                   to={to}
@@ -174,6 +176,7 @@ export const AdminSidebar = () => {
                   {badge && <StockAlertBadge />}
                   {messagesBadge && <MessagesUnreadBadge />}
                   {bookingsBadge && <BookingsPendingBadge />}
+                  {annulBadge && <AnnulmentsPendingBadge />}
                 </NavLink>
               </li>
             ))}
@@ -241,7 +244,7 @@ export const AdminSidebar = () => {
           )}
         >
           <ul className="flex">
-            {moreItems.map(({ to, label, icon: Icon, badge, messagesBadge, bookingsBadge }) => (
+            {moreItems.map(({ to, label, icon: Icon, badge, messagesBadge, bookingsBadge, annulBadge }) => (
               <li key={to} className="flex-1">
                 <NavLink
                   to={to}
@@ -268,6 +271,11 @@ export const AdminSidebar = () => {
                     {bookingsBadge && (
                       <span className="absolute -top-1 -right-1">
                         <BookingsPendingBadge />
+                      </span>
+                    )}
+                    {annulBadge && (
+                      <span className="absolute -top-1 -right-1">
+                        <AnnulmentsPendingBadge />
                       </span>
                     )}
                   </div>
@@ -304,7 +312,7 @@ export const AdminSidebar = () => {
 
         {/* Main bar */}
         <ul className="flex">
-          {mobileItems.map(({ to, label, icon, badge, messagesBadge, bookingsBadge }) => {
+          {mobileItems.map(({ to, label, icon, badge, messagesBadge, bookingsBadge, annulBadge }) => {
             const isCenterItem = to === "/admin/dashboard";
             // Center dashboard item uses Home icon; others use their own icon
             const Icon = isCenterItem ? Home : icon;
@@ -349,6 +357,11 @@ export const AdminSidebar = () => {
                         {bookingsBadge && (
                           <span className="absolute -top-1 -right-1">
                             <BookingsPendingBadge />
+                          </span>
+                        )}
+                        {annulBadge && (
+                          <span className="absolute -top-1 -right-1">
+                            <AnnulmentsPendingBadge />
                           </span>
                         )}
                       </div>

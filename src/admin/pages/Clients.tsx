@@ -39,12 +39,14 @@ import { Plus, Search, UserCircle, Pencil, Trash2 } from "lucide-react";
 import { cn } from "@shared/lib/utils";
 import { ArtistAvatar } from "@admin/components/ArtistAvatar";
 import { PhoneInput, formatPhone } from "@admin/components/PhoneInput";
+import { usePendingAnnulments } from "@admin/hooks/useConsentForms";
 import type { Client } from "@shared/types/index";
 
 export default function Clients() {
   const navigate = useNavigate();
   const { profile } = useAdminAuth();
   const isOwner = profile?.role === "owner";
+  const { data: pendingAnnulments } = usePendingAnnulments(isOwner);
 
   const { data: artists } = useArtistProfiles();
   const { data: coverPhotos } = useClientCoverPhotos();
@@ -165,6 +167,25 @@ export default function Clients() {
 
   return (
     <div className="space-y-5">
+      {isOwner && (pendingAnnulments ?? []).length > 0 && (
+        <div className="rounded-md border border-border bg-muted/40 px-4 py-3 text-sm space-y-1">
+          <p className="font-medium">Anulaciones de consentimiento pendientes de revisar</p>
+          <ul className="space-y-0.5">
+            {(pendingAnnulments ?? []).map((a) => (
+              <li key={a.id}>
+                <button
+                  type="button"
+                  className="underline text-muted-foreground hover:text-foreground"
+                  onClick={() => navigate(`/admin/clients/${a.client_id}`)}
+                >
+                  {a.clients?.name ?? "Cliente"}
+                </button>
+                {a.annul_reason && <span className="text-muted-foreground"> · {a.annul_reason}</span>}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Clientes</h1>
@@ -301,16 +322,18 @@ export default function Clients() {
                       >
                         <Pencil className="w-3.5 h-3.5" />
                       </Button>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
-                        onClick={(e) => handleDelete(e, client)}
-                        title="Eliminar cliente"
-                        disabled={deleteClient.isPending}
-                      >
-                        <Trash2 className="w-3.5 h-3.5" />
-                      </Button>
+                      {isOwner && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
+                          onClick={(e) => handleDelete(e, client)}
+                          title="Eliminar cliente"
+                          disabled={deleteClient.isPending}
+                        >
+                          <Trash2 className="w-3.5 h-3.5" />
+                        </Button>
+                      )}
                     </div>
                   </TableCell>
                 </TableRow>
@@ -471,7 +494,8 @@ export default function Clients() {
           <AlertDialogHeader>
             <AlertDialogTitle>¿Eliminar cliente?</AlertDialogTitle>
             <AlertDialogDescription>
-              Vas a eliminar a <strong>{deleteTarget?.name}</strong>. Esta acción no se puede deshacer.
+              Vas a eliminar a <strong>{deleteTarget?.name}</strong> con sus sesiones y fotos. Esta acción no se puede deshacer.
+              Si tiene consentimientos firmados no se podrá eliminar: deben conservarse al menos 5 años desde cada intervención.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
@@ -483,8 +507,14 @@ export default function Clients() {
                 try {
                   await deleteClient.mutateAsync(deleteTarget.id);
                   toast.success("Cliente eliminado");
-                } catch {
-                  toast.error("Error al eliminar el cliente.");
+                } catch (err) {
+                  // 23503 = la base de datos lo impide porque tiene consentimientos (ON DELETE RESTRICT)
+                  const code = (err as { code?: string })?.code;
+                  if (code === "23503") {
+                    toast.error("Este cliente tiene consentimientos firmados y debe conservarse hasta que venza el plazo legal (5 años desde cada intervención).", { duration: 8000 });
+                  } else {
+                    toast.error("Error al eliminar el cliente.");
+                  }
                 } finally {
                   setDeleteTarget(null);
                 }

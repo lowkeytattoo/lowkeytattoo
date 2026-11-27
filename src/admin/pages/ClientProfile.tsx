@@ -38,7 +38,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ArrowLeft, Camera, Plus, Star, Upload, Trash2, Pencil, Phone, AlertCircle, Cake, Clock, Link2, UserCircle, FileText, Download, Mail, MessageCircle } from "lucide-react";
+import { ArrowLeft, Camera, Plus, Star, Upload, Trash2, Pencil, Phone, AlertCircle, Cake, Clock, Link2, UserCircle, FileText, Download, Mail, MessageCircle, Ban, Check, X } from "lucide-react";
 import type { SessionType } from "@shared/types/index";
 import { format } from "date-fns";
 import { formatLocalDate } from "@shared/lib/formatDate";
@@ -46,7 +46,9 @@ import { es } from "date-fns/locale";
 import { useQueryClient } from "@tanstack/react-query";
 import { ARTISTS } from "@shared/config/artists";
 import { ConsentFormModal } from "@admin/components/ConsentFormModal";
-import { useConsentForms, useDownloadConsentPdf, useOpenConsentPdf, useDeleteConsentForm, useShareConsentWhatsApp, useShareConsentGmail } from "@admin/hooks/useConsentForms";
+import { useConsentForms, useDownloadConsentPdf, useOpenConsentPdf, useRequestConsentAnnulment, useResolveConsentAnnulment, useDeleteAnnulledConsent, useShareConsentWhatsApp, useShareConsentGmail } from "@admin/hooks/useConsentForms";
+import type { ConsentForm } from "@shared/types/index";
+import { toast } from "sonner";
 
 const MAX_PX = 1920;
 const WEBP_QUALITY = 0.85;
@@ -130,7 +132,10 @@ export default function ClientProfile() {
   const { data: consentForms } = useConsentForms(id!);
   const downloadPdf = useDownloadConsentPdf();
   const openPdf = useOpenConsentPdf();
-  const deleteConsent = useDeleteConsentForm();
+  const requestAnnulment = useRequestConsentAnnulment();
+  const resolveAnnulment = useResolveConsentAnnulment();
+  const deleteAnnulled = useDeleteAnnulledConsent();
+  const isOwner = profile?.role === "owner";
   const shareWhatsApp = useShareConsentWhatsApp();
   const shareGmail = useShareConsentGmail();
 
@@ -139,7 +144,9 @@ export default function ClientProfile() {
 
   const [showConsentModal, setShowConsentModal] = useState(false);
   const [viewPdfUrl, setViewPdfUrl] = useState<string | null>(null);
-  const [deleteConsentTarget, setDeleteConsentTarget] = useState<{ id: string; storagePath: string | null } | null>(null);
+  // Anular (cualquiera) o borrar un consentimiento ya anulado (solo dueños); ambos piden motivo
+  const [consentAction, setConsentAction] = useState<{ mode: "annul" | "delete"; cf: ConsentForm } | null>(null);
+  const [consentReason, setConsentReason] = useState("");
 
   const handleViewPdf = async (storagePath: string) => {
     const url = await openPdf.mutateAsync(storagePath);
@@ -561,7 +568,7 @@ export default function ClientProfile() {
           ) : (
             <div className="space-y-2">
               {(consentForms ?? []).map((cf) => (
-                <div key={cf.id} className="flex items-center gap-3 p-3 rounded-lg bg-background border border-border">
+                <div key={cf.id} className={`flex items-center gap-3 p-3 rounded-lg bg-background border border-border ${cf.status === "anulado" ? "opacity-60" : ""}`}>
                   <FileText className="w-4 h-4 text-muted-foreground shrink-0" />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2">
@@ -576,6 +583,57 @@ export default function ClientProfile() {
                       </span>
                     </div>
                     <div className="text-xs text-muted-foreground mt-0.5">{cf.form_data.artistName}</div>
+                    {cf.status !== "firmado" && (
+                      <div className="mt-1 flex flex-wrap items-center gap-2">
+                        <Badge
+                          variant={cf.status === "anulado" ? "destructive" : "secondary"}
+                          className="text-[10px] font-['IBM_Plex_Mono'] uppercase"
+                        >
+                          {cf.status === "anulado" ? "Anulado" : "Anulación solicitada"}
+                        </Badge>
+                        {cf.annul_reason && (
+                          <span className="text-xs text-muted-foreground">Motivo: {cf.annul_reason}</span>
+                        )}
+                      </div>
+                    )}
+                    {cf.status === "anulacion_solicitada" && isOwner && (
+                      <div className="mt-2 flex gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          className="h-7 text-xs gap-1"
+                          disabled={resolveAnnulment.isPending}
+                          onClick={() =>
+                            resolveAnnulment.mutate(
+                              { id: cf.id, approve: true, clientId: id! },
+                              {
+                                onSuccess: () => toast.success("Consentimiento anulado. Firma uno nuevo si hace falta."),
+                                onError: (e) => toast.error((e as Error).message),
+                              },
+                            )
+                          }
+                        >
+                          <Check className="w-3.5 h-3.5" /> Aprobar anulación
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-7 text-xs gap-1"
+                          disabled={resolveAnnulment.isPending}
+                          onClick={() =>
+                            resolveAnnulment.mutate(
+                              { id: cf.id, approve: false, clientId: id! },
+                              {
+                                onSuccess: () => toast.success("Solicitud rechazada: el consentimiento sigue vigente"),
+                                onError: (e) => toast.error((e as Error).message),
+                              },
+                            )
+                          }
+                        >
+                          <X className="w-3.5 h-3.5" /> Rechazar
+                        </Button>
+                      </div>
+                    )}
                   </div>
                   <div className="flex gap-1 shrink-0">
                     {cf.pdf_storage_path && (
@@ -639,15 +697,28 @@ export default function ClientProfile() {
                         )}
                       </>
                     )}
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
-                      onClick={() => setDeleteConsentTarget({ id: cf.id, storagePath: cf.pdf_storage_path })}
-                      title="Eliminar consentimiento"
-                    >
-                      <Trash2 className="w-3.5 h-3.5" />
-                    </Button>
+                    {cf.status === "firmado" && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
+                        onClick={() => { setConsentReason(""); setConsentAction({ mode: "annul", cf }); }}
+                        title="Solicitar anulación"
+                      >
+                        <Ban className="w-3.5 h-3.5" />
+                      </Button>
+                    )}
+                    {cf.status === "anulado" && isOwner && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        className="h-7 w-7 p-0 text-muted-foreground hover:text-destructive"
+                        onClick={() => { setConsentReason(""); setConsentAction({ mode: "delete", cf }); }}
+                        title="Borrar consentimiento anulado"
+                      >
+                        <Trash2 className="w-3.5 h-3.5" />
+                      </Button>
+                    )}
                   </div>
                 </div>
               ))}
@@ -724,14 +795,16 @@ export default function ClientProfile() {
                         <span className="text-white text-[9px] font-['IBM_Plex_Mono']">Perfil</span>
                       </button>
                     )}
-                    <button
-                      onClick={() => setDeletePhotoTarget({ id: photo.id, storage_path: photo.storage_path })}
-                      title="Eliminar foto"
-                      className="flex flex-col items-center gap-0.5"
-                    >
-                      <Trash2 className="w-4 h-4 text-red-400" />
-                      <span className="text-red-400 text-[9px] font-['IBM_Plex_Mono']">Borrar</span>
-                    </button>
+                    {(isOwner || photo.uploaded_by === profile?.id) && (
+                      <button
+                        onClick={() => setDeletePhotoTarget({ id: photo.id, storage_path: photo.storage_path })}
+                        title="Eliminar foto"
+                        className="flex flex-col items-center gap-0.5"
+                      >
+                        <Trash2 className="w-4 h-4 text-red-400" />
+                        <span className="text-red-400 text-[9px] font-['IBM_Plex_Mono']">Borrar</span>
+                      </button>
+                    )}
                   </div>
                 </div>
               ))}
@@ -926,31 +999,67 @@ export default function ClientProfile() {
         </DialogContent>
       </Dialog>
 
-      {/* Delete consent AlertDialog */}
-      <AlertDialog open={!!deleteConsentTarget} onOpenChange={(open) => !open && setDeleteConsentTarget(null)}>
+      {/* Anular / borrar consentimiento (con motivo) */}
+      <AlertDialog
+        open={!!consentAction}
+        onOpenChange={(open) => { if (!open) { setConsentAction(null); setConsentReason(""); } }}
+      >
         <AlertDialogContent className="bg-card border-border">
           <AlertDialogHeader>
-            <AlertDialogTitle>¿Eliminar consentimiento?</AlertDialogTitle>
+            <AlertDialogTitle>
+              {consentAction?.mode === "delete" ? "¿Borrar consentimiento anulado?" : "Solicitar anulación del consentimiento"}
+            </AlertDialogTitle>
             <AlertDialogDescription>
-              Se eliminará el registro y el PDF firmado. Esta acción no se puede deshacer.
+              {consentAction?.mode === "delete"
+                ? "Se borrarán el registro y el PDF. Quedará constancia de quién lo borró, cuándo y por qué. Úsalo solo si el documento no debe conservarse (por ejemplo, lleva datos de otra persona)."
+                : isOwner
+                  ? "Un consentimiento firmado no se puede editar ni borrar. Si tiene un error, se anula (el PDF se conserva marcado como ANULADO) y se firma uno nuevo. Después podrás aprobar la anulación aquí mismo."
+                  : "Un consentimiento firmado no se puede editar ni borrar. Si tiene un error, solicita su anulación: Pablo, Sergio o info@ la revisarán. El PDF se conserva marcado como ANULADO y se firma uno nuevo."}
             </AlertDialogDescription>
           </AlertDialogHeader>
+          <div className="space-y-2">
+            <Label htmlFor="consent-reason" className="text-xs">Motivo (obligatorio)</Label>
+            <Textarea
+              id="consent-reason"
+              value={consentReason}
+              onChange={(e) => setConsentReason(e.target.value)}
+              maxLength={500}
+              rows={3}
+              placeholder={consentAction?.mode === "delete" ? "Ej.: firmado en la ficha de otro cliente" : "Ej.: fecha de nacimiento equivocada"}
+            />
+            <p className="text-[11px] text-muted-foreground">No escribas datos de salud en el motivo.</p>
+          </div>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancelar</AlertDialogCancel>
             <AlertDialogAction
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              disabled={consentReason.trim().length < 5}
               onClick={() => {
-                if (deleteConsentTarget) {
-                  deleteConsent.mutate({
-                    id: deleteConsentTarget.id,
-                    storagePath: deleteConsentTarget.storagePath,
-                    clientId: id!,
-                  });
+                if (!consentAction) return;
+                const { mode, cf } = consentAction;
+                const reason = consentReason.trim();
+                if (mode === "annul") {
+                  requestAnnulment.mutate(
+                    { id: cf.id, reason, clientId: id! },
+                    {
+                      onSuccess: () => toast.success("Anulación solicitada"),
+                      onError: (e) => toast.error((e as Error).message),
+                    },
+                  );
+                } else {
+                  deleteAnnulled.mutate(
+                    { id: cf.id, storagePath: cf.pdf_storage_path, reason, clientId: id! },
+                    {
+                      onSuccess: () => toast.success("Consentimiento anulado borrado"),
+                      onError: (e) => toast.error((e as Error).message),
+                    },
+                  );
                 }
-                setDeleteConsentTarget(null);
+                setConsentAction(null);
+                setConsentReason("");
               }}
             >
-              Eliminar
+              {consentAction?.mode === "delete" ? "Borrar" : "Solicitar anulación"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
@@ -1006,7 +1115,10 @@ export default function ClientProfile() {
               className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
               onClick={() => {
                 if (deletePhotoTarget) {
-                  deletePhoto.mutate({ photoId: deletePhotoTarget.id, storagePath: deletePhotoTarget.storage_path, clientId: id! });
+                  deletePhoto.mutate(
+                    { photoId: deletePhotoTarget.id, storagePath: deletePhotoTarget.storage_path, clientId: id! },
+                    { onError: (e) => toast.error((e as Error).message) },
+                  );
                 }
                 setDeletePhotoTarget(null);
               }}
