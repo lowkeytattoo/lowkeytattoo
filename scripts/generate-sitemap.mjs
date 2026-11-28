@@ -36,7 +36,6 @@ function hreflang(path) {
   const url = `${BASE_URL}${path}`;
   return [
     `    <xhtml:link rel="alternate" hreflang="es" href="${url}"/>`,
-    `    <xhtml:link rel="alternate" hreflang="en" href="${url}"/>`,
     `    <xhtml:link rel="alternate" hreflang="x-default" href="${url}"/>`,
   ].join("\n");
 }
