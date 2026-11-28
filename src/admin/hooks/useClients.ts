@@ -104,7 +104,7 @@ export const useClients = (artistId?: string) => {
     queryFn: async () => {
       let query = supabase
         .from("clients")
-        .select("*, primary_artist:profiles(id, display_name)")
+        .select("*, primary_artist:profiles!primary_artist_id(id, display_name)")
         .order("name");
       if (artistId) query = query.eq("primary_artist_id", artistId);
       const { data, error } = await query;
@@ -138,7 +138,7 @@ export const useClientsPaged = ({
 
       let query = supabase
         .from("clients")
-        .select("*, primary_artist:profiles(id, display_name)", { count: "exact" })
+        .select("*, primary_artist:profiles!primary_artist_id(id, display_name)", { count: "exact" })
         .order("name")
         .range(from, to);
 
@@ -167,7 +167,7 @@ export const useClient = (id: string) => {
     queryFn: async () => {
       const { data, error } = await supabase
         .from("clients")
-        .select("*, primary_artist:profiles(id, display_name)")
+        .select("*, primary_artist:profiles!primary_artist_id(id, display_name)")
         .eq("id", id)
         .single();
       if (error) throw error;
